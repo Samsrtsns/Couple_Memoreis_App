@@ -1,95 +1,75 @@
 import PrimaryButton from "@/src/components/PrimaryButton";
 import Screen from "@/src/components/Screen";
+import { TextInputArea } from "@/src/components/TextInput";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Image, Pressable, Text, TextInput, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
     const [pass, setPass] = useState("");
-
     const [showPass, setShowPass] = useState(false);
 
-    const [emailFocused, setEmailFocused] = useState(false);
-    const [passFocused, setPassFocused] = useState(false);
-
     return (
-        <Screen   >
-            <View className="flex-col bg-bgLight h-full ">
+        <Screen>
+            <View className="flex-col bg-bgLight h-full px-6">
                 {/* Header */}
-                <View className="items-center pt-12 pb-6 px-6">
-                    <View className="bg-primary/10 p-3 rounded-full mb-4">
-                        {/* icon yerine kalp emoji kullandım; istersen lucide-react-native ile ikon yaparız */}
-                        <Text className="text-primary text-2xl">♥</Text>
+                <View className="items-center pt-12">
+                    <View className=" justify-center items-center">
+                        <Image
+                            source={require("@/assets/icons/Connect.png")}
+                            className="w-[100px] h-[100px]"
+                            resizeMode="contain"
+                        />
+                        <Image
+                            source={require("@/assets/icons/Heart.png")}
+                            className="w-[36px] h-[36px] absolute "
+                            resizeMode="contain"
+                        />
                     </View>
 
-                    <Text className="text-3xl font-bold tracking-tight text-center text-bgDark">
-                        Couplely
-                    </Text>
+                    <View className="flex-col justify-center items-center mb-12">
+                        <Text className="text-3xl font-bold tracking-tight text-bgDark">
+                            Couply
+                        </Text>
 
-                    <Text className="mt-2 text-slate400 text-center">
-                        Keep your memories with your lover.
-                    </Text>
+                        <Text className="mt-2 text-slate400 ">
+                            Keep your memories with your lover
+                        </Text>
+                    </View>
                 </View>
 
                 {/* Form */}
-                <View className="flex-col px-6 w-full">
-                    <View className="gap-y-6">
+                <View>
+                    <View className="gap-y-6 w-full">
                         {/* Email */}
-                        <View className="gap-y-2">
-                            <Text className="text-sm font-semibold ml-1 text-slate700">
-                                Email
-                            </Text>
-
-                            <TextInput
-                                value={email}
-                                onChangeText={setEmail}
-                                placeholder="hello@ourlove.com"
-                                placeholderTextColor="#94A3B8"
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                                onFocus={() => setEmailFocused(true)}
-                                onBlur={() => setEmailFocused(false)}
-                                className={[
-                                    "w-full h-14 bg-white border rounded-xl px-4 text-base text-slate900",
-                                    emailFocused ? "border-primary" : "border-slate200",
-                                ].join(" ")}
-                            />
-                        </View>
+                        <TextInputArea
+                            label="Email"
+                            value={email}
+                            onChangeText={setEmail}
+                            placeholder="hello@ourlove.com"
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
 
                         {/* Password */}
                         <View className="gap-y-2">
-                            <Text className="text-sm font-semibold ml-1 text-slate700">
-                                Password
-                            </Text>
-
-                            <View className="relative justify-center">
-                                <TextInput
-                                    value={pass}
-                                    onChangeText={setPass}
-                                    placeholder="••••••••"
-                                    placeholderTextColor="#94A3B8"
-                                    secureTextEntry={!showPass}
-                                    onFocus={() => setPassFocused(true)}
-                                    onBlur={() => setPassFocused(false)}
-                                    className={[
-                                        "w-full h-14 bg-white border rounded-xl px-4 pr-12 text-base text-slate900",
-                                        passFocused ? "border-primary" : "border-slate200",
-                                    ].join(" ")}
-                                />
-
-                                <Pressable
-                                    onPress={() => setShowPass((s) => !s)}
-                                    className="absolute right-4"
-                                >
+                            <TextInputArea
+                                label="Password"
+                                value={pass}
+                                onChangeText={setPass}
+                                placeholder="••••••••"
+                                secureTextEntry={!showPass}
+                                right={
                                     <Text className="text-slate400 text-base">
-                                        {showPass ? "🙈" : "👁️"}
+                                        {showPass ? "👁️" : "🙈"}
                                     </Text>
-                                </Pressable>
-                            </View>
+                                }
+                                onRightPress={() => setShowPass((s) => !s)}
+                            />
 
                             <View className="items-end px-1">
-                                <Pressable onPress={() => { /* forgot flow */ }}>
+                                <Pressable onPress={() => { }}>
                                     <Text className="text-sm font-medium text-primary">
                                         Forgot Password?
                                     </Text>
@@ -134,7 +114,7 @@ export default function LoginScreen() {
                 </View>
 
                 {/* Footer */}
-                <View className="pb-12 pt-6 items-center px-6">
+                <View className="pb-12 pt-6 items-center">
                     <Text className="text-slate600">
                         Don't have an account?{" "}
                         <Text

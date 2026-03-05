@@ -7,24 +7,17 @@ import { Image, Pressable, Text, View } from "react-native";
 export default function OnboardingScreen() {
     return (
         <Screen>
-            <View className="flex-1 bg-bgLight">
+            <View className="flex-1 bg-bgLight px-8">
                 {/* Top Action Bar */}
-                <View className="px-6 pt-6 pb-2 flex-row justify-end">
+                <View className=" pt-6 pb-2 flex-row justify-end">
                     <Pressable onPress={() => router.replace("/(auth)/login")}>
                         <Text className="text-primary/80 font-bold text-base">Skip</Text>
                     </Pressable>
                 </View>
 
                 {/* Hero Illustration Container */}
-                <View className="flex-1 px-6 items-center juastify-center">
-                    <View className="w-full max-w-[390px] aspect-square max-h-80 rounded-2xl overflow-hidden bg-primary/5 relative">
-                        {/* gradient overlay */}
-                        <View className="absolute inset-0">
-                            <View className="absolute inset-0 bg-primary/10" />
-                            {/* basit gradient hissi için 2 katman */}
-                            <View className="absolute inset-0 bg-primary/5" />
-                        </View>
-
+                <View className="flex-col items-center justify-center">
+                    <View className="w-full max-w-[390px] max-h-96 rounded-2xl overflow-hidden bg-primary/5 relative mt-12">
                         {/* Image */}
                         <Image
                             source={{
@@ -37,7 +30,7 @@ export default function OnboardingScreen() {
                 </View>
 
                 {/* Text Content Area */}
-                <View className="px-8 pt-4 pb-8 items-center">
+                <View className="pt-4 pb-8 items-center mt-8">
                     <Text className="text-bgDark text-4xl font-bold tracking-tight text-center">
                         Save Every Moment
                     </Text>
@@ -47,16 +40,10 @@ export default function OnboardingScreen() {
                     </Text>
                 </View>
 
-                {/* Interaction Area */}
-                <View className="px-8 pb-10">
-                    {/* Eğer PrimaryButton’un tasarımı zaten varsa bunu kullan */}
-                    <PrimaryButton
-                        title="Get Started"
-                        onPress={() => router.replace("/(auth)/login")}
-                    />
-
-
-                </View>
+                <PrimaryButton
+                    title="Get Started"
+                    onPress={() => router.replace("/(auth)/login")}
+                />
             </View>
         </Screen>
     );
