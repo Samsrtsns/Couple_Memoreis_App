@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 
 type InputAreaProps = {
@@ -32,11 +32,13 @@ export function TextInputArea({
         [focused]
     );
 
+    const hasRight = !!right;
+
     return (
-        <View className="gap-y-2">
+        <View className="gap-y-2 w-full">
             <Text className="text-sm font-semibold ml-1 text-slate700">{label}</Text>
 
-            <View className="relative justify-center">
+            <View className="relative w-full flex-row items-center">
                 <TextInput
                     value={value}
                     onChangeText={onChangeText}
@@ -47,19 +49,34 @@ export function TextInputArea({
                     secureTextEntry={secureTextEntry}
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
-                    textAlignVertical="center"
-                    style={{ paddingVertical: 0 }}
+                    textAlign="left"
+                    style={{
+                        paddingLeft: 16,
+                        paddingRight: hasRight ? 48 : 16,
+                        flex: 1,
+                    }}
                     className={[
-                        "w-full h-14 bg-white border rounded-xl px-4 pr-12 text-slate900",
+                        "h-14 bg-white border rounded-xl text-slate900",
                         borderClass,
                     ].join(" ")}
                 />
 
-                {right ? (
-                    <Pressable onPress={onRightPress} className="absolute right-4">
+                {hasRight && (
+                    <Pressable
+                        onPress={onRightPress}
+                        hitSlop={20}
+                        style={{
+                            position: 'absolute',
+                            right: 0,
+                            height: '100%',
+                            width: 48,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
                         {right}
                     </Pressable>
-                ) : null}
+                )}
             </View>
         </View>
     );

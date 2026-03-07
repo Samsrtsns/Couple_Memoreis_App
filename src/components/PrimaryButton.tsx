@@ -1,52 +1,51 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 interface PrimaryButtonProps {
     title: string;
     onPress: () => void;
     variant?: "primary" | "secondary";
+    disabled?: boolean;
 }
 
-export default function PrimaryButton({ title, onPress, variant = "primary" }: PrimaryButtonProps) {
+export default function PrimaryButton({
+    title,
+    onPress,
+    variant = "primary",
+    disabled = false,
+}: PrimaryButtonProps) {
     const isPrimary = variant === "primary";
 
+    if (isPrimary) {
+        return (
+            <Pressable
+                disabled={disabled}
+                onPress={onPress}
+                className={`h-14 rounded-2xl overflow-hidden ${disabled ? "opacity-50" : "opacity-100"
+                    }`}
+            >
+                <LinearGradient
+                    colors={["#FF9B8E", "#FF7F6E", "#E65D4F"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+                >
+                    <View className="flex-row items-center gap-x-2">
+                        <Text className="text-white font-bold text-base">{title}</Text>
+                        <Text className="text-white text-lg">→</Text>
+                    </View>
+                </LinearGradient>
+            </Pressable>
+        );
+    }
+
     return (
-        <TouchableOpacity
-            style={[styles.button, isPrimary ? styles.primaryButton : styles.secondaryButton]}
+        <Pressable
             onPress={onPress}
-            activeOpacity={0.8}
+            className="h-14 rounded-2xl border border-primary items-center justify-center"
         >
-            <Text style={[styles.text, isPrimary ? styles.primaryText : styles.secondaryText]}>
-                {title}
-            </Text>
-        </TouchableOpacity>
+            <Text className="text-primary font-semibold text-base">{title}</Text>
+        </Pressable>
     );
 }
-
-const styles = StyleSheet.create({
-    button: {
-        paddingVertical: 14,
-        paddingHorizontal: 24,
-        borderRadius: 12,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    primaryButton: {
-        backgroundColor: "#ff4d4d",
-    },
-    secondaryButton: {
-        backgroundColor: "transparent",
-        borderWidth: 1,
-        borderColor: "#ff4d4d",
-    },
-    text: {
-        fontSize: 16,
-        fontWeight: "600",
-    },
-    primaryText: {
-        color: "#ffffff",
-    },
-    secondaryText: {
-        color: "#ff4d4d",
-    },
-});

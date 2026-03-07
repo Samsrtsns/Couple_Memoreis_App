@@ -9,7 +9,7 @@ module.exports = {
         coralLight: "#FFB1B1",
         coralDark: "#EE2B4B",
 
-        bgLight: "#FFFFFF",
+        bgLight: "#FDF8F7",
         bgDark: "#121212",
 
         slate800: "#1F2937",
