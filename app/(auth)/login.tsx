@@ -2,23 +2,59 @@ import { Icons } from "@/assets/icons";
 import PrimaryButton from "@/src/components/PrimaryButton";
 import Screen from "@/src/components/Screen";
 import { TextInputArea } from "@/src/components/TextInput";
+import { loginUser } from "@/src/services/authService";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Image, Keyboard, Pressable, ScrollView, Text, View } from "react-native";
+import {
+    Alert,
+    Image,
+    Keyboard,
+    Pressable,
+    ScrollView,
+    Text,
+    View,
+} from "react-native";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
     const [pass, setPass] = useState("");
     const [showPass, setShowPass] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async () => {
+        if (!email.trim() || !pass.trim()) {
+            Alert.alert("Missing Fields", "Please enter your email and password.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            await loginUser({
+                email: email.trim(),
+                password: pass,
+            });
+
+            router.replace("/(tabs)/home");
+        } catch (error: any) {
+            Alert.alert("Login Error", error.message || "Something went wrong.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Screen>
-            <ScrollView className="flex-1">
+            <ScrollView
+                className="flex-1"
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flexGrow: 1 }}
+            >
                 <Pressable className="flex-1" onPress={Keyboard.dismiss}>
-                    <View className="flex-col bg-bgLight px-6">
+                    <View className="flex-col bg-bgLight px-6 flex-1">
                         {/* Header */}
                         <View className="items-center pt-6">
-                            <View className=" justify-center items-center">
+                            <View className="justify-center items-center">
                                 <Image
                                     source={Icons.infinity}
                                     className="w-[100px] h-[100px]"
@@ -26,17 +62,17 @@ export default function LoginScreen() {
                                 />
                                 <Image
                                     source={Icons.heart}
-                                    className="w-[36px] h-[36px] absolute "
+                                    className="w-[36px] h-[36px] absolute"
                                     resizeMode="contain"
                                 />
                             </View>
 
-                            <View className="flex-col justify-center items-center ">
+                            <View className="flex-col justify-center items-center">
                                 <Text className="text-3xl font-bold tracking-tight text-bgDark">
                                     Couply
                                 </Text>
 
-                                <Text className="mt-2 text-slate400 ">
+                                <Text className="mt-2 text-slate400">
                                     Keep your memories with your lover
                                 </Text>
                             </View>
@@ -45,7 +81,6 @@ export default function LoginScreen() {
                         {/* Form */}
                         <View className="pt-8">
                             <View className="gap-y-6 w-full">
-                                {/* Email */}
                                 <TextInputArea
                                     label="Email"
                                     value={email}
@@ -55,7 +90,6 @@ export default function LoginScreen() {
                                     autoCapitalize="none"
                                 />
 
-                                {/* Password */}
                                 <View className="gap-y-2">
                                     <TextInputArea
                                         label="Password"
@@ -64,7 +98,7 @@ export default function LoginScreen() {
                                         placeholder="••••••••"
                                         secureTextEntry={!showPass}
                                         right={
-                                            <Text className="text-slate400 ">
+                                            <Text className="text-slate400">
                                                 {showPass ? "👁️" : "🙈"}
                                             </Text>
                                         }
@@ -80,13 +114,11 @@ export default function LoginScreen() {
                                     </View>
                                 </View>
 
-                                {/* Login Button */}
                                 <PrimaryButton
-                                    title="Log In"
-                                    onPress={() => router.replace("/(tabs)/home")}
+                                    title={loading ? "Logging In..." : "Log In"}
+                                    onPress={handleLogin}
                                 />
 
-                                {/* Divider */}
                                 <View className="flex-row items-center gap-x-4 pt-4 px-1">
                                     <View className="h-[1px] flex-1 bg-slate200" />
                                     <Text className="text-xs font-medium text-slate400 uppercase tracking-widest">
@@ -95,7 +127,6 @@ export default function LoginScreen() {
                                     <View className="h-[1px] flex-1 bg-slate200" />
                                 </View>
 
-                                {/* Social Buttons */}
                                 <View className="flex-row gap-x-4">
                                     <Pressable
                                         onPress={() => { }}
@@ -123,7 +154,6 @@ export default function LoginScreen() {
                                 <Text
                                     className="text-primary font-bold"
                                     onPress={() => router.push("/(auth)/register")}
-
                                 >
                                     Sign Up
                                 </Text>

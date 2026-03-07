@@ -1,17 +1,45 @@
 import { Icons } from "@/assets/icons";
+import PrimaryButton from "@/src/components/PrimaryButton";
 import Screen from "@/src/components/Screen";
 import { TextInputArea } from "@/src/components/TextInput";
-import { LinearGradient } from "expo-linear-gradient";
+import { registerUser } from "@/src/services/authService";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { Image, Keyboard, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Image, Keyboard, Pressable, ScrollView, Text, View } from "react-native";
 
 export default function RegisterScreen() {
-    const [fullName, setFullName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [accepted, setAccepted] = useState(false);
-    const [pass, setPass] = useState("");
+    const [password, setPass] = useState("");
     const [showPass, setShowPass] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handleRegister = async () => {
+        if (!firstName || !lastName || !email || !password) {
+            Alert.alert("Error", "Please fill all fields.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            await registerUser({
+                firstName,
+                lastName,
+                email,
+                password,
+            });
+
+            Alert.alert("Success", "Account created successfully.");
+            router.replace("/login");
+        } catch (error: any) {
+            Alert.alert("Register Error", error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Screen>
@@ -41,9 +69,17 @@ export default function RegisterScreen() {
                         <View className="px-8 gap-y-6">
                             {/* Full Name */}
                             <TextInputArea
-                                label="Full Name"
-                                value={fullName}
-                                onChangeText={setFullName}
+                                label="First Name"
+                                value={firstName}
+                                onChangeText={setFirstName}
+                                placeholder="exp: John Doe"
+                                keyboardType="default"
+                                autoCapitalize="none"
+                            />
+                            <TextInputArea
+                                label="Last Name"
+                                value={lastName}
+                                onChangeText={setLastName}
                                 placeholder="exp: John Doe"
                                 keyboardType="default"
                                 autoCapitalize="none"
@@ -61,7 +97,7 @@ export default function RegisterScreen() {
 
                             <TextInputArea
                                 label="Password"
-                                value={pass}
+                                value={password}
                                 onChangeText={setPass}
                                 placeholder="••••••••"
                                 secureTextEntry={!showPass}
@@ -70,7 +106,7 @@ export default function RegisterScreen() {
                                         {showPass ? "👁️" : "🙈"}
                                     </Text>
                                 }
-                                onRightPress={() => setShowPass((s) => !s)}
+                                onRightPress={() => setShowPass((password) => !showPass)}
                             />
 
                             {/* Terms */}
@@ -95,31 +131,10 @@ export default function RegisterScreen() {
                                 </Text>
                             </Pressable>
 
-                            {/* Create Account Button */}
-                            <View className="pt-4">
-                                <Pressable
-                                    disabled={!accepted}
-                                    onPress={() => router.replace("/(tabs)/home")}
-                                    className={[
-                                        "h-14 rounded-2xl overflow-hidden",
-                                        !accepted ? "opacity-50" : "opacity-100",
-                                    ].join(" ")}
-                                >
-                                    <LinearGradient
-                                        colors={["#FF9B8E", "#FF7F6E", "#E65D4F"]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-                                    >
-                                        <View className="flex-row items-center gap-x-2">
-                                            <Text className="text-white font-bold text-base">
-                                                Create Account
-                                            </Text>
-                                            <Text className="text-white text-lg">→</Text>
-                                        </View>
-                                    </LinearGradient>
-                                </Pressable>
-                            </View>
+                            <PrimaryButton
+                                title={loading ? "Creating..." : "Create Account"}
+                                onPress={handleRegister}
+                            />
                         </View>
 
                         {/* Footer */}
