@@ -33,7 +33,6 @@ export default function PrimaryButton({
                 >
                     <View className="flex-row items-center gap-x-2">
                         <Text className="text-white font-bold text-base">{title}</Text>
-                        <Text className="text-white text-lg">→</Text>
                     </View>
                 </LinearGradient>
             </Pressable>
