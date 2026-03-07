@@ -2,44 +2,22 @@ import { Icons } from "@/assets/icons";
 import PrimaryButton from "@/src/components/PrimaryButton";
 import Screen from "@/src/components/Screen";
 import { TextInputArea } from "@/src/components/TextInput";
-import { registerUser } from "@/src/services/authService";
+import { useRegister } from "@/src/hooks/useRegister";
 import { router } from "expo-router";
-import React, { useState } from "react";
-import { Alert, Image, Keyboard, Pressable, ScrollView, Text, View } from "react-native";
+import React from "react";
+import { Image, Keyboard, Pressable, ScrollView, Text, View } from "react-native";
 
 export default function RegisterScreen() {
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-    const [email, setEmail] = useState("");
-    const [accepted, setAccepted] = useState(false);
-    const [password, setPass] = useState("");
-    const [showPass, setShowPass] = useState(false);
-    const [loading, setLoading] = useState(false);
-
-    const handleRegister = async () => {
-        if (!firstName || !lastName || !email || !password) {
-            Alert.alert("Error", "Please fill all fields.");
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            await registerUser({
-                firstName,
-                lastName,
-                email,
-                password,
-            });
-
-            Alert.alert("Success", "Account created successfully.");
-            router.replace("/login");
-        } catch (error: any) {
-            Alert.alert("Register Error", error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const {
+        firstName, setFirstName,
+        lastName, setLastName,
+        email, setEmail,
+        accepted, setAccepted,
+        password, setPass,
+        showPass, setShowPass,
+        loading,
+        handleRegister
+    } = useRegister();
 
     return (
         <Screen>
@@ -85,7 +63,7 @@ export default function RegisterScreen() {
                                 autoCapitalize="none"
                             />
 
-                            {/* Full Name */}
+                            {/* Email */}
                             <TextInputArea
                                 label="Email"
                                 value={email}
@@ -106,7 +84,7 @@ export default function RegisterScreen() {
                                         {showPass ? "👁️" : "🙈"}
                                     </Text>
                                 }
-                                onRightPress={() => setShowPass((password) => !showPass)}
+                                onRightPress={() => setShowPass((s) => !s)}
                             />
 
                             {/* Terms */}

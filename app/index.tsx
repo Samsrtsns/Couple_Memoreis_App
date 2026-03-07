@@ -1,19 +1,9 @@
-import { router } from "expo-router";
-import React, { useEffect } from "react";
-import { Image, Text, View } from "react-native";
+import { useInitialState } from "@/src/hooks/useInitialState";
+import React from "react";
+import { ActivityIndicator, Image, Text, View } from "react-native";
 
 export default function Index() {
-    useEffect(() => {
-
-        const timer = setTimeout(goNext, 2000)
-
-        return () => clearTimeout(timer)
-
-    }, [])
-
-    function goNext() {
-        router.replace("/(onboarding)/onboarding")
-    }
+    const { isChecking } = useInitialState();
 
     return (
         <View className="flex-1 bg-bgLight items-center justify-center">
@@ -38,12 +28,14 @@ export default function Index() {
                     />
                 </View>
 
-                <Text className="text-[32px] font-bold text-bgDark">
+                <Text className="text-[32px] font-bold text-bgDark mb-8">
                     Couple Memory
                 </Text>
 
+                {isChecking && (
+                    <ActivityIndicator size="large" color="#FF7F6E" />
+                )}
             </View>
-
         </View>
     );
 }

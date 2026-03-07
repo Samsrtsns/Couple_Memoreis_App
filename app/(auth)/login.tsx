@@ -2,11 +2,10 @@ import { Icons } from "@/assets/icons";
 import PrimaryButton from "@/src/components/PrimaryButton";
 import Screen from "@/src/components/Screen";
 import { TextInputArea } from "@/src/components/TextInput";
-import { loginUser } from "@/src/services/authService";
+import { useLogin } from "@/src/hooks/useLogin";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
-    Alert,
     Image,
     Keyboard,
     Pressable,
@@ -16,32 +15,13 @@ import {
 } from "react-native";
 
 export default function LoginScreen() {
-    const [email, setEmail] = useState("");
-    const [pass, setPass] = useState("");
-    const [showPass, setShowPass] = useState(false);
-    const [loading, setLoading] = useState(false);
-
-    const handleLogin = async () => {
-        if (!email.trim() || !pass.trim()) {
-            Alert.alert("Missing Fields", "Please enter your email and password.");
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            await loginUser({
-                email: email.trim(),
-                password: pass,
-            });
-
-            router.replace("/(tabs)/home");
-        } catch (error: any) {
-            Alert.alert("Login Error", error.message || "Something went wrong.");
-        } finally {
-            setLoading(false);
-        }
-    };
+    const {
+        email, setEmail,
+        pass, setPass,
+        showPass, setShowPass,
+        loading,
+        handleLogin
+    } = useLogin();
 
     return (
         <Screen>

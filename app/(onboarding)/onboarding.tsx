@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
@@ -62,8 +63,14 @@ export default function OnboardingScreen() {
         }
     };
 
-    const handleSkip = () => {
-        router.replace("/(auth)/login");
+    const handleSkip = async () => {
+        try {
+            await AsyncStorage.setItem("hasLaunched", "true");
+            router.replace("/(auth)/login");
+        } catch (error) {
+            console.error("Error setting hasLaunched flag", error);
+            router.replace("/(auth)/login");
+        }
     };
 
     return (
