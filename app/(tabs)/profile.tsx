@@ -5,6 +5,7 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
+    ActivityIndicator,
     Alert,
     Image,
     Pressable,
@@ -69,8 +70,8 @@ function SettingsRow({
 }
 
 export default function ProfileScreen() {
-    const { profile, partner } = useProfile();
-    const [loading, setLoading] = useState(false);
+    const { profile, partner, loading } = useProfile();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return "Not set";
@@ -91,15 +92,23 @@ export default function ProfileScreen() {
 
     const handleLogout = async () => {
         try {
-            setLoading(true);
+            setIsLoggingOut(true);
             await logoutUser();
             router.replace("/(auth)/login");
         } catch (error: any) {
             Alert.alert("Logout Error", error.message || "Something went wrong.");
         } finally {
-            setLoading(false);
+            setIsLoggingOut(false);
         }
     };
+
+    if (loading) {
+        return (
+            <View className="flex-1 justify-center items-center bg-bgLight">
+                <ActivityIndicator size="large" color="#ea5385" />
+            </View>
+        );
+    }
 
     return (
         <View className="flex-col justify-center bg-bgLight flex-1">
@@ -259,7 +268,7 @@ export default function ProfileScreen() {
                     <View className="px-6">
                         <PrimaryButton
                             title="Log Out"
-                            loading={loading}
+                            loading={isLoggingOut}
                             variant="secondary"
                             onPress={handleLogout}
                         />

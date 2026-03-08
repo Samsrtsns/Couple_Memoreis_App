@@ -8,7 +8,7 @@ type Props = {
 export default function Screen({ children }: Props) {
     return (
         <SafeAreaView
-            className="bg-bgLight flex-1"
+            className="flex-1 bg-bgLight"
             edges={["top"]}
         >
             {children}
