@@ -1,3 +1,4 @@
+// src/services/authService.ts
 import { supabase } from "@/src/lib/supabase";
 
 type RegisterParams = {

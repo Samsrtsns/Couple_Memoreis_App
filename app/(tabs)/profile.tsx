@@ -1,9 +1,65 @@
 import PrimaryButton from "@/src/components/PrimaryButton";
-import Screen from "@/src/components/Screen";
 import { logoutUser } from "@/src/services/authService";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, Text, View } from "react-native";
+import {
+    Alert,
+    Image,
+    Pressable,
+    ScrollView,
+    Text,
+    View,
+} from "react-native";
+
+type SettingsRowProps = {
+    icon: keyof typeof Ionicons.glyphMap | keyof typeof MaterialIcons.glyphMap;
+    iconType?: "ion" | "material";
+    iconBg: string;
+    iconColor: string;
+    title: string;
+    onPress?: () => void;
+    withBorder?: boolean;
+};
+
+function SettingsRow({
+    icon,
+    iconType = "ion",
+    iconBg,
+    iconColor,
+    title,
+    onPress,
+    withBorder = true,
+}: SettingsRowProps) {
+    return (
+        <Pressable
+            onPress={onPress}
+            className={`flex-row items-center justify-between px-4 py-4 ${withBorder ? "border-b border-slate-100" : ""
+                }`}
+        >
+            <View className="flex-row items-center gap-x-4">
+                <View
+                    className="w-11 h-11 rounded-2xl items-center justify-center"
+                    style={{ backgroundColor: iconBg }}
+                >
+                    {iconType === "ion" ? (
+                        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={iconColor} />
+                    ) : (
+                        <MaterialIcons
+                            name={icon as keyof typeof MaterialIcons.glyphMap}
+                            size={20}
+                            color={iconColor}
+                        />
+                    )}
+                </View>
+
+                <Text className="text-slate-700 font-semibold text-[15px]">{title}</Text>
+            </View>
+
+            <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
+        </Pressable>
+    );
+}
 
 export default function ProfileScreen() {
     const [loading, setLoading] = useState(false);
@@ -21,16 +77,158 @@ export default function ProfileScreen() {
     };
 
     return (
-        <Screen>
-            <View style={{ gap: 12 }}>
-                <Text style={{ fontSize: 26, fontWeight: "700" }}>Profil</Text>
+        <View className="flex-col justify-center bg-bgLight">
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 40 }}
+            >
+                {/* Profile Top */}
+                <View className="px-6 pt-8 pb-4 mt-12">
+                    <View className="items-center">
+                        <View className="items-center gap-y-4">
+                            {/* Avatar */}
+                            <View className="relative">
+                                <Image
+                                    source={{
+                                        uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuA1_kM2wl2t2KZcGYOWWeslpyy4tg28MI8_TqpCRCSHjDTmJ1mlD2d1w7kD51hNBc-MHPG_1CP8lS1g-hmGZrS8V7puXu_EiLT7ehnK2rG6-7mM52zBW9X1S4wm3RQFt3-FZUIfQ5Lm6WkqIfUJpgatxTpJ0CUzhMx3mrK2uHBDrDF5mQ7ljoaHHm718EtW2YsSpqFZrFLIHrsbSwdMKgio7FddfAiDXR-S7Y3SlZkSNcZgSnXaDGI3-3vSlRwiKY-noJyKY3_3ZvE",
+                                    }}
+                                    className="w-32 h-32 rounded-full"
+                                    resizeMode="cover"
+                                />
 
-                <PrimaryButton
-                    title={loading ? "Logging Out..." : "Log Out"}
-                    variant="secondary"
-                    onPress={handleLogout}
-                />
-            </View>
-        </Screen>
+                                <Pressable className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-rose-500 items-center justify-center border-2 border-white">
+                                    <MaterialIcons name="edit" size={18} color="white" />
+                                </Pressable>
+                            </View>
+
+                            {/* Name and relation */}
+                            <View className="items-center">
+                                <Text className="text-slate-900 text-2xl font-extrabold text-center">
+                                    Alex Johnson
+                                </Text>
+
+                                <View className="mt-3 flex-row items-center gap-x-1.5 bg-rose-50 px-4 py-2 rounded-full border border-rose-100">
+                                    <Ionicons name="heart" size={14} color="#F43F5E" />
+                                    <Text className="text-rose-500 text-[11px] font-bold uppercase tracking-[1px]">
+                                        Linked with Jamie Smith
+                                    </Text>
+                                </View>
+
+                                <View className="mt-3 flex-row items-center gap-x-1.5">
+                                    <MaterialIcons name="calendar-today" size={16} color="#CBD5E1" />
+                                    <Text className="text-slate-400 text-sm font-medium text-center">
+                                        Together since June 14, 2021
+                                    </Text>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Pairing Card */}
+                <View className="px-6 py-4">
+                    <View className="rounded-[24px] bg-rose-50 border border-rose-100 px-6 py-6 items-center">
+                        <View className="items-center">
+                            <Text className="text-rose-900 text-base font-bold">
+                                Partner Connection
+                            </Text>
+                            <Text className="text-rose-700/70 text-sm font-medium text-center leading-5 mt-1 max-w-[240px]">
+                                Share your unique pairing code to connect with your partner.
+                            </Text>
+                        </View>
+
+                        <View className="w-full mt-5">
+                            <PrimaryButton
+                                title="View Pairing Code"
+                                onPress={() => router.push("/(pairing)/pair")}
+                            />
+                        </View>
+                    </View>
+                </View>
+
+                {/* General Settings */}
+                <View className="mt-6">
+                    <Text className="px-8 pb-3 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
+                        General Settings
+                    </Text>
+
+                    <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
+                        <SettingsRow
+                            title="Personal Info"
+                            iconType="ion"
+                            icon="person-outline"
+                            iconBg="#EFF6FF"
+                            iconColor="#3B82F6"
+                            onPress={() => Alert.alert("Personal Info")}
+                        />
+                        <SettingsRow
+                            title="Relationship Settings"
+                            iconType="ion"
+                            icon="heart"
+                            iconBg="#FFF1F2"
+                            iconColor="#F43F5E"
+                            onPress={() => Alert.alert("Relationship Settings")}
+                        />
+                        <SettingsRow
+                            title="Notification Preferences"
+                            iconType="ion"
+                            icon="notifications"
+                            iconBg="#FFFBEB"
+                            iconColor="#F59E0B"
+                            withBorder={false}
+                            onPress={() => Alert.alert("Notification Preferences")}
+                        />
+                    </View>
+
+                    {/* Security */}
+                    <Text className="px-8 pb-3 pt-8 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
+                        Security & Privacy
+                    </Text>
+
+                    <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
+                        <SettingsRow
+                            title="Data Management"
+                            iconType="material"
+                            icon="storage"
+                            iconBg="#EEF2FF"
+                            iconColor="#6366F1"
+                            onPress={() => Alert.alert("Data Management")}
+                        />
+                        <SettingsRow
+                            title="Privacy Policy"
+                            iconType="ion"
+                            icon="shield-checkmark-outline"
+                            iconBg="#F8FAFC"
+                            iconColor="#64748B"
+                            withBorder={false}
+                            onPress={() => Alert.alert("Privacy Policy")}
+                        />
+                    </View>
+
+                    {/* Footer */}
+                    <View className="px-12 py-12 items-center justify-center">
+                        <Text className="text-[11px] font-bold text-slate-300 uppercase tracking-[2px]">
+                            Memory Archive v2.4.0
+                        </Text>
+
+                        <View className="mt-2 flex-row items-center gap-x-1.5 opacity-30">
+                            <Ionicons name="heart" size={12} color="#64748B" />
+                            <Text className="text-[10px] font-medium text-slate-500">
+                                Made with love for couples
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Extra logout button */}
+                    <View className="px-6">
+                        <PrimaryButton
+                            title={loading ? "Logging Out..." : "Log Out"}
+                            variant="secondary"
+                            onPress={handleLogout}
+                        />
+                    </View>
+                </View>
+            </ScrollView>
+        </View>
     );
 }

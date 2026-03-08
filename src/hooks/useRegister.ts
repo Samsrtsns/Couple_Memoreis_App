@@ -1,3 +1,4 @@
+// src/hooks/useRegister.ts
 import { registerUser } from '@/src/services/authService';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -29,16 +30,14 @@ export function useRegister() {
             await registerUser({
                 firstName,
                 lastName,
-                email,
+                email: email.trim(),
                 password,
             });
 
             Alert.alert(
                 "Success",
                 "Account created successfully.",
-                [
-                    { text: "OK", onPress: () => router.replace("/login") }
-                ]
+                [{ text: "OK", onPress: () => router.replace("/(pairing)/pair") }]
             );
         } catch (error: any) {
             Alert.alert("Register Error", error.message || "Something went wrong.");
