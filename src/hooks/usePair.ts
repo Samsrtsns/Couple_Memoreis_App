@@ -44,16 +44,13 @@ export function usePair() {
 
             await matchPartner(partnerCode.trim());
 
-            Alert.alert("Success", "You are now connected.", [
-                { text: "OK", onPress: () => router.replace("/(tabs)/home") },
-            ]);
+            router.push("/(pairing)/relationship-setup");
         } catch (e: any) {
             Alert.alert("Pair Error", e.message);
         } finally {
             setLoading(false);
         }
     };
-
     return {
         myCode,
         partnerCode,

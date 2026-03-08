@@ -1,8 +1,9 @@
 import PrimaryButton from "@/src/components/PrimaryButton";
+import { useProfile } from "@/src/hooks/useProfile";
 import { logoutUser } from "@/src/services/authService";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
     Alert,
     Image,
@@ -62,7 +63,33 @@ function SettingsRow({
 }
 
 export default function ProfileScreen() {
+    const { profile, partner, loading: profileLoading } = useProfile();
     const [loading, setLoading] = useState(false);
+
+    const formatDate = (dateString?: string | null) => {
+        if (!dateString) return "Not set";
+
+        const date = new Date(dateString);
+
+        return date.toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        });
+    };
+
+    const relationshipText = useMemo(() => {
+        if (!profile?.relationship_start_date) return "Relationship date not set";
+        return `Together since ${formatDate(profile.relationship_start_date)}`;
+    }, [profile?.relationship_start_date]);
+
+    const myBirthdayText = useMemo(() => {
+        return formatDate(profile?.birth_date);
+    }, [profile?.birth_date]);
+
+    const partnerBirthdayText = useMemo(() => {
+        return formatDate(partner?.birth_date);
+    }, [partner?.birth_date]);
 
     const handleLogout = async () => {
         try {
@@ -77,7 +104,7 @@ export default function ProfileScreen() {
     };
 
     return (
-        <View className="flex-col justify-center bg-bgLight">
+        <View className="flex-col justify-center bg-bgLight flex-1">
             <ScrollView
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: 40 }}
@@ -104,20 +131,22 @@ export default function ProfileScreen() {
                             {/* Name and relation */}
                             <View className="items-center">
                                 <Text className="text-slate-900 text-2xl font-extrabold text-center">
-                                    Alex Johnson
+                                    {profile ? `${profile.first_name} ${profile.last_name}` : ""}
                                 </Text>
 
-                                <View className="mt-3 flex-row items-center gap-x-1.5 bg-rose-50 px-4 py-2 rounded-full border border-rose-100">
-                                    <Ionicons name="heart" size={14} color="#F43F5E" />
-                                    <Text className="text-rose-500 text-[11px] font-bold uppercase tracking-[1px]">
-                                        Linked with Jamie Smith
-                                    </Text>
-                                </View>
+                                {partner && (
+                                    <View className="mt-3 flex-row items-center gap-x-1.5 bg-rose-50 px-4 py-2 rounded-full border border-rose-100">
+                                        <Ionicons name="heart" size={14} color="#F43F5E" />
+                                        <Text className="text-rose-500 text-[11px] font-bold uppercase tracking-[1px]">
+                                            Linked with {partner.first_name} {partner.last_name}
+                                        </Text>
+                                    </View>
+                                )}
 
                                 <View className="mt-3 flex-row items-center gap-x-1.5">
                                     <MaterialIcons name="calendar-today" size={16} color="#CBD5E1" />
                                     <Text className="text-slate-400 text-sm font-medium text-center">
-                                        Together since June 14, 2021
+                                        {relationshipText}
                                     </Text>
                                 </View>
                             </View>
@@ -125,26 +154,88 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* Pairing Card */}
-                <View className="px-6 py-4">
-                    <View className="rounded-[24px] bg-rose-50 border border-rose-100 px-6 py-6 items-center">
-                        <View className="items-center">
-                            <Text className="text-rose-900 text-base font-bold">
-                                Partner Connection
-                            </Text>
-                            <Text className="text-rose-700/70 text-sm font-medium text-center leading-5 mt-1 max-w-[240px]">
-                                Share your unique pairing code to connect with your partner.
-                            </Text>
-                        </View>
+                {/* Info Card */}
+                <View className="px-6">
+                    <View className="bg-white rounded-[24px] border border-slate-100 p-5">
+                        <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px] mb-4">
+                            Relationship Info
+                        </Text>
 
-                        <View className="w-full mt-5">
-                            <PrimaryButton
-                                title="View Pairing Code"
-                                onPress={() => router.push("/(pairing)/pair")}
-                            />
+                        <View className="gap-y-4">
+                            <View className="flex-row items-center justify-between">
+                                <View className="flex-row items-center gap-x-3">
+                                    <View className="w-10 h-10 rounded-2xl bg-blue-50 items-center justify-center">
+                                        <Ionicons name="person-outline" size={18} color="#3B82F6" />
+                                    </View>
+                                    <Text className="text-slate-700 font-semibold">
+                                        My Birthday
+                                    </Text>
+                                </View>
+
+                                <Text className="text-slate-500 font-medium max-w-[45%] text-right">
+                                    {myBirthdayText}
+                                </Text>
+                            </View>
+
+                            <View className="h-[1px] bg-slate-100" />
+
+                            <View className="flex-row items-center justify-between">
+                                <View className="flex-row items-center gap-x-3">
+                                    <View className="w-10 h-10 rounded-2xl bg-rose-50 items-center justify-center">
+                                        <Ionicons name="heart-outline" size={18} color="#F43F5E" />
+                                    </View>
+                                    <Text className="text-slate-700 font-semibold">
+                                        Partner&apos;s Birthday
+                                    </Text>
+                                </View>
+
+                                <Text className="text-slate-500 font-medium max-w-[45%] text-right">
+                                    {partnerBirthdayText}
+                                </Text>
+                            </View>
+
+                            <View className="h-[1px] bg-slate-100" />
+
+                            <View className="flex-row items-center justify-between">
+                                <View className="flex-row items-center gap-x-3">
+                                    <View className="w-10 h-10 rounded-2xl bg-amber-50 items-center justify-center">
+                                        <MaterialIcons name="calendar-today" size={18} color="#F59E0B" />
+                                    </View>
+                                    <Text className="text-slate-700 font-semibold">
+                                        Relationship Start
+                                    </Text>
+                                </View>
+
+                                <Text className="text-slate-500 font-medium max-w-[45%] text-right">
+                                    {formatDate(profile?.relationship_start_date)}
+                                </Text>
+                            </View>
                         </View>
                     </View>
                 </View>
+
+                {/* Pairing Card - only show if no partner */}
+                {!partner && (
+                    <View className="px-6 py-4">
+                        <View className="rounded-[24px] bg-rose-50 border border-rose-100 px-6 py-6 items-center">
+                            <View className="items-center">
+                                <Text className="text-rose-900 text-base font-bold">
+                                    Partner Connection
+                                </Text>
+                                <Text className="text-rose-700/70 text-sm font-medium text-center leading-5 mt-1 max-w-[240px]">
+                                    Share your unique pairing code to connect with your partner.
+                                </Text>
+                            </View>
+
+                            <View className="w-full mt-5">
+                                <PrimaryButton
+                                    title="View Pairing Code"
+                                    onPress={() => router.push("/(pairing)/pair")}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                )}
 
                 {/* General Settings */}
                 <View className="mt-6">
