@@ -1,11 +1,17 @@
-import React from "react";
-import { View } from "react-native";
+import { ReactNode } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function Screen({ children }: { children: React.ReactNode }) {
+type Props = {
+    children: ReactNode;
+};
+
+export default function Screen({ children }: Props) {
     return (
-        <SafeAreaView className="bg-bgLight flex-1" >
-            <View className="flex-1 bg-bgLight">{children}</View>
+        <SafeAreaView
+            className="bg-bgLight flex-1"
+            edges={["top"]}
+        >
+            {children}
         </SafeAreaView>
     );
 }

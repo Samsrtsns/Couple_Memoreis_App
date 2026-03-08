@@ -37,7 +37,7 @@ export function useRegister() {
             Alert.alert(
                 "Success",
                 "Account created successfully.",
-                [{ text: "OK", onPress: () => router.replace("/(pairing)/pair") }]
+                [{ text: "OK", onPress: () => router.replace({ pathname: "/(pairing)/pair", params: { from: "register" } }) }]
             );
         } catch (error: any) {
             Alert.alert("Register Error", error.message || "Something went wrong.");

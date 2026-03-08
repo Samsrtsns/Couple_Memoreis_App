@@ -4,11 +4,14 @@ import { Alert, Platform } from "react-native";
 import { completeRelationshipSetup } from "../services/pairService";
 
 export function useRelationshipSetup() {
+    const [myBirthDate, setMyBirthDate] = useState(new Date());
     const [partnerBirthDate, setPartnerBirthDate] = useState(new Date());
     const [relationshipStartDate, setRelationshipStartDate] = useState(new Date());
 
-    const [showBirthPicker, setShowBirthPicker] = useState(false);
-    const [showRelationPicker, setShowRelationPicker] = useState(false);
+    const [activeDatePicker, setActiveDatePicker] = useState<
+        "myBirth" | "partnerBirth" | "relationStart" | null
+    >(null);
+
     const [loading, setLoading] = useState(false);
 
     const formatDate = (date: Date) => {
@@ -20,17 +23,29 @@ export function useRelationshipSetup() {
     };
 
     const toISODate = (date: Date) => {
-        return date.toISOString().split("T")[0];
+        // Adjust date to account for local timezone before returning the ISO string block
+        const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return offsetDate.toISOString().split("T")[0];
     };
 
-    const onChangePartnerBirthDate = (_: any, selectedDate?: Date) => {
-        if (Platform.OS !== "ios") setShowBirthPicker(false);
-        if (selectedDate) setPartnerBirthDate(selectedDate);
+    const handleDateChange = (_: any, selectedDate?: Date) => {
+        if (Platform.OS !== "ios") {
+            setActiveDatePicker(null);
+        }
+
+        if (selectedDate) {
+            if (activeDatePicker === "myBirth") {
+                setMyBirthDate(selectedDate);
+            } else if (activeDatePicker === "partnerBirth") {
+                setPartnerBirthDate(selectedDate);
+            } else if (activeDatePicker === "relationStart") {
+                setRelationshipStartDate(selectedDate);
+            }
+        }
     };
 
-    const onChangeRelationshipStartDate = (_: any, selectedDate?: Date) => {
-        if (Platform.OS !== "ios") setShowRelationPicker(false);
-        if (selectedDate) setRelationshipStartDate(selectedDate);
+    const closePicker = () => {
+        setActiveDatePicker(null);
     };
 
     const submit = async () => {
@@ -38,6 +53,7 @@ export function useRelationshipSetup() {
             setLoading(true);
 
             await completeRelationshipSetup(
+                toISODate(myBirthDate),
                 toISODate(partnerBirthDate),
                 toISODate(relationshipStartDate)
             );
@@ -49,21 +65,20 @@ export function useRelationshipSetup() {
                 },
             ]);
         } catch (e: any) {
-            Alert.alert("Error", e.message);
+            Alert.alert("Error", e.message || "Failed to save relationship details.");
         } finally {
             setLoading(false);
         }
     };
 
     return {
+        myBirthDate,
         partnerBirthDate,
         relationshipStartDate,
-        showBirthPicker,
-        showRelationPicker,
-        setShowBirthPicker,
-        setShowRelationPicker,
-        onChangePartnerBirthDate,
-        onChangeRelationshipStartDate,
+        activeDatePicker,
+        setActiveDatePicker,
+        handleDateChange,
+        closePicker,
         submit,
         loading,
         formatDate,

@@ -63,9 +63,25 @@ export async function matchPartner(code: string) {
 }
 
 export async function completeRelationshipSetup(
+    myBirthDate: string,
     partnerBirthDate: string,
     relationshipStartDate: string
 ) {
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("User not found");
+
+    // First, update my own birth date
+    const { error: myProfileError } = await supabase
+        .from("profiles")
+        .update({ birth_date: myBirthDate })
+        .eq("id", user.id);
+
+    if (myProfileError) throw new Error(myProfileError.message);
+
+    // Then, call the RPC logic which presumably updates partner/relationship info
     const { error } = await supabase.rpc("complete_relationship_setup", {
         partner_birth_date: partnerBirthDate,
         relationship_start_date: relationshipStartDate,

@@ -44,7 +44,11 @@ function SettingsRow({
                     style={{ backgroundColor: iconBg }}
                 >
                     {iconType === "ion" ? (
-                        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={iconColor} />
+                        <Ionicons
+                            name={icon as keyof typeof Ionicons.glyphMap}
+                            size={20}
+                            color={iconColor}
+                        />
                     ) : (
                         <MaterialIcons
                             name={icon as keyof typeof MaterialIcons.glyphMap}
@@ -54,7 +58,9 @@ function SettingsRow({
                     )}
                 </View>
 
-                <Text className="text-slate-700 font-semibold text-[15px]">{title}</Text>
+                <Text className="text-slate-700 font-semibold text-[15px]">
+                    {title}
+                </Text>
             </View>
 
             <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />
@@ -63,7 +69,7 @@ function SettingsRow({
 }
 
 export default function ProfileScreen() {
-    const { profile, partner, loading: profileLoading } = useProfile();
+    const { profile, partner } = useProfile();
     const [loading, setLoading] = useState(false);
 
     const formatDate = (dateString?: string | null) => {
@@ -79,17 +85,9 @@ export default function ProfileScreen() {
     };
 
     const relationshipText = useMemo(() => {
-        if (!profile?.relationship_start_date) return "Relationship date not set";
+        if (!partner || !profile?.relationship_start_date) return null;
         return `Together since ${formatDate(profile.relationship_start_date)}`;
-    }, [profile?.relationship_start_date]);
-
-    const myBirthdayText = useMemo(() => {
-        return formatDate(profile?.birth_date);
-    }, [profile?.birth_date]);
-
-    const partnerBirthdayText = useMemo(() => {
-        return formatDate(partner?.birth_date);
-    }, [partner?.birth_date]);
+    }, [partner, profile?.relationship_start_date]);
 
     const handleLogout = async () => {
         try {
@@ -143,72 +141,14 @@ export default function ProfileScreen() {
                                     </View>
                                 )}
 
-                                <View className="mt-3 flex-row items-center gap-x-1.5">
-                                    <MaterialIcons name="calendar-today" size={16} color="#CBD5E1" />
-                                    <Text className="text-slate-400 text-sm font-medium text-center">
-                                        {relationshipText}
-                                    </Text>
-                                </View>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Info Card */}
-                <View className="px-6">
-                    <View className="bg-white rounded-[24px] border border-slate-100 p-5">
-                        <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px] mb-4">
-                            Relationship Info
-                        </Text>
-
-                        <View className="gap-y-4">
-                            <View className="flex-row items-center justify-between">
-                                <View className="flex-row items-center gap-x-3">
-                                    <View className="w-10 h-10 rounded-2xl bg-blue-50 items-center justify-center">
-                                        <Ionicons name="person-outline" size={18} color="#3B82F6" />
+                                {partner && profile?.relationship_start_date && (
+                                    <View className="mt-4 flex-row items-center gap-x-1.5">
+                                        <MaterialIcons name="calendar-today" size={15} color="#94A3B8" />
+                                        <Text className="text-slate-500 text-sm font-medium">
+                                            Together since {formatDate(profile.relationship_start_date)}
+                                        </Text>
                                     </View>
-                                    <Text className="text-slate-700 font-semibold">
-                                        My Birthday
-                                    </Text>
-                                </View>
-
-                                <Text className="text-slate-500 font-medium max-w-[45%] text-right">
-                                    {myBirthdayText}
-                                </Text>
-                            </View>
-
-                            <View className="h-[1px] bg-slate-100" />
-
-                            <View className="flex-row items-center justify-between">
-                                <View className="flex-row items-center gap-x-3">
-                                    <View className="w-10 h-10 rounded-2xl bg-rose-50 items-center justify-center">
-                                        <Ionicons name="heart-outline" size={18} color="#F43F5E" />
-                                    </View>
-                                    <Text className="text-slate-700 font-semibold">
-                                        Partner&apos;s Birthday
-                                    </Text>
-                                </View>
-
-                                <Text className="text-slate-500 font-medium max-w-[45%] text-right">
-                                    {partnerBirthdayText}
-                                </Text>
-                            </View>
-
-                            <View className="h-[1px] bg-slate-100" />
-
-                            <View className="flex-row items-center justify-between">
-                                <View className="flex-row items-center gap-x-3">
-                                    <View className="w-10 h-10 rounded-2xl bg-amber-50 items-center justify-center">
-                                        <MaterialIcons name="calendar-today" size={18} color="#F59E0B" />
-                                    </View>
-                                    <Text className="text-slate-700 font-semibold">
-                                        Relationship Start
-                                    </Text>
-                                </View>
-
-                                <Text className="text-slate-500 font-medium max-w-[45%] text-right">
-                                    {formatDate(profile?.relationship_start_date)}
-                                </Text>
+                                )}
                             </View>
                         </View>
                     </View>
@@ -230,7 +170,12 @@ export default function ProfileScreen() {
                             <View className="w-full mt-5">
                                 <PrimaryButton
                                     title="View Pairing Code"
-                                    onPress={() => router.push("/(pairing)/pair")}
+                                    onPress={() =>
+                                        router.push({
+                                            pathname: "/(pairing)/pair",
+                                            params: { from: "profile" },
+                                        })
+                                    }
                                 />
                             </View>
                         </View>
@@ -310,10 +255,11 @@ export default function ProfileScreen() {
                         </View>
                     </View>
 
-                    {/* Extra logout button */}
+                    {/* Logout */}
                     <View className="px-6">
                         <PrimaryButton
-                            title={loading ? "Logging Out..." : "Log Out"}
+                            title="Log Out"
+                            loading={loading}
                             variant="secondary"
                             onPress={handleLogout}
                         />
