@@ -1,4 +1,5 @@
 import PrimaryButton from "@/src/components/PrimaryButton";
+import { useAuth } from "@/src/context/AuthContext";
 import { useProfile } from "@/src/hooks/useProfile";
 import { logoutUser } from "@/src/services/authService";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
@@ -71,6 +72,7 @@ function SettingsRow({
 
 export default function ProfileScreen() {
     const { profile, partner, loading } = useProfile();
+    const { dispatch } = useAuth();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const formatDate = (dateString?: string | null) => {
@@ -94,6 +96,8 @@ export default function ProfileScreen() {
         try {
             setIsLoggingOut(true);
             await logoutUser();
+            // Important: clear the global state when logging out
+            dispatch({ type: 'LOGOUT' });
             router.replace("/(auth)/login");
         } catch (error: any) {
             Alert.alert("Logout Error", error.message || "Something went wrong.");
