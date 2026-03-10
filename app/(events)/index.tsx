@@ -27,7 +27,7 @@ export default function EventsScreen() {
     return (
         <Screen>
             <View className="flex-1 bg-bgLight">
-                <View className="px-6 py-4 flex-row items-center justify-between border-b border-slate-100 bg-white">
+                <View className="px-6 py-4 flex-row items-center justify-between border-b border-slate-100 bg-bgLight">
                     <Pressable onPress={() => router.back()} className="w-10 h-10 items-center justify-center -ml-2">
                         <Ionicons name="chevron-back" size={24} color="#0F172A" />
                     </Pressable>

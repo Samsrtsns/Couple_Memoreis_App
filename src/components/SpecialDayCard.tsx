@@ -1,34 +1,83 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Text, View } from "react-native";
+import { Dimensions, Text, View } from "react-native";
 import { calculateDaysRemaining } from "../utils/dateUtils";
+
+const { width } = Dimensions.get("window");
+const CARD_WIDTH = Math.max(Math.floor(width * 0.22), 140);
+const CARD_HEIGHT = CARD_WIDTH; // kare kart
 
 type Props = {
     title: string;
-    date: string; // ISO string 
+    date: string;
     isYearly?: boolean;
     iconName?: keyof typeof Ionicons.glyphMap;
 };
 
-export default function SpecialDayCard({ title, date, isYearly = true, iconName = "calendar" }: Props) {
+export default function SpecialDayCard({
+    title,
+    date,
+    isYearly = true,
+    iconName = "heart",
+}: Props) {
     const remainingDays = calculateDaysRemaining(date, isYearly);
 
     return (
-        <View className="w-40 bg-white rounded-2xl p-4 mr-3 border border-slate-100 shadow-sm shadow-slate-100 min-h-[110px]">
-            <View className="flex-row items-start justify-between mb-3">
-                <View className="w-8 h-8 rounded-full bg-blue-50 items-center justify-center">
-                    <Ionicons name={iconName} size={16} color="#3B82F6" />
+        <View
+            style={{
+                width: CARD_WIDTH,
+                height: CARD_HEIGHT,
+                backgroundColor: "#fff",
+                borderRadius: 20,
+                marginRight: 14,
+                padding: 16,
+                shadowColor: "#000",
+                shadowOpacity: 0.06,
+                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 4,
+                justifyContent: "space-between",
+            }}
+        >
+            {/* İkon — sağ üst */}
+            <View style={{ alignItems: "center" }}>
+                <View
+                    style={{
+                        width: 108,
+                        height: 58,
+                        borderRadius: 14,
+                        backgroundColor: "#FFE4E6",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <Ionicons name={iconName} size={28} color="#F43F5E" />
                 </View>
-                {remainingDays <= 7 && (
-                    <View className="bg-rose-100 px-2 py-0.5 rounded-full">
-                        <Text className="text-rose-600 text-[10px] font-bold">Soon</Text>
-                    </View>
-                )}
             </View>
 
-            <View className="flex-1 justify-end">
-                <Text className="text-slate-800 font-bold mb-1" numberOfLines={1}>{title}</Text>
-                <Text className="text-slate-500 text-xs">{remainingDays} days left</Text>
+            {/* Metin — sol alt */}
+            <View>
+                <Text
+                    numberOfLines={1}
+                    style={{
+                        color: "#334155",
+                        fontWeight: "700",
+                        fontSize: 14,
+                        lineHeight: 19,
+                        marginBottom: 4,
+                    }}
+                >
+                    {title}
+                </Text>
+                <Text
+                    style={{
+                        color: "#F43F5E",
+                        fontWeight: "600",
+                        fontSize: 13,
+                    }}
+                >
+                    {remainingDays === 0 ? "🎉 Today!" : `${remainingDays} days left`}
+                </Text>
             </View>
         </View>
     );
