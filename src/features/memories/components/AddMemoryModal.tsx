@@ -252,7 +252,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit }: Props) {
                             ) : (
                                 <View style={styles.photoEmpty}>
                                     <View style={styles.photoIconWrap}>
-                                        <Ionicons name="images-outline" size={36} color="#f48fb1" />
+                                        <Ionicons name="images-outline" size={36} color="#FF8A8A" />
                                     </View>
                                     <Text style={styles.photoEmptyTitle}>Add a photo</Text>
                                     <Text style={styles.photoEmptySubtitle}>
@@ -306,7 +306,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit }: Props) {
                                 disabled={loading}
                                 activeOpacity={0.8}
                             >
-                                <Ionicons name="calendar-outline" size={18} color="#e91e8c" />
+                                <Ionicons name="calendar-outline" size={18} color="#FF8A8A" />
                                 <Text style={styles.dateText}>{displayDate}</Text>
                                 <Ionicons name="chevron-down" size={16} color="#c084a0" style={{ marginLeft: 'auto' }} />
                             </TouchableOpacity>
@@ -357,7 +357,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit }: Props) {
 const styles = StyleSheet.create({
     safe: {
         flex: 1,
-        backgroundColor: '#fff8fb',
+        backgroundColor: '#FDF8F7',
     },
     header: {
         flexDirection: 'row',
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#fce4ec',
+        borderBottomColor: '#FFF2F2',
         backgroundColor: '#fff',
     },
     headerBtn: {
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
         color: '#2d1020',
     },
     saveBtn: {
-        backgroundColor: '#e91e8c',
+        backgroundColor: '#FF8A8A',
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 7,
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     photoPicker: {
         borderRadius: 20,
         overflow: 'hidden',
-        backgroundColor: '#fde8f0',
+        backgroundColor: '#FFF2F2',
         height: 220,
     },
     photoPreview: {
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
     photoEmptyTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#b05880',
+        color: '#FF8A8A',
     },
     photoEmptySubtitle: {
         fontSize: 13,
@@ -462,13 +462,13 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#b05880',
+        color: '#FF8A8A',
         letterSpacing: 0.3,
     },
     input: {
         backgroundColor: '#fff',
         borderWidth: 1.5,
-        borderColor: '#f8bbd9',
+        borderColor: '#FFD1D1',
         borderRadius: 14,
         paddingHorizontal: 16,
         paddingVertical: 13,
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
         gap: 10,
         backgroundColor: '#fff',
         borderWidth: 1.5,
-        borderColor: '#f8bbd9',
+        borderColor: '#FFD1D1',
         borderRadius: 14,
         paddingHorizontal: 16,
         paddingVertical: 13,
@@ -500,16 +500,16 @@ const styles = StyleSheet.create({
         borderRadius: 14,
         overflow: 'hidden',
         borderWidth: 1.5,
-        borderColor: '#f8bbd9',
+        borderColor: '#FFD1D1',
     },
     iosDoneBtnWrapper: {
         alignItems: 'flex-end',
         padding: 10,
         borderTopWidth: 1,
-        borderTopColor: '#fce4ec',
+        borderTopColor: '#FFF2F2',
     },
     iosDoneBtn: {
-        color: '#e91e8c',
+        color: '#FF8A8A',
         fontWeight: '700',
         fontSize: 15,
         paddingHorizontal: 8,

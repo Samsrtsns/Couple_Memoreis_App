@@ -1,6 +1,7 @@
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useContext, useEffect, useReducer } from 'react';
 import { ProfileData } from '../hooks/useProfile';
+import { supabase } from '../lib/supabase';
 import { getCurrentSession } from '../services/authService';
 import { getProfileWithPartner } from '../services/pairService';
 
@@ -151,6 +152,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         initializeAuth();
+
+        // Listen for Auth changes (Token refresh, login, logout natively on Android/iOS storage)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth event:', event);
+
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                if (session) {
+                    try {
+                        dispatch({ type: 'FETCH_PROFILE_START' });
+                        const { profile, partner } = await getProfileWithPartner();
+                        dispatch({
+                            type: 'LOGIN_SUCCESS',
+                            payload: { session, user: session.user, profile, partner },
+                        });
+                    } catch (error) {
+                        dispatch({
+                            type: 'LOGIN_SUCCESS',
+                            payload: { session, user: session.user, profile: null, partner: null },
+                        });
+                    }
+                }
+            } else if (event === 'SIGNED_OUT') {
+                dispatch({ type: 'LOGOUT' });
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const refreshProfile = async () => {

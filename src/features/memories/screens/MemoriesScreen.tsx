@@ -13,10 +13,10 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import { FlashList } from '@shopify/flash-list';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
-    FlatList,
     RefreshControl,
     StyleSheet,
     Text,
@@ -40,7 +40,7 @@ function ScreenHeader({ onAddPress, hasPartner }: { onAddPress: () => void; hasP
     return (
         <View style={styles.header}>
             <View>
-                <Text style={styles.headerTitle}>Our Memories</Text>
+                <Text style={styles.headerTitle}>Memory Timeline</Text>
                 <Text style={styles.headerSubtitle}>Your love story, chapter by chapter</Text>
             </View>
             {hasPartner && (
@@ -113,7 +113,7 @@ export default function MemoriesScreen() {
     // ─── Loading state ────────────────────────────────────────────
     if (loading && memories.length === 0) {
         return (
-            <SafeAreaView style={styles.screen} edges={['top']}>
+            <SafeAreaView className="flex-1 bg-bgLight" edges={['top']}>
                 <ScreenHeader onAddPress={() => setModalVisible(true)} hasPartner={false} />
                 <View style={styles.skeletons}>
                     <MemoryCardSkeleton />
@@ -127,7 +127,7 @@ export default function MemoriesScreen() {
     // ─── Error state ──────────────────────────────────────────────
     if (error && memories.length === 0) {
         return (
-            <SafeAreaView style={styles.screen} edges={['top']}>
+            <SafeAreaView className="flex-1 bg-bgLight" edges={['top']}>
                 <ScreenHeader onAddPress={() => setModalVisible(true)} hasPartner={hasPartner} />
                 <View style={styles.centered}>
                     <Ionicons name="warning-outline" size={48} color="#f48fb1" />
@@ -142,7 +142,7 @@ export default function MemoriesScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.screen} edges={['top']}>
+        <SafeAreaView className="flex-1 bg-bgLight" edges={['top']}>
             {/* Modal */}
             <AddMemoryModal
                 visible={modalVisible}
@@ -151,41 +151,43 @@ export default function MemoriesScreen() {
             />
 
             {/* List */}
-            <FlatList
-                data={memories}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={handleRefresh}
-                        tintColor="#e91e8c"
-                        colors={['#e91e8c']}
-                    />
-                }
-                ListHeaderComponent={
-                    <ScreenHeader
-                        onAddPress={() => setModalVisible(true)}
-                        hasPartner={hasPartner}
-                    />
-                }
-                ListEmptyComponent={
-                    <MemoriesEmptyState
-                        variant={hasPartner ? 'no-memories' : 'no-partner'}
-                        onAddMemory={hasPartner ? () => setModalVisible(true) : undefined}
-                    />
-                }
-                ListFooterComponent={
-                    loading && memories.length > 0 ? (
-                        <ActivityIndicator color="#e91e8c" style={{ paddingVertical: 20 }} />
-                    ) : null
-                }
-                contentContainerStyle={[
-                    styles.listContent,
-                    memories.length === 0 && { flex: 1 },
-                ]}
-                showsVerticalScrollIndicator={false}
-            />
+            <View style={{ flex: 1, width: '100%' }}>
+                <FlashList
+                    data={memories}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderItem}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={handleRefresh}
+                            tintColor="#e91e8c"
+                            colors={['#e91e8c']}
+                        />
+                    }
+                    ListHeaderComponent={
+                        <ScreenHeader
+                            onAddPress={() => setModalVisible(true)}
+                            hasPartner={hasPartner}
+                        />
+                    }
+                    ListEmptyComponent={
+                        <MemoriesEmptyState
+                            variant={hasPartner ? 'no-memories' : 'no-partner'}
+                            onAddMemory={hasPartner ? () => setModalVisible(true) : undefined}
+                        />
+                    }
+                    ListFooterComponent={
+                        loading && memories.length > 0 ? (
+                            <ActivityIndicator color="#e91e8c" style={{ paddingVertical: 20 }} />
+                        ) : null
+                    }
+                    contentContainerStyle={[
+                        styles.listContent,
+                        memories.length === 0 && { flex: 1 },
+                    ]}
+                    showsVerticalScrollIndicator={false}
+                />
+            </View>
         </SafeAreaView>
     );
 }
@@ -195,10 +197,6 @@ export default function MemoriesScreen() {
 // ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: '#fff5f8',
-    },
     // Header
     header: {
         flexDirection: 'row',
@@ -224,11 +222,10 @@ const styles = StyleSheet.create({
         width: 42,
         height: 42,
         borderRadius: 21,
-        backgroundColor: '#e91e8c',
+        backgroundColor: '#FF8A8A',
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#e91e8c',
-        shadowOffset: { width: 0, height: 4 },
+        shadowColor: '#FF8A8A',
         shadowOpacity: 0.35,
         shadowRadius: 8,
         elevation: 5,

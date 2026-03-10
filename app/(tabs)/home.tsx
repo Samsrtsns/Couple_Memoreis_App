@@ -57,20 +57,22 @@ export default function HomeScreen() {
                 className="flex-1 bg-bgLight "
                 showsVerticalScrollIndicator={false}
             >
-                <View className="pt-6 pb-2 px-6">
-                    <Text className="text-slate-500 font-medium text-[14px]">
-                        Welcome back
-                    </Text>
-                    <Text className="text-slate-800 font-extrabold text-[28px] mt-1">
-                        {profile?.first_name || "User"} {profile?.last_name || "Partner"}
-                    </Text>
+                <View className="pt-4 px-6 flex-row justify-between items-center">
+                    <View className="flex-1 mr-4">
+                        <Text className="text-slate-500 font-medium text-[14px]">
+                            Welcome back
+                        </Text>
+                        <Text className="text-slate-800 font-extrabold text-[28px] mt-1" numberOfLines={1}>
+                            {profile?.first_name || "User"} 👋🏻
+                        </Text>
+                    </View>
                 </View>
 
                 <RelationshipCard
                     relationshipStartDate={profile?.relationship_start_date}
                 />
 
-                <View className="mt-4">
+                <View >
                     <View className="px-6 flex-row items-center justify-between mb-4 mt-6">
                         <Text className="text-slate-800 font-bold text-lg">
                             Special Days

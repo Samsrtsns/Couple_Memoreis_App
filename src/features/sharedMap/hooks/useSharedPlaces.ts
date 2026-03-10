@@ -7,12 +7,15 @@
  */
 
 import { useAuth } from '@/src/context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     getSharedPlacesForPair,
     subscribeToSharedPlaces,
 } from '../services/sharedPlacesService';
 import type { SharedPlace } from '../types/sharedPlace.types';
+
+const PLACES_CACHE_PREFIX = '@cached_places_';
 
 export type UseSharedPlacesReturn = {
     places: SharedPlace[];
@@ -36,11 +39,37 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
 
     const fetch = useCallback(async () => {
         if (!currentUserId || !partnerId) return;
-        setLoading(true);
+
+        const cacheKey = `${PLACES_CACHE_PREFIX}${currentUserId}_${partnerId}`;
+
+        // Try load from cache first for instant UI response
+        try {
+            const cachedData = await AsyncStorage.getItem(cacheKey);
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    setPlaces(parsed);
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to read places cache:', e);
+        }
+
+        // Only show loading if we didn't have any places loaded yet
+        if (places.length === 0) {
+            setLoading(true);
+        }
         setError(null);
+
+        // Fetch from Supabase in the background
         try {
             const data = await getSharedPlacesForPair(currentUserId, partnerId);
             setPlaces(data);
+
+            // Save new data back to cache
+            AsyncStorage.setItem(cacheKey, JSON.stringify(data)).catch((e) => {
+                console.warn('Failed to write places cache:', e);
+            });
         } catch (e: any) {
             setError(e.message ?? 'Failed to load places.');
         } finally {

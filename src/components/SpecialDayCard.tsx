@@ -24,22 +24,20 @@ export default function SpecialDayCard({
 
     return (
         <View
+            className="bg-bgLight bg-shadow-lg shadow-slate-200"
             style={{
                 width: CARD_WIDTH,
                 height: CARD_HEIGHT,
-                backgroundColor: "#fff",
                 borderRadius: 20,
                 marginRight: 14,
                 padding: 16,
-                shadowColor: "#000",
-                shadowOpacity: 0.06,
+                shadowOpacity: 0.08,
                 shadowRadius: 10,
                 shadowOffset: { width: 0, height: 4 },
                 elevation: 4,
                 justifyContent: "space-between",
             }}
         >
-            {/* İkon — sağ üst */}
             <View style={{ alignItems: "center" }}>
                 <View
                     style={{
@@ -55,7 +53,6 @@ export default function SpecialDayCard({
                 </View>
             </View>
 
-            {/* Metin — sol alt */}
             <View>
                 <Text
                     numberOfLines={1}

@@ -10,6 +10,7 @@ export type ProfileData = {
     email: string;
     partner_id?: string;
     avatar_url?: string;
+    avatar_path?: string;
     birth_date?: string;
     relationship_start_date?: string;
 };

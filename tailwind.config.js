@@ -4,6 +4,9 @@ module.exports = {
   content: ["./app/**/*.{js,jsx,ts,tsx}", "./components/**/*.{js,jsx,ts,tsx}", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['InterBlack', 'sans-serif'], // Set default sans font to InterBlack
+      },
       colors: {
         primary: "#FF8A8A",
         coralLight: "#FFB1B1",

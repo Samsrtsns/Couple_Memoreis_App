@@ -122,7 +122,8 @@ export default function AddPlaceModal({
 
                     {/* KAV only wraps the sheet — lifts it above keyboard */}
                     <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                        style={{ flex: 1, justifyContent: 'flex-end' }}
                         keyboardVerticalOffset={0}
                     >
                         {/* Bottom sheet */}
@@ -238,8 +239,8 @@ export default function AddPlaceModal({
                                             mode="date"
                                             display="inline"
                                             maximumDate={new Date()}
-                                            accentColor="#F43F5E"
-                                            textColor="#1E293B"
+                                            accentColor="#000000"
+                                            textColor="#000000"
                                             onChange={(_event, date) => {
                                                 if (date) setVisitedAt(date);
                                             }}
@@ -299,7 +300,6 @@ export default function AddPlaceModal({
 const styles = StyleSheet.create({
     kavContainer: {
         flex: 1,
-        justifyContent: 'flex-end',
     },
     backdrop: {
         ...StyleSheet.absoluteFillObject,
@@ -310,8 +310,9 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         paddingHorizontal: 24,
-        paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-        maxHeight: '88%',
+        paddingBottom: 0,
+        flex: 1,
+        marginTop: 60,
         shadowColor: '#000',
         shadowOpacity: 0.2,
         shadowRadius: 20,
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF1F2',
     },
     pickerDoneBtnText: {
-        color: '#F43F5E',
+        color: '#000000',
         fontWeight: '700',
         fontSize: 15,
     },

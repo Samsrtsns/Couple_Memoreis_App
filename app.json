@@ -54,7 +54,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow forLovers to use your location to save shared places."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

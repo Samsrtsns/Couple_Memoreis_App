@@ -1,18 +1,26 @@
 import PrimaryButton from "@/src/components/PrimaryButton";
+import ProfileAvatar from "@/src/components/ProfileAvatar";
 import { useAuth } from "@/src/context/AuthContext";
 import { useProfile } from "@/src/hooks/useProfile";
 import { logoutUser } from "@/src/services/authService";
+import {
+    compressImage,
+    deleteProfilePhoto,
+    pickImage,
+    updateProfileAvatar
+} from "@/src/services/profilePhotoService";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
+    ActionSheetIOS,
     ActivityIndicator,
     Alert,
-    Image,
+    Platform,
     Pressable,
     ScrollView,
     Text,
-    View,
+    View
 } from "react-native";
 
 type SettingsRowProps = {
@@ -72,8 +80,9 @@ function SettingsRow({
 
 export default function ProfileScreen() {
     const { profile, partner, loading } = useProfile();
-    const { dispatch } = useAuth();
+    const { state, dispatch, refreshProfile } = useAuth();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
 
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return "Not set";
@@ -106,6 +115,89 @@ export default function ProfileScreen() {
         }
     };
 
+    const handlePhotoOptions = () => {
+        if (!state.session?.user) return;
+        const options = ['Cancel', 'Change Photo'];
+        const destructiveButtonIndex = profile?.avatar_url ? 2 : undefined;
+        if (profile?.avatar_url) {
+            options.push('Remove Photo');
+        }
+
+        if (Platform.OS === 'ios') {
+            ActionSheetIOS.showActionSheetWithOptions(
+                {
+                    options,
+                    cancelButtonIndex: 0,
+                    destructiveButtonIndex,
+                },
+                (buttonIndex) => {
+                    if (buttonIndex === 1) {
+                        handleUploadPhoto();
+                    } else if (buttonIndex === 2 && profile?.avatar_url) {
+                        handleRemovePhoto();
+                    }
+                }
+            );
+        } else {
+            Alert.alert(
+                'Profile Photo',
+                'Choose an option',
+                [
+                    { text: 'Change Photo', onPress: handleUploadPhoto },
+                    ...(profile?.avatar_url ? [{ text: 'Remove Photo', onPress: handleRemovePhoto, style: 'destructive' as const }] : []),
+                    { text: 'Cancel', style: 'cancel' }
+                ]
+            );
+        }
+    };
+
+    const handleUploadPhoto = async () => {
+        try {
+            if (!state.session?.user) return;
+            const uri = await pickImage();
+            if (!uri) return; // User cancelled
+
+            setIsUpdatingPhoto(true);
+            const compressed = await compressImage(uri);
+            await updateProfileAvatar(state.session.user.id, compressed, profile?.avatar_path);
+
+            // Refresh global user state to update the avatar everywhere
+            await refreshProfile();
+        } catch (error: any) {
+            Alert.alert("Upload Failed", error.message || "Failed to upload photo");
+        } finally {
+            setIsUpdatingPhoto(false);
+        }
+    };
+
+    const handleRemovePhoto = async () => {
+        const userId = state.session?.user?.id;
+        if (!userId || !profile?.avatar_path) return;
+
+        Alert.alert(
+            "Remove Photo",
+            "Are you sure you want to remove your profile photo?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Remove",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setIsUpdatingPhoto(true);
+                            await deleteProfilePhoto(userId, profile.avatar_path!);
+                            await refreshProfile();
+                        } catch (error: any) {
+                            Alert.alert("Error", error.message || "Failed to remove photo");
+                        } finally {
+                            setIsUpdatingPhoto(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     if (loading) {
         return (
             <View className="flex-1 justify-center items-center bg-bgLight">
@@ -126,15 +218,25 @@ export default function ProfileScreen() {
                         <View className="items-center gap-y-4">
                             {/* Avatar */}
                             <View className="relative">
-                                <Image
-                                    source={{
-                                        uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuA1_kM2wl2t2KZcGYOWWeslpyy4tg28MI8_TqpCRCSHjDTmJ1mlD2d1w7kD51hNBc-MHPG_1CP8lS1g-hmGZrS8V7puXu_EiLT7ehnK2rG6-7mM52zBW9X1S4wm3RQFt3-FZUIfQ5Lm6WkqIfUJpgatxTpJ0CUzhMx3mrK2uHBDrDF5mQ7ljoaHHm718EtW2YsSpqFZrFLIHrsbSwdMKgio7FddfAiDXR-S7Y3SlZkSNcZgSnXaDGI3-3vSlRwiKY-noJyKY3_3ZvE",
-                                    }}
-                                    className="w-32 h-32 rounded-full"
-                                    resizeMode="cover"
-                                />
+                                <Pressable onPress={handlePhotoOptions} disabled={isUpdatingPhoto}>
+                                    <View>
+                                        <ProfileAvatar
+                                            url={profile?.avatar_url}
+                                            size={128}
+                                        />
+                                        {isUpdatingPhoto && (
+                                            <View className="absolute inset-0 bg-black/30 rounded-full items-center justify-center">
+                                                <ActivityIndicator color="white" />
+                                            </View>
+                                        )}
+                                    </View>
+                                </Pressable>
 
-                                <Pressable className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-rose-500 items-center justify-center border-2 border-white">
+                                <Pressable
+                                    onPress={handlePhotoOptions}
+                                    disabled={isUpdatingPhoto}
+                                    className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-rose-500 items-center justify-center border-2 border-white"
+                                >
                                     <MaterialIcons name="edit" size={18} color="white" />
                                 </Pressable>
                             </View>

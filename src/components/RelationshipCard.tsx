@@ -1,13 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Image, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { useAuth } from "../context/AuthContext";
 import { calculateDaysTogether } from "../utils/dateUtils";
+import ProfileAvatar from "./ProfileAvatar";
 
 type Props = {
     relationshipStartDate?: string | null;
 };
 
 export default function RelationshipCard({ relationshipStartDate }: Props) {
+    const { state } = useAuth();
+    const { profile, partner } = state;
+
     if (!relationshipStartDate) return null;
 
     const daysTogether = calculateDaysTogether(relationshipStartDate);
@@ -22,49 +27,39 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
     );
 
     return (
-        <View className="px-6">
+        <View className="px-6 bg-bgLight">
             <View
-                className="flex-col w-full items-center mt-6 p-6"
+                className="flex-col w-full items-center mt-6 p-6 bg-bgLight shadow-lg shadow-slate-200"
                 style={{
-                    backgroundColor: "#FFE4E6",
                     borderRadius: 24,
-                    shadowColor: "#000",
-                    shadowOpacity: 0.08,
-                    shadowRadius: 12,
-                    shadowOffset: { width: 0, height: 4 },
-                    elevation: 4,
                 }}
             >
-                <View className="flex-row items-center gap-x-4 ">
-                    <Image
-                        source={{
-                            uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuA1_kM2wl2t2KZcGYOWWeslpyy4tg28MI8_TqpCRCSHjDTmJ1mlD2d1w7kD51hNBc-MHPG_1CP8lS1g-hmGZrS8V7puXu_EiLT7ehnK2rG6-7mM52zBW9X1S4wm3RQFt3-FZUIfQ5Lm6WkqIfUJpgatxTpJ0CUzhMx3mrK2uHBDrDF5mQ7ljoaHHm718EtW2YsSpqFZrFLIHrsbSwdMKgio7FddfAiDXR-S7Y3SlZkSNcZgSnXaDGI3-3vSlRwiKY-noJyKY3_3ZvE",
-                        }}
-                        style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: "#fff" }}
-                        resizeMode="cover"
+                <View className="flex-row items-center gap-x-6 ">
+                    <ProfileAvatar
+                        url={profile?.avatar_url}
+                        size={104}
+                        style={{ borderWidth: 3, borderColor: "#fff" }}
                     />
 
-                    <Ionicons name="heart" size={32} color="#F43F5E" />
+                    <Ionicons name="heart" size={52} color="#FF8A8A" />
 
-                    <Image
-                        source={{
-                            uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuA1_kM2wl2t2KZcGYOWWeslpyy4tg28MI8_TqpCRCSHjDTmJ1mlD2d1w7kD51hNBc-MHPG_1CP8lS1g-hmGZrS8V7puXu_EiLT7ehnK2rG6-7mM52zBW9X1S4wm3RQFt3-FZUIfQ5Lm6WkqIfUJpgatxTpJ0CUzhMx3mrK2uHBDrDF5mQ7ljoaHHm718EtW2YsSpqFZrFLIHrsbSwdMKgio7FddfAiDXR-S7Y3SlZkSNcZgSnXaDGI3-3vSlRwiKY-noJyKY3_3ZvE",
-                        }}
-                        style={{ width: 64, height: 64, borderRadius: 32 }}
-                        resizeMode="cover"
+                    <ProfileAvatar
+                        url={partner?.avatar_url}
+                        size={104}
+                        style={{ borderWidth: 3, borderColor: "#fff" }}
                     />
                 </View>
 
-                <View className="flex-col items-center mt-6">
-                    <View className="flex-row items-center">
-                        <Text className="text-slate-700 font-bold text-[22px]">Together for</Text>
-                        <Text className="text-rose-500 font-bold text-[22px]"> {daysTogether} </Text>
-                        <Text className="text-slate-700 font-bold text-[22px]">days</Text>
-                    </View>
+                <View className="flex-col items-start w-full mt-6 px-1">
+                    <Text className="text-slate-900 font-bold text-[20px] text-left leading-8">
+                        {partner?.first_name ? `${partner.first_name} ile ` : ""}
+                        <Text className="text-primary font-bold text-[22px]">{daysTogether}</Text>
+                        {" gündür birliktesiniz."}
+                    </Text>
 
-                    <View className="flex-row items-center mt-2">
-                        <Text className="text-slate-500 font-normal text-[16px]">
-                            Since {formattedDate}
+                    <View className="mt-1">
+                        <Text className="text-left text-slate-500 font-semibold text-[16px]">
+                            {formattedDate} tarihinden beri.
                         </Text>
                     </View>
                 </View>
