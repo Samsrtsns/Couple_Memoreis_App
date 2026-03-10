@@ -1,9 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, Platform } from "react-native";
+import { useAuth } from "../context/AuthContext";
 import { completeRelationshipSetup } from "../services/pairService";
 
 export function useRelationshipSetup() {
+    const { refreshProfile } = useAuth();
     const [myBirthDate, setMyBirthDate] = useState(new Date());
     const [partnerBirthDate, setPartnerBirthDate] = useState(new Date());
     const [relationshipStartDate, setRelationshipStartDate] = useState(new Date());
@@ -57,6 +59,11 @@ export function useRelationshipSetup() {
                 toISODate(partnerBirthDate),
                 toISODate(relationshipStartDate)
             );
+
+            // Refetch the global auth context so the home/profile screens receive the new partner
+            if (refreshProfile) {
+                await refreshProfile();
+            }
 
             Alert.alert("Success", "Your relationship details have been saved.", [
                 {

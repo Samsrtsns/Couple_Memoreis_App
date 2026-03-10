@@ -1,0 +1,467 @@
+/**
+ * Memories Service
+ *
+ * All Supabase operations for the memories feature.
+ * DB logic is fully isolated from UI components.
+ *
+ * Tables used:
+ *   - memories
+ *   - memory_comments
+ *   - memory_likes
+ *   - profiles
+ *
+ * Storage bucket: `memories`
+ */
+
+import { supabase } from '@/src/lib/supabase';
+import { decode } from 'base64-arraybuffer';
+import * as FileSystem from 'expo-file-system/legacy';
+import type {
+    CreateCommentPayload,
+    Memory,
+    MemoryComment,
+    MemoryCommentRow,
+    MemoryLike,
+    MemoryRow,
+} from '../types/memory.types';
+import { getPairUserIds } from '../utils/pair.utils';
+
+// ─────────────────────────────────────────────
+// Profile
+// ─────────────────────────────────────────────
+
+export type ProfileResult = {
+    id: string;
+    first_name: string;
+    last_name: string;
+    partner_id: string | null;
+};
+
+/**
+ * Gets the current authenticated user's profile from Supabase.
+ * Throws if there is no active session or no profile row.
+ */
+export async function getCurrentProfile(): Promise<ProfileResult> {
+    const {
+        data: { user },
+        error: sessionError,
+    } = await supabase.auth.getUser();
+
+    if (sessionError || !user) throw new Error('No active session.');
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, partner_id')
+        .eq('id', user.id)
+        .single();
+
+    if (error || !data) throw new Error('Could not load profile.');
+    return data as ProfileResult;
+}
+
+// ─────────────────────────────────────────────
+// Normalize helpers
+// ─────────────────────────────────────────────
+
+function normalizeComment(row: MemoryCommentRow): MemoryComment {
+    return {
+        id: row.id,
+        memory_id: row.memory_id,
+        user_id: row.user_id,
+        comment: row.comment,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        author: row.profiles
+            ? {
+                id: row.profiles.id,
+                first_name: row.profiles.first_name,
+                last_name: row.profiles.last_name,
+            }
+            : undefined,
+    };
+}
+
+function normalizeMemory(row: MemoryRow, currentUserId: string): Memory {
+    const likes: MemoryLike[] = (row.memory_likes ?? []) as MemoryLike[];
+    const comments: MemoryComment[] = (row.memory_comments ?? []).map((c) =>
+        normalizeComment(c as unknown as MemoryCommentRow)
+    );
+
+    return {
+        id: row.id,
+        created_by: row.created_by,
+        user_a_id: row.user_a_id,
+        user_b_id: row.user_b_id,
+        title: row.title,
+        description: row.description,
+        photo_url: row.photo_url,
+        memory_date: row.memory_date,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        comments,
+        likes,
+        isLikedByCurrentUser: likes.some((l) => l.user_id === currentUserId),
+        likeCount: likes.length,
+        commentCount: comments.length,
+        creator_profile: row.profiles ?? undefined,
+    };
+}
+
+// ─────────────────────────────────────────────
+// FETCH
+// ─────────────────────────────────────────────
+
+/**
+ * Fetches all memories for the current couple, sorted by memory_date DESC.
+ * Includes nested comments (with author profile) and likes.
+ */
+export async function fetchMemoriesForCurrentUser(
+    currentUserId: string,
+    partnerId: string
+): Promise<Memory[]> {
+    const { userAId, userBId } = getPairUserIds(currentUserId, partnerId);
+
+    const { data, error } = await supabase
+        .from('memories')
+        .select(`
+            id,
+            created_by,
+            user_a_id,
+            user_b_id,
+            title,
+            description,
+            photo_url,
+            memory_date,
+            created_at,
+            updated_at,
+            profiles:created_by (
+                id,
+                first_name,
+                last_name
+            ),
+            memory_comments (
+                id,
+                memory_id,
+                user_id,
+                comment,
+                created_at,
+                updated_at,
+                profiles:user_id (
+                    id,
+                    first_name,
+                    last_name
+                )
+            ),
+            memory_likes (
+                id,
+                memory_id,
+                user_id,
+                created_at
+            )
+        `)
+        .eq('user_a_id', userAId)
+        .eq('user_b_id', userBId)
+        .order('memory_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+    if (error) throw new Error(`Failed to fetch memories: ${error.message}`);
+
+    return (data ?? []).map((row) =>
+        normalizeMemory(row as unknown as MemoryRow, currentUserId)
+    );
+}
+
+// ─────────────────────────────────────────────
+// CREATE
+// ─────────────────────────────────────────────
+
+export type CreateMemoryArgs = {
+    title: string;
+    description?: string;
+    memory_date: string;
+    photo_url: string;
+    currentUserId: string;
+    partnerId: string;
+};
+
+/**
+ * Inserts a new memory row into the database.
+ * `user_a_id` and `user_b_id` are derived deterministically from the pair.
+ */
+export async function createMemory({
+    title,
+    description,
+    memory_date,
+    photo_url,
+    currentUserId,
+    partnerId,
+}: CreateMemoryArgs): Promise<Memory> {
+    const { userAId, userBId } = getPairUserIds(currentUserId, partnerId);
+
+    const { data, error } = await supabase
+        .from('memories')
+        .insert({
+            created_by: currentUserId,
+            user_a_id: userAId,
+            user_b_id: userBId,
+            title: title.trim(),
+            description: description?.trim() ?? null,
+            photo_url,
+            memory_date,
+        })
+        .select(`
+            id,
+            created_by,
+            user_a_id,
+            user_b_id,
+            title,
+            description,
+            photo_url,
+            memory_date,
+            created_at,
+            updated_at
+        `)
+        .single();
+
+    if (error) throw new Error(`Failed to create memory: ${error.message}`);
+
+    return normalizeMemory(
+        { ...(data as unknown as MemoryRow), memory_comments: [], memory_likes: [] },
+        currentUserId
+    );
+}
+
+// ─────────────────────────────────────────────
+// PHOTO UPLOAD
+// ─────────────────────────────────────────────
+
+/**
+ * Uploads a local photo URI to Supabase Storage bucket `memories`.
+ * Returns the public URL of the uploaded file.
+ *
+ * Storage path: memories/{userId}/{timestamp}.jpg
+ */
+export async function uploadMemoryPhoto(
+    localUri: string,
+    currentUserId: string
+): Promise<string> {
+    // Read the file as base64 instead of blob (fixes 0 bytes upload issue in React Native)
+    const base64 = await FileSystem.readAsStringAsync(localUri, {
+        encoding: 'base64',
+    });
+
+    const timestamp = Date.now();
+    const path = `${currentUserId}/${timestamp}.jpg`;
+
+    // Decode base64 to ArrayBuffer for Supabase Storage
+    const { error: uploadError } = await supabase.storage
+        .from('memories')
+        .upload(path, decode(base64), {
+            contentType: 'image/jpeg',
+            upsert: false,
+        });
+
+    if (uploadError) throw new Error(`Photo upload failed: ${uploadError.message}`);
+
+    const { data: urlData } = supabase.storage
+        .from('memories')
+        .getPublicUrl(path);
+
+    if (!urlData?.publicUrl) throw new Error('Could not get public URL for uploaded photo.');
+    return urlData.publicUrl;
+}
+
+// ─────────────────────────────────────────────
+// COMMENTS
+// ─────────────────────────────────────────────
+
+/**
+ * Adds a new comment to a memory.
+ */
+export async function addMemoryComment(
+    payload: CreateCommentPayload,
+    currentUserId: string
+): Promise<MemoryComment> {
+    const { data, error } = await supabase
+        .from('memory_comments')
+        .insert({
+            memory_id: payload.memory_id,
+            user_id: currentUserId,
+            comment: payload.comment.trim(),
+        })
+        .select(`
+            id,
+            memory_id,
+            user_id,
+            comment,
+            created_at,
+            updated_at,
+            profiles:user_id (
+                id,
+                first_name,
+                last_name
+            )
+        `)
+        .single();
+
+    if (error) throw new Error(`Failed to add comment: ${error.message}`);
+
+    return normalizeComment(data as unknown as MemoryCommentRow);
+}
+
+/**
+ * Deletes a comment. Only the comment owner can delete.
+ */
+export async function deleteMemoryComment(
+    commentId: string,
+    currentUserId: string
+): Promise<void> {
+    const { error } = await supabase
+        .from('memory_comments')
+        .delete()
+        .eq('id', commentId)
+        .eq('user_id', currentUserId);
+
+    if (error) throw new Error(`Failed to delete comment: ${error.message}`);
+}
+
+// ─────────────────────────────────────────────
+// LIKES
+// ─────────────────────────────────────────────
+
+/**
+ * Toggles a like on a memory.
+ * If the current user already liked it → deletes the like.
+ * If not → inserts a like.
+ * Returns true if liked, false if unliked.
+ */
+export async function toggleMemoryLike(
+    memoryId: string,
+    currentUserId: string
+): Promise<boolean> {
+    // Check for existing like
+    const { data: existing, error: checkError } = await supabase
+        .from('memory_likes')
+        .select('id')
+        .eq('memory_id', memoryId)
+        .eq('user_id', currentUserId)
+        .maybeSingle();
+
+    if (checkError) throw new Error(`Failed to check like status: ${checkError.message}`);
+
+    if (existing) {
+        // Unlike
+        const { error } = await supabase
+            .from('memory_likes')
+            .delete()
+            .eq('id', existing.id);
+        if (error) throw new Error(`Failed to unlike: ${error.message}`);
+        return false;
+    } else {
+        // Like
+        const { error } = await supabase
+            .from('memory_likes')
+            .insert({ memory_id: memoryId, user_id: currentUserId });
+        if (error) throw new Error(`Failed to like: ${error.message}`);
+        return true;
+    }
+}
+
+// ─────────────────────────────────────────────
+// REALTIME SUBSCRIPTIONS
+// ─────────────────────────────────────────────
+
+type RealtimeMemoryCallbacks = {
+    onInsert?: (row: MemoryRow) => void;
+    onUpdate?: (row: MemoryRow) => void;
+    onDelete?: (id: string) => void;
+};
+
+/**
+ * Subscribes to realtime events on the `memories` table.
+ * Filters by the couple's pair (user_a_id).
+ * Returns an unsubscribe function.
+ */
+export function subscribeToMemories(
+    userAId: string,
+    callbacks: RealtimeMemoryCallbacks
+): () => void {
+    const channel = supabase
+        .channel(`memories:pair:${userAId}`)
+        .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'memories', filter: `user_a_id=eq.${userAId}` },
+            (payload) => callbacks.onInsert?.(payload.new as MemoryRow)
+        )
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'memories', filter: `user_a_id=eq.${userAId}` },
+            (payload) => callbacks.onUpdate?.(payload.new as MemoryRow)
+        )
+        .on(
+            'postgres_changes',
+            { event: 'DELETE', schema: 'public', table: 'memories', filter: `user_a_id=eq.${userAId}` },
+            (payload) => callbacks.onDelete?.((payload.old as { id: string }).id)
+        )
+        .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+}
+
+type RealtimeCommentCallbacks = {
+    onInsert?: (row: MemoryCommentRow) => void;
+    onDelete?: (id: string) => void;
+};
+
+/**
+ * Subscribes to realtime events on `memory_comments`.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToMemoryComments(
+    callbacks: RealtimeCommentCallbacks
+): () => void {
+    const channel = supabase
+        .channel('memory_comments:all')
+        .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'memory_comments' },
+            (payload) => callbacks.onInsert?.(payload.new as MemoryCommentRow)
+        )
+        .on(
+            'postgres_changes',
+            { event: 'DELETE', schema: 'public', table: 'memory_comments' },
+            (payload) => callbacks.onDelete?.((payload.old as { id: string }).id)
+        )
+        .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+}
+
+type RealtimeLikeCallbacks = {
+    onInsert?: (row: MemoryLike) => void;
+    onDelete?: (id: string) => void;
+};
+
+/**
+ * Subscribes to realtime events on `memory_likes`.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToMemoryLikes(
+    callbacks: RealtimeLikeCallbacks
+): () => void {
+    const channel = supabase
+        .channel('memory_likes:all')
+        .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'memory_likes' },
+            (payload) => callbacks.onInsert?.(payload.new as MemoryLike)
+        )
+        .on(
+            'postgres_changes',
+            { event: 'DELETE', schema: 'public', table: 'memory_likes' },
+            (payload) => callbacks.onDelete?.((payload.old as { id: string }).id)
+        )
+        .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+}

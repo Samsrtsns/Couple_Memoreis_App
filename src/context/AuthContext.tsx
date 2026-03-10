@@ -91,6 +91,7 @@ function authReducer(state: AuthState, action: Action): AuthState {
 type AuthContextType = {
     state: AuthState;
     dispatch: React.Dispatch<Action>;
+    refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -152,8 +153,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         initializeAuth();
     }, []);
 
+    const refreshProfile = async () => {
+        if (!state.session?.user) return;
+        try {
+            dispatch({ type: 'FETCH_PROFILE_START' });
+            const { profile, partner } = await getProfileWithPartner();
+            dispatch({
+                type: 'FETCH_PROFILE_SUCCESS',
+                payload: { profile, partner },
+            });
+        } catch (error) {
+            console.error('Error refreshing profile:', error);
+            dispatch({ type: 'FETCH_PROFILE_ERROR' });
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ state, dispatch }}>
+        <AuthContext.Provider value={{ state, dispatch, refreshProfile }}>
             {children}
         </AuthContext.Provider>
     );
