@@ -1,6 +1,9 @@
 // src/services/authService.ts
 import { supabase } from "@/src/lib/supabase";
 
+/**
+ * Kayıt parametreleri tipi
+ */
 type RegisterParams = {
     firstName: string;
     lastName: string;
@@ -8,11 +11,18 @@ type RegisterParams = {
     password: string;
 };
 
+/**
+ * Giriş parametreleri tipi
+ */
 type LoginParams = {
     email: string;
     password: string;
 };
 
+/**
+ * Yeni bir kullanıcı kaydı oluşturur.
+ * Supabase Auth ile kullanıcıyı kaydeder ve ardından 'profiles' tablosuna profil bilgilerini ekler.
+ */
 export async function registerUser({
     firstName,
     lastName,
@@ -31,9 +41,10 @@ export async function registerUser({
     const user = data.user;
 
     if (!user) {
-        throw new Error("User could not be created.");
+        throw new Error("Kullanıcı oluşturulamadı.");
     }
 
+    // Auth kaydı başarılı olduktan sonra profil tablosuna isim bilgilerini kaydediyoruz
     const { error: profileError } = await supabase.from("profiles").insert({
         id: user.id,
         first_name: firstName,
@@ -48,6 +59,9 @@ export async function registerUser({
     return data;
 }
 
+/**
+ * Mevcut bir kullanıcı ile sisteme giriş yapar.
+ */
 export async function loginUser({ email, password }: LoginParams) {
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -61,6 +75,9 @@ export async function loginUser({ email, password }: LoginParams) {
     return data;
 }
 
+/**
+ * Kullanıcının oturumunu sonlandırır (çıkış yapar).
+ */
 export async function logoutUser() {
     const { error } = await supabase.auth.signOut();
 
@@ -69,6 +86,9 @@ export async function logoutUser() {
     }
 }
 
+/**
+ * Mevcut aktif oturum (session) bilgisini getirir.
+ */
 export async function getCurrentSession() {
     const { data, error } = await supabase.auth.getSession();
 

@@ -2,104 +2,50 @@
  * MapHeader — top navigation bar for the Shared Places Map screen.
  */
 
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
     placesCount: number;
     mapStyle: 'standard' | 'satellite';
     onToggleMapStyle: () => void;
+    onRefresh: () => void;
+    refreshing: boolean;
 };
 
-export default function MapHeader({ placesCount, mapStyle, onToggleMapStyle }: Props) {
+export default function MapHeader({
+    placesCount,
+    onRefresh,
+    refreshing,
+}: Props) {
     const insets = useSafeAreaInsets();
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-            {/* Left: title + count badge */}
-            <View style={styles.left}>
-                <View style={styles.iconBadge}>
-                    <Ionicons name="heart" size={18} color="#F43F5E" />
-                </View>
-                <Text style={styles.title}>Our Places</Text>
-                <View style={styles.countBadge}>
-                    <Text style={styles.countText}>{placesCount}</Text>
+        <View
+            className="flex-row items-center justify-between border-b border-[#F1EEF0] bg-[#FDF8F7] px-5 pt-5 pb-4"
+        >
+            <View className="flex-row items-center gap-2">
+                <Text className="text-[26px] font-extrabold  text-slate-800">
+                    Our Places
+                </Text>
+
+                <View className="w-8 h-8 rounded-full bg-rose-100 items-center justify-center">
+                    <Text className="text-[12px] font-bold text-rose-500">
+                        {placesCount}
+                    </Text>
                 </View>
             </View>
 
-            {/* Right: map style toggle */}
-            <TouchableOpacity
-                onPress={onToggleMapStyle}
-                style={styles.actionButton}
-                activeOpacity={0.75}
-                accessibilityLabel="Toggle map style"
+            <TouchableOpacity 
+                onPress={onRefresh}
+                disabled={refreshing}
+                className="w-10 h-10 rounded-full bg-slate-50 items-center justify-center border border-slate-100"
+                style={{ opacity: refreshing ? 0.5 : 1 }}
             >
-                <Ionicons
-                    name={mapStyle === 'standard' ? 'globe-outline' : 'map-outline'}
-                    size={18}
-                    color="#F43F5E"
-                />
+                <Ionicons name="refresh" size={20} color="#334155" />
             </TouchableOpacity>
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        paddingBottom: 12,
-        paddingHorizontal: 20,
-        backgroundColor: '#FDF8F7',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1EEF0',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    left: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    iconBadge: {
-        width: 34,
-        height: 34,
-        borderRadius: 10,
-        backgroundColor: '#FFF1F2',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: '#1E293B',
-        letterSpacing: -0.3,
-    },
-    countBadge: {
-        backgroundColor: '#FFE4E6',
-        borderRadius: 10,
-        paddingHorizontal: 7,
-        paddingVertical: 2,
-    },
-    countText: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#F43F5E',
-    },
-    actionButton: {
-        width: 38,
-        height: 38,
-        borderRadius: 12,
-        backgroundColor: '#FFF1F2',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: '#FDA4AF',
-    },
-});

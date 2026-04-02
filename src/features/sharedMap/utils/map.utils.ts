@@ -1,18 +1,18 @@
 /**
- * Map Utilities
+ * Harita Yardımcı Fonksiyonları (Map Utilities)
  *
- * Helpers for computing map regions, fitting to markers,
- * validating coordinates, and transforming SharedPlace data
- * into marker-ready objects.
+ * Harita bölgelerini (region) hesaplama, işaretçilere (marker) göre haritayı sığdırma,
+ * koordinat doğrulama ve SharedPlace verilerini işaretçi nesnelerine dönüştürme
+ * gibi yardımcı fonksiyonları içerir.
  */
 
 import type { MapRegion, PlaceMarkerData, SharedPlace } from '../types/sharedPlace.types';
 
 // ─────────────────────────────────────────────
-// Constants
+// Sabitler
 // ─────────────────────────────────────────────
 
-/** Istanbul center — used as a final fallback region */
+/** İstanbul merkez noktası — nihai yedek bölge olarak kullanılır */
 export const DEFAULT_MAP_REGION: MapRegion = {
     latitude: 41.015,
     longitude: 28.975,
@@ -20,16 +20,16 @@ export const DEFAULT_MAP_REGION: MapRegion = {
     longitudeDelta: 0.06,
 };
 
-/** Padding factor used when fitting the map to multiple markers */
+/** Haritayı birden fazla işaretçiye sığdırırken kullanılan dolgu (padding) faktörü */
 const FIT_PADDING = 0.15;
 
 // ─────────────────────────────────────────────
-// Region helpers
+// Bölge (Region) Yardımcıları
 // ─────────────────────────────────────────────
 
 /**
- * Creates a tight region centered on a single coordinate.
- * Useful for zooming in to a newly added place or the user's location.
+ * Tek bir koordinata odaklanmış dar bir bölge (MapRegion) oluşturur.
+ * Yeni eklenen bir yere veya kullanıcının konumuna zoom yapmak için kullanışlıdır.
  */
 export function regionFromCoordinate(
     latitude: number,
@@ -45,8 +45,8 @@ export function regionFromCoordinate(
 }
 
 /**
- * Calculates a MapRegion that fits all provided places on screen.
- * Falls back to DEFAULT_MAP_REGION when the places array is empty.
+ * Sağlanan tüm yerleri ekrana sığdıracak bir MapRegion hesaplar.
+ * Yer listesi boşsa DEFAULT_MAP_REGION değerine geri döner.
  */
 export function fitRegionToPlaces(places: SharedPlace[]): MapRegion {
     if (places.length === 0) return DEFAULT_MAP_REGION;
@@ -74,10 +74,10 @@ export function fitRegionToPlaces(places: SharedPlace[]): MapRegion {
 }
 
 /**
- * Returns the initial map region using the following priority:
- *  1. User's current location (if provided)
- *  2. First shared place
- *  3. Default fallback
+ * Aşağıdaki öncelik sırasına göre başlangıç harita bölgesini döndürür:
+ *  1. Kullanıcının mevcut konumu (sağlanmışsa)
+ *  2. Listelenen ilk paylaşılan yer
+ *  3. Varsayılan yedek bölge (Istanbul)
  */
 export function getInitialMapRegion(
     userLocation: { latitude: number; longitude: number } | null,
@@ -93,20 +93,20 @@ export function getInitialMapRegion(
 }
 
 // ─────────────────────────────────────────────
-// Coordinate validation
+// Koordinat Doğrulama
 // ─────────────────────────────────────────────
 
-/** Returns true for a valid WGS84 latitude value */
+/** Geçerli bir WGS84 enlem (latitude) değeri için true döner */
 export function isValidLatitude(lat: unknown): lat is number {
     return typeof lat === 'number' && isFinite(lat) && lat >= -90 && lat <= 90;
 }
 
-/** Returns true for a valid WGS84 longitude value */
+/** Geçerli bir WGS84 boylam (longitude) değeri için true döner */
 export function isValidLongitude(lng: unknown): lng is number {
     return typeof lng === 'number' && isFinite(lng) && lng >= -180 && lng <= 180;
 }
 
-/** Returns true if both latitude and longitude are valid */
+/** Hem enlem hem de boylam değerleri geçerliyse true döner */
 export function isValidCoordinate(
     lat: unknown,
     lng: unknown
@@ -115,12 +115,12 @@ export function isValidCoordinate(
 }
 
 // ─────────────────────────────────────────────
-// Data transformation
+// Veri Dönüştürme
 // ─────────────────────────────────────────────
 
 /**
- * Converts an array of SharedPlace objects into lightweight
- * PlaceMarkerData objects for efficient map rendering.
+ * SharedPlace nesne dizisini, haritada hızlı render edilebilmesi için
+ * daha hafif olan PlaceMarkerData nesnelerine dönüştürür.
  */
 export function toMarkerData(places: SharedPlace[]): PlaceMarkerData[] {
     return places.map((place) => ({
@@ -134,20 +134,20 @@ export function toMarkerData(places: SharedPlace[]): PlaceMarkerData[] {
 }
 
 // ─────────────────────────────────────────────
-// Date formatting
+// Tarih Formatlama
 // ─────────────────────────────────────────────
 
-/** Formats an ISO date string into a human-readable date */
+/** ISO tarih string'ini okunabilir bir tarihe dönüştürür */
 export function formatVisitedDate(isoString: string | null): string {
-    if (!isoString) return 'Date unknown';
-    return new Date(isoString).toLocaleDateString('en-US', {
+    if (!isoString) return 'Tarih bilinmiyor';
+    return new Date(isoString).toLocaleDateString('tr-TR', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
     });
 }
 
-/** Formats an ISO timestamp into relative time or absolute date */
+/** ISO zaman damgasını göreceli zamana (örn: "5 dk önce") veya mutlak tarihe dönüştürür */
 export function formatCommentTime(isoString: string): string {
     const now = Date.now();
     const then = new Date(isoString).getTime();
@@ -156,12 +156,12 @@ export function formatCommentTime(isoString: string): string {
     const diffHr = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHr / 24);
 
-    if (diffMin < 1) return 'just now';
-    if (diffMin < 60) return `${diffMin}m ago`;
-    if (diffHr < 24) return `${diffHr}h ago`;
-    if (diffDay < 7) return `${diffDay}d ago`;
+    if (diffMin < 1) return 'az önce';
+    if (diffMin < 60) return `${diffMin} dk önce`;
+    if (diffHr < 24) return `${diffHr} sa önce`;
+    if (diffDay < 7) return `${diffDay} gün önce`;
 
-    return new Date(isoString).toLocaleDateString('en-US', {
+    return new Date(isoString).toLocaleDateString('tr-TR', {
         month: 'short',
         day: 'numeric',
     });

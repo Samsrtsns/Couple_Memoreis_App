@@ -20,10 +20,11 @@ type Props = {
     onSubmit: (text: string) => Promise<void>;
     loading?: boolean;
     error?: string | null;
+    initialValue?: string;
 };
 
-export default function CommentInput({ onSubmit, loading = false, error }: Props) {
-    const [text, setText] = useState('');
+export default function CommentInput({ onSubmit, loading = false, error, initialValue = '' }: Props) {
+    const [text, setText] = useState(initialValue);
 
     const handleSubmit = async () => {
         const trimmed = text.trim();

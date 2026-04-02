@@ -1,11 +1,14 @@
 import { supabase } from "@/src/lib/supabase";
 
+/**
+ * Mevcut kullanıcının profilindeki eşleşme kodunu (match_code) getirir.
+ */
 export async function getMyProfile() {
     const {
         data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error("Kullanıcı bulunamadı");
 
     const { data, error } = await supabase
         .from("profiles")
@@ -18,12 +21,15 @@ export async function getMyProfile() {
     return data;
 }
 
+/**
+ * Mevcut kullanıcının profilini ve eğer varsa eşleştiği partnerin profil bilgilerini getirir.
+ */
 export async function getProfileWithPartner() {
     const {
         data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error("Kullanıcı bulunamadı");
 
     const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -52,6 +58,10 @@ export async function getProfileWithPartner() {
     };
 }
 
+/**
+ * Verilen davet kodu ile başka bir kullanıcıyla eşleşme (matching) işlemini başlatır.
+ * Supabase'deki 'match_with_code' adlı RPC (Stored Procedure) fonksiyonunu kullanır.
+ */
 export async function matchPartner(code: string) {
     const { data, error } = await supabase.rpc("match_with_code", {
         input_code: code,
@@ -62,6 +72,10 @@ export async function matchPartner(code: string) {
     return data;
 }
 
+/**
+ * İlişki kurulumunu tamamlar. Kullanıcının ve partnerinin doğum tarihlerini,
+ * ayrıca ilişki başlangıç tarihini sisteme kaydeder.
+ */
 export async function completeRelationshipSetup(
     myBirthDate: string,
     partnerBirthDate: string,
@@ -71,9 +85,9 @@ export async function completeRelationshipSetup(
         data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error("Kullanıcı bulunamadı");
 
-    // First, update my own birth date
+    // İlk olarak kendi doğum tarihimizi güncelliyoruz
     const { error: myProfileError } = await supabase
         .from("profiles")
         .update({ birth_date: myBirthDate })
@@ -81,7 +95,7 @@ export async function completeRelationshipSetup(
 
     if (myProfileError) throw new Error(myProfileError.message);
 
-    // Then, call the RPC logic which presumably updates partner/relationship info
+    // Ardından partner bilgilerini ve ilişki detaylarını güncelleyen RPC fonksiyonunu çağırıyoruz
     const { error } = await supabase.rpc("complete_relationship_setup", {
         partner_birth_date: partnerBirthDate,
         relationship_start_date: relationshipStartDate,

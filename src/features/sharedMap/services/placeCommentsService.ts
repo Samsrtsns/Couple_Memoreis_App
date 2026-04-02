@@ -1,12 +1,12 @@
 /**
- * Place Comments Service
+ * Yer Yorumları Servisi (Place Comments Service)
  *
- * All Supabase operations for the `place_comments` table.
+ * `place_comments` tablosu için tüm Supabase işlemleri burada yer alır.
  *
- * Security design:
- * - Before fetching/creating comments, the service verifies the place
- *   belongs to the current pair (frontend guard).
- * - Supabase RLS is the authoritative enforcement layer.
+ * Güvenlik Tasarımı:
+ * - Yorumları çekmeden veya oluşturmadan önce servis, yerin mevcut kullanıcı çiftine
+ *   ait olduğunu doğrular (ön uç koruması).
+ * - Supabase RLS (Satır Bazlı Güvenlik) yetkilendirme katmanı olarak ana güvenliği sağlar.
  */
 
 import { supabase } from '@/src/lib/supabase';
@@ -19,12 +19,12 @@ import type {
 import { getPairFilterArgs } from '../utils/pair.utils';
 
 // ─────────────────────────────────────────────
-// Helper: check that a place belongs to the pair
+// Yardımcı: Yerin çifte ait olup olmadığını kontrol et
 // ─────────────────────────────────────────────
 
 /**
- * Verifies that the given placeId belongs to the current user's pair.
- * Throws if the place does not exist or is not accessible.
+ * Belirtilen placeId'nin mevcut kullanıcı çiftine ait olduğunu doğrular.
+ * Yer mevcut değilse veya erişim izni yoksa hata fırlatır.
  */
 async function assertPlaceBelongsToPair(
     placeId: string,
@@ -41,12 +41,12 @@ async function assertPlaceBelongsToPair(
         .eq('user_b_id', userBId)
         .maybeSingle();
 
-    if (error) throw new Error(`Could not verify place access: ${error.message}`);
-    if (!data) throw new Error('Place not found or access denied.');
+    if (error) throw new Error(`Yer erişimi doğrulanamadı: ${error.message}`);
+    if (!data) throw new Error('Yer bulunamadı veya erişim reddedildi.');
 }
 
 // ─────────────────────────────────────────────
-// Helper: normalize raw Supabase row into PlaceComment
+// Yardımcı: Ham Supabase satırını PlaceComment nesnesine dönüştür
 // ─────────────────────────────────────────────
 
 function normalizeComment(row: PlaceCommentRow): PlaceComment {
@@ -68,20 +68,20 @@ function normalizeComment(row: PlaceCommentRow): PlaceComment {
 }
 
 // ─────────────────────────────────────────────
-// READ
+// OKUMA (READ)
 // ─────────────────────────────────────────────
 
 /**
- * Fetches all comments for a given place.
- * Includes the author's first and last name via a profiles join.
- * Only accessible if the place belongs to the current pair.
+ * Belirli bir yer için tüm yorumları getirir.
+ * Profiller tablosu üzerinden yazarın ad ve soyad bilgilerini de içerir.
+ * Sadece yer mevcut çifte aitse erişilebilir.
  */
 export async function getCommentsByPlace(
     placeId: string,
     currentUserId: string,
     partnerId: string
 ): Promise<PlaceComment[]> {
-    // Frontend security guard
+    // Ön uç güvenlik kontrolü
     await assertPlaceBelongsToPair(placeId, currentUserId, partnerId);
 
     const { data, error } = await supabase
@@ -92,28 +92,41 @@ export async function getCommentsByPlace(
       user_id,
       comment,
       created_at,
-      updated_at,
-      profiles:user_id (
-        id,
-        first_name,
-        last_name
-      )
+      updated_at
     `)
         .eq('place_id', placeId)
         .order('created_at', { ascending: true });
 
-    if (error) throw new Error(`Failed to fetch comments: ${error.message}`);
+    if (error) throw new Error(`Yorumlar getirilemedi: ${error.message}`);
+    const rawComments = data ?? [];
 
-    return (data ?? []).map((row) => normalizeComment(row as unknown as PlaceCommentRow));
+    const userIds = Array.from(new Set(rawComments.map((c: any) => c.user_id).filter(Boolean)));
+    const profilesMap: Record<string, { id: string; first_name: string; last_name: string }> = {};
+
+    if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', userIds);
+        
+        if (profiles) {
+            profiles.forEach(p => { profilesMap[p.id] = p; });
+        }
+    }
+
+    return rawComments.map((row: any) => normalizeComment({
+        ...row,
+        profiles: profilesMap[row.user_id]
+    } as unknown as PlaceCommentRow));
 }
 
 // ─────────────────────────────────────────────
-// CHECK: has user already commented?
+// KONTROL: Kullanıcı daha önce yorum yaptı mı?
 // ─────────────────────────────────────────────
 
 /**
- * Returns true if the current user already has a comment on this place.
- * Used to enforce the 1-comment-per-user-per-place rule.
+ * Mevcut kullanıcının bu yer için zaten bir yorumu olup olmadığını kontrol eder.
+ * Her kullanıcı için "her yer başına tek yorum" kuralını uygulamak için kullanılır.
  */
 export async function hasUserCommented(
     placeId: string,
@@ -131,35 +144,35 @@ export async function hasUserCommented(
 }
 
 // ─────────────────────────────────────────────
-// CREATE
+// OLUŞTURMA (CREATE)
 // ─────────────────────────────────────────────
 
 /**
- * Creates a new comment on a shared place.
- * Guards:
- *   1. Place must belong to current pair.
- *   2. `user_id` is always set to currentUserId (never trusted from payload).
- *   3. Each user can only post ONE comment per place.
+ * Paylaşılan bir yer için yeni bir yorum oluşturur.
+ * Korumalar:
+ *   1. Yer mevcut çifte ait olmalıdır.
+ *   2. `user_id` her zaman currentUserId olarak ayarlanır (payload'a güvenilmez).
+ *   3. Her kullanıcı her yer için sadece TEK bir yorum yapabilir.
  */
 export async function createComment(
     payload: CreateCommentPayload,
     currentUserId: string,
     partnerId: string
 ): Promise<PlaceComment> {
-    // Security guard: confirm the place is part of this pair
+    // Güvenlik kontrolü: yerin bu çifte ait olduğunu onayla
     await assertPlaceBelongsToPair(payload.place_id, currentUserId, partnerId);
 
-    // Enforce 1 comment per user per place
+    // Her kullanıcı başına tek yorum kuralını uygula
     const alreadyCommented = await hasUserCommented(payload.place_id, currentUserId);
     if (alreadyCommented) {
-        throw new Error('You have already added a memory note to this place.');
+        throw new Error('Bu yer için zaten bir anı notu eklemişsiniz.');
     }
 
     const { data, error } = await supabase
         .from('place_comments')
         .insert({
             place_id: payload.place_id,
-            user_id: currentUserId, // always use server-side auth user id
+            user_id: currentUserId, // her zaman sunucu tarafındaki yetkili kullanıcı id'sini kullan
             comment: payload.comment.trim(),
         })
         .select(`
@@ -168,28 +181,33 @@ export async function createComment(
       user_id,
       comment,
       created_at,
-      updated_at,
-      profiles:user_id (
-        id,
-        first_name,
-        last_name
-      )
+      updated_at
     `)
         .single();
 
-    if (error) throw new Error(`Failed to create comment: ${error.message}`);
+    if (error) throw new Error(`Yorum oluşturulamadı: ${error.message}`);
 
-    return normalizeComment(data as unknown as PlaceCommentRow);
+    // Profil bilgilerini manuel olarak çek
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('id', currentUserId)
+        .single();
+
+    return normalizeComment({
+        ...(data as any),
+        profiles: profile
+    } as unknown as PlaceCommentRow);
 }
 
 // ─────────────────────────────────────────────
-// UPDATE
+// GÜNCELLEME (UPDATE)
 // ─────────────────────────────────────────────
 
 /**
- * Updates the text of an existing comment.
- * Only the owner (`user_id`) may update their comment — enforced by RLS
- * and the `.eq('user_id', currentUserId)` guard here.
+ * Mevcut bir yorumun metnini günceller.
+ * Sadece yorum sahibi (`user_id`) yorumunu güncelleyebilir — RLS ve buradaki
+ * `.eq('user_id', currentUserId)` kontrolü bunu sağlar.
  */
 export async function updateComment(
     commentId: string,
@@ -203,56 +221,63 @@ export async function updateComment(
             updated_at: new Date().toISOString(),
         })
         .eq('id', commentId)
-        .eq('user_id', currentUserId) // frontend ownership guard
+        .eq('user_id', currentUserId) // ön uç sahiplik kontrolü
         .select(`
       id,
       place_id,
       user_id,
       comment,
       created_at,
-      updated_at,
-      profiles:user_id (
-        id,
-        first_name,
-        last_name
-      )
+      updated_at
     `)
         .single();
 
-    if (error) throw new Error(`Failed to update comment: ${error.message}`);
+    if (error) throw new Error(`Yorum güncellenemedi: ${error.message}`);
 
-    return normalizeComment(data as unknown as PlaceCommentRow);
+    // Profil bilgilerini manuel olarak çek
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('id', currentUserId)
+        .single();
+
+    return normalizeComment({
+        ...(data as any),
+        profiles: profile
+    } as unknown as PlaceCommentRow);
 }
 
 // ─────────────────────────────────────────────
-// DELETE
+// SİLME (DELETE)
 // ─────────────────────────────────────────────
 
 /**
- * Deletes a comment. Only the comment owner may delete it.
+ * Bir yorumu siler. Sadece yorum sahibi silebilir.
  */
 export async function deleteComment(
     commentId: string,
-    currentUserId: string
+    currentAuthUserId: string
 ): Promise<void> {
     const { error } = await supabase
         .from('place_comments')
         .delete()
         .eq('id', commentId)
-        .eq('user_id', currentUserId);
+        .eq('user_id', currentAuthUserId);
 
-    if (error) throw new Error(`Failed to delete comment: ${error.message}`);
+    if (error) {
+        throw new Error(`Yorum silinemedi: ${error.message}`);
+    }
 }
 
 // ─────────────────────────────────────────────
-// REALTIME (optional subscription)
+// GERÇEK ZAMANLI (REALTIME - isteğe bağlı abonelik)
 // ─────────────────────────────────────────────
 
 /**
- * Subscribes to realtime comment events for a given place.
- * Returns an unsubscribe function to call on cleanup.
+ * Belirli bir yer için gerçek zamanlı yorum etkinliklerine abone olur.
+ * Aboneliği sonlandırmak için bir 'unsubscribe' fonksiyonu döndürür.
  *
- * Usage:
+ * Kullanım:
  *   const unsubscribe = subscribeToPlaceComments(placeId, onInsert, onDelete);
  *   return () => unsubscribe();
  */

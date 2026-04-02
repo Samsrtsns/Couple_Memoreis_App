@@ -22,7 +22,9 @@ type Props = {
     loading: boolean;
     error: string | null;
     currentUserId: string;
+    deletingCommentId?: string | null;
     onDeleteComment?: (commentId: string) => void;
+    onEditComment?: (commentId: string, currentText: string) => void;
 };
 
 function CommentsList({
@@ -30,7 +32,9 @@ function CommentsList({
     loading,
     error,
     currentUserId,
+    deletingCommentId,
     onDeleteComment,
+    onEditComment,
 }: Props) {
     if (loading) {
         return (
@@ -103,16 +107,34 @@ function CommentsList({
                             </View>
                             <Text style={styles.commentText}>{comment.comment}</Text>
 
-                            {/* Delete button — always shown for own comments */}
-                            {isOwn && onDeleteComment && (
-                                <TouchableOpacity
-                                    onPress={() => onDeleteComment(comment.id)}
-                                    style={styles.deleteBtn}
-                                    hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
-                                    activeOpacity={0.6}
-                                >
-                                    <Ionicons name="trash-outline" size={13} color="#F43F5E" />
-                                </TouchableOpacity>
+                            {/* Actions — always shown for own comments */}
+                            {isOwn && (
+                                <View style={styles.actionsRow}>
+                                    {onEditComment && (
+                                        <TouchableOpacity
+                                            onPress={() => onEditComment(comment.id, comment.comment)}
+                                            style={styles.actionBtn}
+                                            hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+                                            activeOpacity={0.6}
+                                        >
+                                            <Ionicons name="pencil-outline" size={13} color="#94A3B8" />
+                                        </TouchableOpacity>
+                                    )}
+                                    {onDeleteComment && (
+                                        <TouchableOpacity
+                                            onPress={() => onDeleteComment(comment.id)}
+                                            style={styles.actionBtn}
+                                            hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}
+                                            activeOpacity={0.6}
+                                        >
+                                            {deletingCommentId === comment.id ? (
+                                                <ActivityIndicator color="#F43F5E" size="small" />
+                                            ) : (
+                                                <Ionicons name="trash-outline" size={13} color="#F43F5E" />
+                                            )}
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             )}
                         </View>
                     </View>
@@ -218,8 +240,13 @@ const styles = StyleSheet.create({
         color: '#334155',
         lineHeight: 18,
     },
-    deleteBtn: {
+    actionsRow: {
+        flexDirection: 'row',
+        gap: 8,
         alignSelf: 'flex-end',
         marginTop: 6,
+    },
+    actionBtn: {
+        padding: 4,
     },
 });

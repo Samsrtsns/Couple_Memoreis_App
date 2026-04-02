@@ -233,22 +233,34 @@ export function useMemories(): UseMemoriesResult {
             const pid = partnerIdRef.current;
             if (!uid || !pid) throw new Error('Not matched with a partner.');
 
-            // 1. Upload photo
-            const photoUrl = await uploadMemoryPhoto(payload.photoUri, uid);
+            console.log('[useMemories] Starting addMemory flow for user:', uid);
 
-            // 2. Insert memory row
-            const args: CreateMemoryArgs = {
-                title: payload.title,
-                description: payload.description,
-                memory_date: payload.memory_date,
-                photo_url: photoUrl,
-                currentUserId: uid,
-                partnerId: pid,
-            };
-            const newMemory = await createMemory(args);
+            try {
+                // 1. Upload photo
+                console.log('[useMemories] Uploading photo...');
+                const photoUrl = await uploadMemoryPhoto(payload.photoUri, uid);
+                console.log('[useMemories] Photo uploaded successfully:', photoUrl);
 
-            // 3. Prepend optimistically (realtime will be deduplicated)
-            setMemories((prev) => [newMemory, ...prev]);
+                // 2. Insert memory row
+                console.log('[useMemories] Creating memory record in DB...');
+                const args: CreateMemoryArgs = {
+                    title: payload.title,
+                    description: payload.description,
+                    memory_date: payload.memory_date,
+                    photo_url: photoUrl,
+                    currentUserId: uid,
+                    partnerId: pid,
+                };
+                const newMemory = await createMemory(args);
+                console.log('[useMemories] Memory created in DB:', newMemory.id);
+
+                // 3. Prepend optimistically (realtime will be deduplicated)
+                setMemories((prev) => [newMemory, ...prev]);
+            } catch (e: any) {
+                console.error('[useMemories] Failed to add memory:', e);
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                throw new Error(`Memory creation failed: ${errorMessage}`);
+            }
         },
         []
     );

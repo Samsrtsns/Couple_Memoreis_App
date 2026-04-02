@@ -1,11 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Dimensions, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { calculateDaysRemaining } from "../utils/dateUtils";
-
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = Math.max(Math.floor(width * 0.22), 140);
-const CARD_HEIGHT = CARD_WIDTH; // kare kart
 
 type Props = {
     title: string;
@@ -24,57 +20,32 @@ export default function SpecialDayCard({
 
     return (
         <View
-            className="bg-bgLight bg-shadow-lg shadow-slate-200"
+            className="w-full rounded-2xl bg-bgLight px-4 py-4"
             style={{
-                width: CARD_WIDTH,
-                height: CARD_HEIGHT,
-                borderRadius: 20,
-                marginRight: 14,
-                padding: 16,
+                shadowColor: "#000",
                 shadowOpacity: 0.08,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 },
-                elevation: 4,
-                justifyContent: "space-between",
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 6,
             }}
         >
-            <View style={{ alignItems: "center" }}>
-                <View
-                    style={{
-                        width: 108,
-                        height: 58,
-                        borderRadius: 14,
-                        backgroundColor: "#FFE4E6",
-                        alignItems: "center",
-                        justifyContent: "center",
-                    }}
-                >
-                    <Ionicons name={iconName} size={28} color="#F43F5E" />
+            <View className="flex-row items-center">
+                <View className="h-14 w-14 rounded-2xl bg-rose-100 items-center justify-center mr-4">
+                    <Ionicons name={iconName} size={24} color="#F43F5E" />
                 </View>
-            </View>
 
-            <View>
-                <Text
-                    numberOfLines={1}
-                    style={{
-                        color: "#334155",
-                        fontWeight: "700",
-                        fontSize: 14,
-                        lineHeight: 19,
-                        marginBottom: 4,
-                    }}
-                >
-                    {title}
-                </Text>
-                <Text
-                    style={{
-                        color: "#F43F5E",
-                        fontWeight: "600",
-                        fontSize: 13,
-                    }}
-                >
-                    {remainingDays === 0 ? "🎉 Today!" : `${remainingDays} days left`}
-                </Text>
+                <View className="flex-1">
+                    <Text
+                        numberOfLines={1}
+                        className="text-slate-700 font-bold text-[15px]"
+                    >
+                        {title}
+                    </Text>
+
+                    <Text className="text-rose-500 font-semibold text-[13px] mt-1">
+                        {remainingDays === 0 ? "🎉 Today!" : `${remainingDays} days left`}
+                    </Text>
+                </View>
             </View>
         </View>
     );

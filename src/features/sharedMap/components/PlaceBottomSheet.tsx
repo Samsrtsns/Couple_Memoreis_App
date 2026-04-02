@@ -15,7 +15,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Alert,
     Animated,
-    Image,
     KeyboardAvoidingView,
     Platform,
     Pressable,
@@ -51,7 +50,7 @@ export default function PlaceBottomSheet({
     onPlaceDeleted,
 }: Props) {
     const { state } = useAuth();
-    const currentUserId = state.profile?.id ?? '';
+    const currentUserId = state.user?.id ?? '';
 
     // Animation values
     const slideAnim = useRef(new Animated.Value(400)).current;
@@ -99,6 +98,7 @@ export default function PlaceBottomSheet({
         loading: commentsLoading,
         error: commentsError,
         refetch: refetchComments,
+        removeCommentOptimistically,
     } = usePlaceComments(snapshot?.id ?? null);
 
     // Re-check if user already commented whenever comments list changes
@@ -143,8 +143,10 @@ export default function PlaceBottomSheet({
         );
     };
 
-    // Comment delete — call service directly to avoid stale-closure bugs
-    const [deletingComment, setDeletingComment] = useState(false);
+    // Comment Edit/Delete state
+    const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+    const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+
     const handleDeleteComment = (commentId: string) => {
         Alert.alert('Delete Comment', 'Remove this memory note?', [
             { text: 'Cancel', style: 'cancel' },
@@ -153,29 +155,56 @@ export default function PlaceBottomSheet({
                 style: 'destructive',
                 onPress: async () => {
                     if (!currentUserId) return;
-                    setDeletingComment(true);
+                    setDeletingCommentId(commentId);
                     try {
                         await deleteComment(commentId, currentUserId);
                         // Optimistically remove from local list; realtime will also fire
-                        refetchRef.current();
+                        removeCommentOptimistically(commentId);
+                        setAlreadyCommented(false);
                     } catch (e: any) {
+                        console.error('Delete error', e);
                         Alert.alert('Error', e.message ?? 'Could not delete comment.');
+                        refetchRef.current(); // rollback in case of error
                     } finally {
-                        setDeletingComment(false);
+                        setDeletingCommentId(null);
                     }
                 },
             },
         ]);
     };
 
+    const handleEditComment = (commentId: string, currentText: string) => {
+        setEditingCommentId(commentId);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCommentId(null);
+    };
+
     const handleSubmitComment = async (text: string) => {
-        if (!snapshot) return;
-        await submitComment({ place_id: snapshot.id, comment: text });
+        if (!snapshot || !currentUserId) return;
+
+        if (editingCommentId) {
+            try {
+                // We're importing updateComment directly to use here
+                const { updateComment } = require('../services/placeCommentsService');
+                await updateComment(editingCommentId, { comment: text }, currentUserId);
+                setEditingCommentId(null);
+                refetchRef.current();
+            } catch (e: any) {
+                Alert.alert('Error', e.message ?? 'Could not update comment.');
+            }
+        } else {
+            await submitComment({ place_id: snapshot.id, comment: text });
+        }
     };
 
     if (!snapshot) return null;
 
     const isCreator = canDeletePlace(snapshot, currentUserId);
+
+    // Find the comment being edited to pass its text
+    const editingComment = comments.find((c) => c.id === editingCommentId);
 
     return (
         <Animated.View
@@ -204,18 +233,6 @@ export default function PlaceBottomSheet({
                     >
                         {/* Top row: image + info + actions */}
                         <View style={styles.topRow}>
-                            {/* Thumbnail */}
-                            {snapshot.photo_url ? (
-                                <Image
-                                    source={{ uri: snapshot.photo_url }}
-                                    style={styles.thumbnail}
-                                    resizeMode="cover"
-                                />
-                            ) : (
-                                <View style={styles.thumbnailPlaceholder}>
-                                    <Ionicons name="heart" size={28} color="#F43F5E" />
-                                </View>
-                            )}
 
                             {/* Info */}
                             <View style={styles.info}>
@@ -230,21 +247,11 @@ export default function PlaceBottomSheet({
                                         </Text>
                                     </View>
                                 )}
-                                {snapshot.address && (
-                                    <View style={styles.metaRow}>
-                                        <Ionicons name="location-outline" size={12} color="#94A3B8" />
-                                        <Text style={styles.metaText} numberOfLines={1}>
-                                            {snapshot.address}
-                                        </Text>
-                                    </View>
-                                )}
                             </View>
 
                             {/* Actions column */}
-                            <View style={styles.actionsCol}>
-                                <Pressable onPress={onClose} style={styles.actionBtn}>
-                                    <Ionicons name="close" size={18} color="#64748B" />
-                                </Pressable>
+                            <View className="flex-row items-center gap-4">
+
                                 {isCreator && (
                                     <Pressable
                                         onPress={handleDeletePlace}
@@ -254,20 +261,15 @@ export default function PlaceBottomSheet({
                                         <Ionicons name="trash-outline" size={16} color="#F43F5E" />
                                     </Pressable>
                                 )}
+                                <Pressable onPress={onClose} style={styles.actionBtn}>
+                                    <Ionicons name="close" size={18} color="#64748B" />
+                                </Pressable>
                             </View>
                         </View>
 
-                        {/* Description */}
-                        {snapshot.description ? (
-                            <>
-                                <View style={styles.divider} />
-                                <Text style={styles.description}>{snapshot.description}</Text>
-                            </>
-                        ) : null}
-
                         {/* Creator tag */}
                         <View style={styles.divider} />
-                        <View style={styles.creatorRow}>
+                        <View style={styles.creatorRow} className="mb-4">
                             <Ionicons name="person-circle-outline" size={14} color="#94A3B8" />
                             <Text style={styles.creatorText}>
                                 {snapshot.created_by === currentUserId
@@ -278,20 +280,36 @@ export default function PlaceBottomSheet({
                             </Text>
                         </View>
 
-                        {/* Comments section */}
-                        <Text style={styles.sectionLabel}>OUR MEMORIES</Text>
 
                         <CommentsList
                             comments={comments}
                             loading={commentsLoading}
                             error={commentsError}
                             currentUserId={currentUserId}
+                            deletingCommentId={deletingCommentId}
                             onDeleteComment={handleDeleteComment}
+                            onEditComment={handleEditComment}
                         />
 
-                        {/* Comment input — disabled if user already commented */}
+                        {/* Comment input — disabled if user already commented and not editing */}
                         <View style={styles.inputWrapper}>
-                            {alreadyCommented ? (
+                            {editingCommentId ? (
+                                <View>
+                                    <View style={styles.editingHeader}>
+                                        <Text style={styles.editingText}>Editing your memory note</Text>
+                                        <Pressable onPress={handleCancelEdit} hitSlop={10}>
+                                            <Ionicons name="close-circle" size={16} color="#94A3B8" />
+                                        </Pressable>
+                                    </View>
+                                    <CommentInput
+                                        key={`edit-${editingCommentId}`}
+                                        initialValue={editingComment?.comment}
+                                        onSubmit={handleSubmitComment}
+                                        loading={submitLoading}
+                                        error={submitError}
+                                    />
+                                </View>
+                            ) : alreadyCommented ? (
                                 <View style={styles.alreadyCommentedRow}>
                                     <Ionicons name="checkmark-circle" size={16} color="#94A3B8" />
                                     <Text style={styles.alreadyCommentedText}>
@@ -300,6 +318,7 @@ export default function PlaceBottomSheet({
                                 </View>
                             ) : (
                                 <CommentInput
+                                    key="new-comment"
                                     onSubmit={handleSubmitComment}
                                     loading={submitLoading}
                                     error={submitError}
@@ -385,7 +404,7 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         fontWeight: '500',
     },
-    actionsCol: {
+    actionsRow: {
         gap: 8,
     },
     actionBtn: {
@@ -449,5 +468,25 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#94A3B8',
         fontStyle: 'italic',
+    },
+    editingHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#F8FAFC',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
+        marginBottom: -10, // Pulls the input up slightly so they connect
+        zIndex: 10,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderBottomWidth: 0,
+    },
+    editingText: {
+        fontSize: 12,
+        color: '#64748B',
+        fontWeight: '600',
     },
 });

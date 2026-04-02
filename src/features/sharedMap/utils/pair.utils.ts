@@ -1,23 +1,23 @@
 /**
- * Pair Utilities
+ * Eşleşme Yardımcı Fonksiyonları (Pair Utilities)
  *
- * All pair/ownership logic lives here. This keeps query and access-control
- * logic consistent across service calls.
+ * Tüm eşleşme ve sahiplik (ownership) mantığı burada bulunur. Bu sayede servis
+ * seviyesindeki sorgu ve erişim kontrolü mantığı tutarlı tutulur.
  *
- * NOTE: Supabase RLS is the authoritative security layer.
- * These helpers are an additional frontend guard — never rely on them alone.
+ * NOT: Yetkilendirme katmanı olarak Supabase RLS (Row Level Security) esas alınır.
+ * Bu yardımcılar sadece ön uç tarafında ek bir koruma ve kontrol sağlar.
  */
 
 import type { PairUsers, PlaceComment, SharedPlace } from '../types/sharedPlace.types';
 
 // ─────────────────────────────────────────────
-// UUID normalization helpers
+// UUID Normalizasyon Yardımcıları
 // ─────────────────────────────────────────────
 
 /**
- * Normalizes two user IDs into a consistent {userAId, userBId} pair.
- * Always stores the lexicographically smaller UUID as userAId.
- * This ensures pair queries are deterministic regardless of order.
+ * İki kullanıcı ID'sini tutarlı bir {userAId, userBId} çiftine dönüştürür.
+ * Her zaman alfabetik (lexicographical) olarak küçük olan UUID'yi userAId olarak saklar.
+ * Bu, sorguların sıradan bağımsız olarak her zaman aynı sonucu döndürmesini sağlar.
  */
 export function getPairUserIds(currentUserId: string, partnerId: string): PairUsers {
     const [userAId, userBId] =
@@ -34,12 +34,11 @@ export function getPairUserIds(currentUserId: string, partnerId: string): PairUs
 }
 
 // ─────────────────────────────────────────────
-// Access check helpers
+// Erişim Kontrolü Yardımcıları
 // ─────────────────────────────────────────────
 
 /**
- * Returns true if the given place belongs to the current user's pair.
- * Checks both orientations of the pair (A/B or B/A).
+ * Belirtilen yerin mevcut kullanıcı çiftine ait olup olmadığını kontrol eder.
  */
 export function isUserPartOfPair(
     place: Pick<SharedPlace, 'user_a_id' | 'user_b_id'>,
@@ -51,8 +50,7 @@ export function isUserPartOfPair(
 }
 
 /**
- * Alias for isUserPartOfPair — used when checking whether a user
- * is allowed to read a given place.
+ * Kullanıcının belirtilen yere erişim yetkisi (okuma) olup olmadığını kontrol eder.
  */
 export function canAccessPlace(
     place: Pick<SharedPlace, 'user_a_id' | 'user_b_id'>,
@@ -63,8 +61,8 @@ export function canAccessPlace(
 }
 
 /**
- * Returns true if the current user created the given place
- * and is therefore allowed to delete or edit it.
+ * Mevcut kullanıcının belirtilen yeri oluşturup oluşturmadığını (yani silme/düzenleme 
+ * yetkisi olup olmadığını) kontrol eder.
  */
 export function canDeletePlace(
     place: Pick<SharedPlace, 'created_by'>,
@@ -74,7 +72,7 @@ export function canDeletePlace(
 }
 
 /**
- * Returns true if the current user owns the comment and can edit or delete it.
+ * Kullanıcının kendi yorumu üzerinde düzenleme veya silme yetkisi olup olmadığını kontrol eder.
  */
 export function canEditComment(
     comment: Pick<PlaceComment, 'user_id'>,
@@ -83,20 +81,16 @@ export function canEditComment(
     return comment.user_id === currentUserId;
 }
 
-// Alias for semantic clarity
+// Anlamsal netlik için alias
 export const canDeleteComment = canEditComment;
 
 // ─────────────────────────────────────────────
-// Pair filter for Supabase queries
+// Supabase Sorguları için Çift Filtresi
 // ─────────────────────────────────────────────
 
 /**
- * Returns a Supabase-compatible pair filter object.
- * Use these as arguments to .eq() / .or() calls in the service layer.
- *
- * Example usage:
- *   const { userAId, userBId } = getPairFilterArgs(currentUserId, partnerId);
- *   .eq('user_a_id', userAId).eq('user_b_id', userBId)
+ * Supabase sorguları ile uyumlu filtre nesnesi döndürür.
+ * Servis katmanındaki .eq() / .or() çağrılarında parametre olarak kullanılır.
  */
 export function getPairFilterArgs(currentUserId: string, partnerId: string) {
     const { userAId, userBId } = getPairUserIds(currentUserId, partnerId);

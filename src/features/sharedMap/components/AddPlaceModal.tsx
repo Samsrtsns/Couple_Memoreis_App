@@ -1,29 +1,26 @@
 /**
- * AddPlaceModal — simplified modal for adding a new shared place.
+ * AddPlaceModal
  *
- * - Coordinates are pre-filled automatically (from location or long-press) — not shown to user
- * - No photo URL field
- * - Fixed keyboard behavior: Modal wraps KeyboardAvoidingView(flex:1) so sheet doesn't jump
- * - DateTimePicker shown as a separate Modal on Android to avoid layout issues
+ * NativeWind + swipe-to-close + keyboard-safe + scrollable bottom sheet
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     Keyboard,
     KeyboardAvoidingView,
-    Modal,
     Platform,
     Pressable,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
-    View
+    View,
 } from 'react-native';
+import Modal from 'react-native-modal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CreateSharedPlacePayload } from '../types/sharedPlace.types';
 
 type Props = {
@@ -31,7 +28,6 @@ type Props = {
     onClose: () => void;
     onSave: (payload: CreateSharedPlacePayload) => Promise<void>;
     loading?: boolean;
-    /** Pre-filled coordinates from long press or location */
     initialCoords?: { latitude: number; longitude: number } | null;
 };
 
@@ -42,6 +38,8 @@ export default function AddPlaceModal({
     loading = false,
     initialCoords,
 }: Props) {
+    const insets = useSafeAreaInsets();
+
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [address, setAddress] = useState('');
@@ -49,7 +47,6 @@ export default function AddPlaceModal({
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [titleError, setTitleError] = useState('');
 
-    // Reset form when modal closes
     useEffect(() => {
         if (!visible) {
             setTitle('');
@@ -64,6 +61,7 @@ export default function AddPlaceModal({
     const handleClose = () => {
         if (loading) return;
         Keyboard.dismiss();
+        setShowDatePicker(false);
         onClose();
     };
 
@@ -72,17 +70,22 @@ export default function AddPlaceModal({
         Keyboard.dismiss();
 
         const trimmedTitle = title.trim();
+
         if (!trimmedTitle || trimmedTitle.length < 2) {
             setTitleError('Place name must be at least 2 characters.');
             return;
         }
+
         if (trimmedTitle.length > 80) {
             setTitleError('Place name must be under 80 characters.');
             return;
         }
 
         if (!initialCoords) {
-            Alert.alert('Location not available', 'Could not get your location. Try long-pressing on the map to add a place manually.');
+            Alert.alert(
+                'Location not available',
+                'Could not get your location. Try long-pressing on the map to add a place manually.'
+            );
             return;
         }
 
@@ -96,191 +99,233 @@ export default function AddPlaceModal({
                 visited_at: visitedAt ? visitedAt.toISOString() : undefined,
             });
         } catch (e: any) {
-            Alert.alert('Error', e.message ?? 'Failed to save place. Please try again.');
+            Alert.alert('Error', e?.message ?? 'Failed to save place. Please try again.');
         }
     };
 
-    const canSave = title.trim().length >= 2 && !loading;
+    const canSave = useMemo(() => {
+        return title.trim().length >= 2 && !loading;
+    }, [title, loading]);
 
     const formattedDate = visitedAt
-        ? visitedAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        ? visitedAt.toLocaleDateString('en-US', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        })
         : 'Select a date (optional)';
 
     return (
         <>
             <Modal
-                visible={visible}
-                transparent
-                animationType="slide"
-                onRequestClose={handleClose}
+                isVisible={visible}
+                onBackdropPress={handleClose}
+                onBackButtonPress={handleClose}
+                onSwipeComplete={handleClose}
+                swipeDirection={['down']}
+                propagateSwipe
+                style={{ margin: 0, justifyContent: 'flex-end' }}
+                backdropOpacity={0.4}
+                useNativeDriverForBackdrop
+                avoidKeyboard
                 statusBarTranslucent
             >
-                {/* Outer: fills the screen, sheet anchored at bottom via flex */}
-                <View style={styles.kavContainer}>
-                    {/* Tappable backdrop */}
-                    <Pressable style={styles.backdrop} onPress={handleClose} />
-
-                    {/* KAV only wraps the sheet — lifts it above keyboard */}
-                    <KeyboardAvoidingView
-                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                        style={{ flex: 1, justifyContent: 'flex-end' }}
-                        keyboardVerticalOffset={0}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    keyboardVerticalOffset={0}
+                    className="justify-end"
+                >
+                    <View
+                        className="mt-16 rounded-t-[28px] bg-bgLight px-6"
+                        style={{
+                            paddingBottom: Math.max(insets.bottom, 16),
+                            maxHeight: '92%',
+                            shadowColor: '#000',
+                            shadowOpacity: 0.18,
+                            shadowRadius: 20,
+                            shadowOffset: { width: 0, height: -6 },
+                            elevation: 20,
+                        }}
                     >
-                        {/* Bottom sheet */}
-                        <View style={styles.sheet}>
-                            {/* Drag handle */}
-                            <View style={styles.handleWrapper}>
-                                <View style={styles.handle} />
-                            </View>
+                        {/* Handle */}
+                        <View className="items-center py-3">
+                            <View className="h-1 w-10 rounded-full bg-slate-300" />
+                        </View>
 
-                            {/* Header */}
-                            <View style={styles.header}>
-                                <View style={styles.headerIcon}>
-                                    <Ionicons name="add-circle" size={22} color="#F43F5E" />
-                                </View>
-                                <View>
-                                    <Text style={styles.headerTitle}>Save This Place</Text>
-                                    <Text style={styles.headerSub}>Add it to your shared memory map 💕</Text>
-                                </View>
-                            </View>
+                        {/* Header */}
+                        <View className="mb-4 flex-row items-center">
 
-                            <ScrollView
-                                showsVerticalScrollIndicator={false}
-                                keyboardShouldPersistTaps="handled"
-                                bounces={false}
-                                nestedScrollEnabled={true}
-                                scrollEnabled={true}
-                                contentContainerStyle={styles.scrollContent}
+                            <View className="flex-1">
+                                <Text className="text-[18px] font-extrabold text-slate-800">
+                                    Save This Place
+                                </Text>
+                                <Text className="mt-0.5 text-[12px] text-slate-400">
+                                    Add it to your shared memory map 💕
+                                </Text>
+                            </View>
+                        </View>
+
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
+                            bounces={false}
+                            contentContainerStyle={{ paddingBottom: 8 }}
+                        >
+
+
+                            {/* Title */}
+                            <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
+                                PLACE NAME *
+                            </Text>
+
+                            <TextInput
+                                value={title}
+                                onChangeText={(t) => {
+                                    setTitle(t);
+                                    setTitleError('');
+                                }}
+                                placeholder="e.g. Our First Coffee Date ☕"
+                                placeholderTextColor="#CBD5E1"
+                                className={`rounded-2xl border px-4 text-[15px] text-slate-800 ${title ? 'border-rose-500' : 'border-slate-200'
+                                    } bg-slate-50`}
+                                style={{
+                                    paddingVertical: Platform.OS === 'ios' ? 14 : 10,
+                                }}
+                                returnKeyType="next"
+                                maxLength={80}
+                                underlineColorAndroid="transparent"
+                            />
+
+                            {!!titleError && (
+                                <Text className="mb-1 ml-1 mt-1 text-[12px] text-rose-500">
+                                    {titleError}
+                                </Text>
+                            )}
+
+                            {/* Description */}
+                            <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
+                                MEMORY NOTE
+                            </Text>
+
+                            <TextInput
+                                value={description}
+                                onChangeText={setDescription}
+                                placeholder="What made this place special?"
+                                placeholderTextColor="#CBD5E1"
+                                multiline
+                                textAlignVertical="top"
+                                maxLength={500}
+                                underlineColorAndroid="transparent"
+                                className={`min-h-[90px] rounded-2xl border bg-slate-50 px-4 pt-3 text-[15px] text-slate-800 ${description ? 'border-rose-500' : 'border-slate-200'
+                                    }`}
+                            />
+
+                            {/* Date */}
+                            <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
+                                DATE VISITED
+                            </Text>
+
+                            <Pressable
+                                onPress={() => {
+                                    Keyboard.dismiss();
+                                    setTimeout(() => setShowDatePicker(true), 120);
+                                }}
+                                className={`flex-row items-center rounded-2xl border bg-slate-50 px-4 ${visitedAt ? 'border-rose-500' : 'border-slate-200'
+                                    }`}
+                                style={{
+                                    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
+                                }}
                             >
-                                {/* Show coords info (read-only badge) */}
-                                {initialCoords && (
-                                    <View style={styles.coordsBadge}>
-                                        <Ionicons name="location" size={13} color="#F43F5E" />
-                                        <Text style={styles.coordsBadgeText}>
-                                            {initialCoords.latitude.toFixed(5)}, {initialCoords.longitude.toFixed(5)}
-                                        </Text>
-                                    </View>
-                                )}
-
-                                {/* Title */}
-                                <Text style={styles.label}>PLACE NAME *</Text>
-                                <TextInput
-                                    value={title}
-                                    onChangeText={(t) => { setTitle(t); setTitleError(''); }}
-                                    placeholder="e.g. Our First Coffee Date ☕"
-                                    placeholderTextColor="#CBD5E1"
-                                    style={[styles.input, title ? styles.inputActive : undefined]}
-                                    returnKeyType="next"
-                                    maxLength={80}
-                                    autoFocus={false}
-                                    underlineColorAndroid="transparent"
-                                />
-                                {!!titleError && <Text style={styles.errorText}>{titleError}</Text>}
-
-                                {/* Memory Note */}
-                                <Text style={styles.label}>MEMORY NOTE</Text>
-                                <TextInput
-                                    value={description}
-                                    onChangeText={setDescription}
-                                    placeholder="What made this place special?"
-                                    placeholderTextColor="#CBD5E1"
-                                    multiline
-                                    style={[styles.input, styles.multiline, description ? styles.inputActive : undefined]}
-                                    textAlignVertical="top"
-                                    maxLength={500}
-                                    underlineColorAndroid="transparent"
+                                <Ionicons
+                                    name="calendar-outline"
+                                    size={16}
+                                    color={visitedAt ? '#F43F5E' : '#CBD5E1'}
                                 />
 
-                                {/* Address */}
-                                <Text style={styles.label}>ADDRESS</Text>
-                                <TextInput
-                                    value={address}
-                                    onChangeText={setAddress}
-                                    placeholder="e.g. Karaköy, Istanbul"
-                                    placeholderTextColor="#CBD5E1"
-                                    style={[styles.input, address ? styles.inputActive : undefined]}
-                                    maxLength={200}
-                                    underlineColorAndroid="transparent"
-                                />
-
-                                {/* Date visited */}
-                                <Text style={styles.label}>DATE VISITED</Text>
-                                <Pressable
-                                    onPress={() => {
-                                        Keyboard.dismiss();
-                                        // Small delay so keyboard dismiss doesn't conflict
-                                        setTimeout(() => setShowDatePicker(true), 150);
-                                    }}
-                                    style={[styles.input, styles.datePickerRow, visitedAt ? styles.inputActive : undefined]}
+                                <Text
+                                    className={`ml-2 flex-1 text-[15px] ${visitedAt ? 'text-slate-800' : 'text-slate-300'
+                                        }`}
                                 >
-                                    <Ionicons
-                                        name="calendar-outline"
-                                        size={16}
-                                        color={visitedAt ? '#F43F5E' : '#CBD5E1'}
+                                    {formattedDate}
+                                </Text>
+
+                                {visitedAt && (
+                                    <Pressable
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            setVisitedAt(null);
+                                        }}
+                                        hitSlop={8}
+                                    >
+                                        <Ionicons name="close-circle" size={16} color="#CBD5E1" />
+                                    </Pressable>
+                                )}
+                            </Pressable>
+
+                            {/* iOS picker */}
+                            {showDatePicker && Platform.OS === 'ios' && (
+                                <View className="mt-1 rounded-2xl border border-rose-500 bg-slate-50 overflow-hidden">
+                                    <DateTimePicker
+                                        value={visitedAt ?? new Date()}
+                                        mode="date"
+                                        display="inline"
+                                        maximumDate={new Date()}
+                                        accentColor="#000000"
+                                        textColor="#000000"
+                                        themeVariant="light"
+                                        onChange={(_event, date) => {
+                                            if (date) setVisitedAt(date);
+                                        }}
                                     />
-                                    <Text style={[styles.dateText, visitedAt ? styles.dateTextActive : undefined]}>
-                                        {formattedDate}
+
+                                    <Pressable
+                                        onPress={() => setShowDatePicker(false)}
+                                        className="items-end bg-rose-50 px-4 py-3"
+                                    >
+                                        <Text className="text-[15px] font-bold text-black">
+                                            Done
+                                        </Text>
+                                    </Pressable>
+                                </View>
+                            )}
+
+                            {/* Actions */}
+                            <View className="mt-6 flex-row">
+                                <Pressable
+                                    onPress={handleClose}
+                                    disabled={loading}
+                                    className="mr-3 flex-1 items-center justify-center rounded-2xl bg-slate-100 py-4"
+                                >
+                                    <Text className="text-[15px] font-bold text-slate-500">
+                                        Cancel
                                     </Text>
-                                    {visitedAt && (
-                                        <Pressable
-                                            onPress={(e) => { e.stopPropagation(); setVisitedAt(null); }}
-                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                        >
-                                            <Ionicons name="close-circle" size={16} color="#CBD5E1" />
-                                        </Pressable>
-                                    )}
                                 </Pressable>
 
-                                {/* iOS inline picker renders inside the sheet */}
-                                {showDatePicker && Platform.OS === 'ios' && (
-                                    <View style={styles.iosPickerWrapper}>
-                                        <DateTimePicker
-                                            value={visitedAt ?? new Date()}
-                                            mode="date"
-                                            display="inline"
-                                            maximumDate={new Date()}
-                                            accentColor="#000000"
-                                            textColor="#000000"
-                                            onChange={(_event, date) => {
-                                                if (date) setVisitedAt(date);
-                                            }}
-                                        />
-                                        <Pressable
-                                            onPress={() => setShowDatePicker(false)}
-                                            style={styles.pickerDoneBtn}
-                                        >
-                                            <Text style={styles.pickerDoneBtnText}>Done</Text>
-                                        </Pressable>
-                                    </View>
-                                )}
-
-                                {/* Actions */}
-                                <View style={styles.actionsRow}>
-                                    <Pressable onPress={handleClose} style={styles.cancelBtn} disabled={loading}>
-                                        <Text style={styles.cancelBtnText}>Cancel</Text>
-                                    </Pressable>
-                                    <Pressable
-                                        onPress={handleSave}
-                                        style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
-                                        disabled={!canSave}
-                                    >
-                                        {loading ? (
-                                            <ActivityIndicator size="small" color="#fff" />
-                                        ) : (
-                                            <>
-                                                <Ionicons name="heart" size={16} color="#fff" />
-                                                <Text style={styles.saveBtnText}>Save Memory</Text>
-                                            </>
-                                        )}
-                                    </Pressable>
-                                </View>
-                            </ScrollView>
-                        </View>{/* end sheet */}
-                    </KeyboardAvoidingView>
-                </View>
+                                <Pressable
+                                    onPress={handleSave}
+                                    disabled={!canSave}
+                                    className={`flex-1.5 flex-row items-center justify-center rounded-2xl py-4 ${canSave ? 'bg-rose-500' : 'bg-rose-300'
+                                        }`}
+                                    style={{ flex: 2 }}
+                                >
+                                    {loading ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <>
+                                            <Ionicons name="heart" size={16} color="#fff" />
+                                            <Text className="ml-2 text-[15px] font-bold text-white">
+                                                Save Memory
+                                            </Text>
+                                        </>
+                                    )}
+                                </Pressable>
+                            </View>
+                        </ScrollView>
+                    </View>
+                </KeyboardAvoidingView>
             </Modal>
 
-            {/* Android date picker — shown as a separate native dialog */}
+            {/* Android date picker */}
             {showDatePicker && Platform.OS === 'android' && (
                 <DateTimePicker
                     value={visitedAt ?? new Date()}
@@ -296,180 +341,3 @@ export default function AddPlaceModal({
         </>
     );
 }
-
-const styles = StyleSheet.create({
-    kavContainer: {
-        flex: 1,
-    },
-    backdrop: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-    },
-    sheet: {
-        backgroundColor: '#fff',
-        borderTopLeftRadius: 28,
-        borderTopRightRadius: 28,
-        paddingHorizontal: 24,
-        paddingBottom: 0,
-        flex: 1,
-        marginTop: 60,
-        shadowColor: '#000',
-        shadowOpacity: 0.2,
-        shadowRadius: 20,
-        shadowOffset: { width: 0, height: -6 },
-        elevation: 20,
-    },
-    handleWrapper: {
-        alignItems: 'center',
-        paddingVertical: 12,
-    },
-    handle: {
-        width: 36,
-        height: 4,
-        backgroundColor: '#E2E8F0',
-        borderRadius: 2,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginBottom: 16,
-    },
-    headerIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: '#FFF1F2',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: '#1E293B',
-    },
-    headerSub: {
-        fontSize: 12,
-        color: '#94A3B8',
-        marginTop: 1,
-    },
-    scrollContent: {
-        paddingBottom: 8,
-    },
-    coordsBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-        backgroundColor: '#FFF1F2',
-        borderRadius: 10,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        alignSelf: 'flex-start',
-        marginBottom: 8,
-    },
-    coordsBadgeText: {
-        fontSize: 11,
-        color: '#F43F5E',
-        fontWeight: '600',
-    },
-    label: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#64748B',
-        letterSpacing: 0.6,
-        marginBottom: 6,
-        marginTop: 12,
-    },
-    input: {
-        backgroundColor: '#F8FAFC',
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        paddingVertical: Platform.OS === 'ios' ? 14 : 10,
-        fontSize: 15,
-        color: '#1E293B',
-        borderWidth: 1.5,
-        borderColor: '#E2E8F0',
-        marginBottom: 4,
-    },
-    inputActive: {
-        borderColor: '#F43F5E',
-    },
-    multiline: {
-        minHeight: 80,
-        textAlignVertical: 'top',
-        paddingTop: 12,
-    },
-    datePickerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    dateText: {
-        flex: 1,
-        fontSize: 15,
-        color: '#CBD5E1',
-    },
-    dateTextActive: {
-        color: '#1E293B',
-    },
-    iosPickerWrapper: {
-        backgroundColor: '#F8FAFC',
-        borderRadius: 14,
-        overflow: 'hidden',
-        marginTop: 4,
-        borderWidth: 1.5,
-        borderColor: '#F43F5E',
-    },
-    pickerDoneBtn: {
-        alignItems: 'flex-end',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        backgroundColor: '#FFF1F2',
-    },
-    pickerDoneBtnText: {
-        color: '#000000',
-        fontWeight: '700',
-        fontSize: 15,
-    },
-    errorText: {
-        fontSize: 12,
-        color: '#F43F5E',
-        marginBottom: 4,
-        marginLeft: 4,
-    },
-    actionsRow: {
-        flexDirection: 'row',
-        gap: 12,
-        marginTop: 24,
-    },
-    cancelBtn: {
-        flex: 1,
-        backgroundColor: '#F1F5F9',
-        borderRadius: 16,
-        paddingVertical: 15,
-        alignItems: 'center',
-    },
-    cancelBtnText: {
-        color: '#64748B',
-        fontWeight: '700',
-        fontSize: 15,
-    },
-    saveBtn: {
-        flex: 2,
-        backgroundColor: '#F43F5E',
-        borderRadius: 16,
-        paddingVertical: 15,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    saveBtnDisabled: {
-        backgroundColor: '#FDA4AF',
-    },
-    saveBtnText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 15,
-    },
-});

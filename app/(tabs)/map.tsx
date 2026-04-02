@@ -15,12 +15,12 @@
  * - Empty state if no places or no matched partner
  */
 
+import Screen from '@/src/components/Screen';
 import { useAuth } from '@/src/context/AuthContext';
 import AddPlaceModal from '@/src/features/sharedMap/components/AddPlaceModal';
 import MapHeader from '@/src/features/sharedMap/components/MapHeader';
 import PlaceBottomSheet from '@/src/features/sharedMap/components/PlaceBottomSheet';
 import PlaceMarker from '@/src/features/sharedMap/components/PlaceMarker';
-import { useCreateSharedPlace } from '@/src/features/sharedMap/hooks/useCreateSharedPlace';
 import { useSharedPlaces } from '@/src/features/sharedMap/hooks/useSharedPlaces';
 import type { SharedPlace } from '@/src/features/sharedMap/types/sharedPlace.types';
 import {
@@ -44,8 +44,7 @@ import {
     StatusBar,
     StyleSheet,
     Text,
-    TextInput,
-    View,
+    View
 } from 'react-native';
 import MapView, { LongPressEvent, MapType, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -72,14 +71,28 @@ export default function SharedMapScreen() {
     const [mapReady, setMapReady] = useState(false);
 
     // ─── Data Hooks ──────────────────────────────────────────────────────────
-    const { places, loading, error, refetch, noPartner } = useSharedPlaces();
+    const { places, loading, error, refetch, noPartner, addPlace } = useSharedPlaces();
+    const [creating, setCreating] = useState(false);
 
-    const { create: createPlace, loading: creating } = useCreateSharedPlace(
-        useCallback(
-            (newPlace: SharedPlace) => {
-                // Realtime sub handles list update; animate to new place
+    const handleCreatePlace = async (payload: any) => {
+        setCreating(true);
+        try {
+            const newPlace = await addPlace({
+                title: payload.title,
+                description: payload.description,
+                latitude: payload.latitude,
+                longitude: payload.longitude,
+                address: payload.address,
+                photoUrl: payload.photo_url,
+                visitedAt: payload.visited_at,
+            });
+
+            if (newPlace) {
+                // Close modal and focus on new place
                 setShowAddModal(false);
                 setPendingCoords(null);
+                
+                // Give it a brief moment for the map to be ready for animation
                 setTimeout(() => {
                     mapRef.current?.animateToRegion(
                         {
@@ -92,10 +105,13 @@ export default function SharedMapScreen() {
                     );
                     setSelectedPlace(newPlace);
                 }, 300);
-            },
-            []
-        )
-    );
+            }
+        } catch (e: any) {
+            Alert.alert('Error', e.message || 'Failed to add place.');
+        } finally {
+            setCreating(false);
+        }
+    };
 
     // ─── Initial map region ──────────────────────────────────────────────────
     useEffect(() => {
@@ -189,8 +205,10 @@ export default function SharedMapScreen() {
     };
 
     const handlePlaceDeleted = useCallback((placeId: string) => {
+        // Trigger a refetch immediately when a place is deleted
+        refetch();
         setSelectedPlace((prev) => (prev?.id === placeId ? null : prev));
-    }, []);
+    }, [refetch]);
 
     const handleToggleMapStyle = () => {
         setMapType((prev) => (prev === 'standard' ? 'satellite' : 'standard'));
@@ -205,158 +223,125 @@ export default function SharedMapScreen() {
     const initialRegion = getInitialMapRegion(userLocation, places);
 
     return (
-        <View style={styles.container}>
-            <StatusBar barStyle="dark-content" />
+        <Screen>
+            <View style={styles.container}>
+                <StatusBar barStyle="dark-content" />
 
-            {/* ── Header ── */}
-            <MapHeader
-                placesCount={filteredPlaces.length}
-                mapStyle={mapType === 'standard' ? 'standard' : 'satellite'}
-                onToggleMapStyle={handleToggleMapStyle}
-            />
+                {/* ── Header ── */}
+                <MapHeader
+                    placesCount={filteredPlaces.length}
+                    mapStyle={mapType === 'standard' ? 'standard' : 'satellite'}
+                    onToggleMapStyle={handleToggleMapStyle}
+                    onRefresh={refetch}
+                    refreshing={loading}
+                />
 
-            {/* ── Search bar ── */}
-            <View style={styles.searchWrapper}>
-                <View
-                    style={[
-                        styles.searchBar,
-                        searchFocused && styles.searchBarFocused,
-                    ]}
-                >
-                    <Ionicons
-                        name="search"
-                        size={16}
-                        color={searchFocused ? '#F43F5E' : '#94A3B8'}
-                    />
-                    <TextInput
-                        value={searchText}
-                        onChangeText={setSearchText}
-                        onFocus={() => setSearchFocused(true)}
-                        onBlur={() => setSearchFocused(false)}
-                        placeholder="Search your places…"
-                        placeholderTextColor="#CBD5E1"
-                        style={styles.searchInput}
-                        returnKeyType="search"
-                    />
-                    {searchText.length > 0 && (
-                        <Pressable onPress={() => setSearchText('')}>
-                            <Ionicons name="close-circle" size={16} color="#CBD5E1" />
+                {/* ── Map ── */}
+                <View style={styles.mapContainer}>
+                    {/* Loading overlay */}
+                    {loading && (
+                        <View style={styles.loadingOverlay}>
+                            <ActivityIndicator size="large" color="#F43F5E" />
+                        </View>
+                    )}
+
+                    {/* Error banner */}
+                    {!!error && !loading && (
+                        <View style={styles.errorBanner}>
+                            <Ionicons name="warning-outline" size={16} color="#fff" />
+                            <Text style={styles.errorBannerText}>{error}</Text>
+                            <Pressable onPress={refetch} style={styles.retryBtn}>
+                                <Text style={styles.retryBtnText}>Retry</Text>
+                            </Pressable>
+                        </View>
+                    )}
+
+                    <MapView
+                        ref={mapRef}
+                        provider={PROVIDER_GOOGLE}
+                        style={styles.map}
+                        mapType={mapType}
+                        initialRegion={initialRegion}
+                        onPress={handleMapPress}
+                        onLongPress={handleLongPress}
+                        onMapReady={() => setMapReady(true)}
+                        showsUserLocation
+                        showsMyLocationButton={false}
+                        showsCompass={false}
+                        showsScale={false}
+                        toolbarEnabled={false}
+                    >
+                        {filteredPlaces.map((place) => (
+                            <PlaceMarker
+                                key={place.id}
+                                place={place}
+                                isSelected={selectedPlace?.id === place.id}
+                                onPress={handleMarkerPress}
+                            />
+                        ))}
+                    </MapView>
+
+                    {/* No-partner banner (only shown when user has no partner) */}
+                    {noPartner && !loading && (
+                        <View style={styles.noPartnerBanner}>
+                            <Ionicons name="people-outline" size={16} color="#64748B" />
+                            <Text style={styles.noPartnerText}>
+                                Connect with your partner to share places 💕
+                            </Text>
+                        </View>
+                    )}
+
+                    {/* Right FABs: zoom */}
+                    <View style={styles.rightFabs}>
+                        <Pressable onPress={() => handleZoom('in')} style={styles.fab} android_ripple={null}>
+                            <Ionicons name="add" size={22} color="#334155" />
+                        </Pressable>
+                        <Pressable onPress={() => handleZoom('out')} style={styles.fab} android_ripple={null}>
+                            <Ionicons name="remove" size={22} color="#334155" />
+                        </Pressable>
+                    </View>
+
+                    {/* Bottom Right FABs: locate */}
+                    <View style={styles.bottomRightFabs}>
+                        <Pressable onPress={handleCenterOnMe} style={styles.fab} android_ripple={null}>
+                            <Ionicons name="locate" size={20} color="#F43F5E" />
+                        </Pressable>
+                    </View>
+
+                    {/* Bottom FAB: Add Place (hidden when detail card is open) */}
+                    {!selectedPlace && !noPartner && (
+                        <Pressable
+                            onPress={handleAddButtonPress}
+                            style={styles.addFab}
+                            android_ripple={null}
+                        >
+                            <Ionicons name="add-circle-outline" size={20} color="#fff" />
+                            <Text style={styles.addFabText}>Add Our Place</Text>
                         </Pressable>
                     )}
-                </View>
-            </View>
 
-            {/* ── Map ── */}
-            <View style={styles.mapContainer}>
-                {/* Loading overlay */}
-                {loading && (
-                    <View style={styles.loadingOverlay}>
-                        <ActivityIndicator size="large" color="#F43F5E" />
-                    </View>
-                )}
-
-                {/* Error banner */}
-                {!!error && !loading && (
-                    <View style={styles.errorBanner}>
-                        <Ionicons name="warning-outline" size={16} color="#fff" />
-                        <Text style={styles.errorBannerText}>{error}</Text>
-                        <Pressable onPress={refetch} style={styles.retryBtn}>
-                            <Text style={styles.retryBtnText}>Retry</Text>
-                        </Pressable>
-                    </View>
-                )}
-
-                <MapView
-                    ref={mapRef}
-                    provider={PROVIDER_GOOGLE}
-                    style={styles.map}
-                    mapType={mapType}
-                    initialRegion={initialRegion}
-                    onPress={handleMapPress}
-                    onLongPress={handleLongPress}
-                    onMapReady={() => setMapReady(true)}
-                    showsUserLocation
-                    showsMyLocationButton={false}
-                    showsCompass={false}
-                    showsScale={false}
-                    toolbarEnabled={false}
-                >
-                    {filteredPlaces.map((place) => (
-                        <PlaceMarker
-                            key={place.id}
-                            place={place}
-                            isSelected={selectedPlace?.id === place.id}
-                            onPress={handleMarkerPress}
-                        />
-                    ))}
-                </MapView>
-
-                {/* No-partner banner (only shown when user has no partner) */}
-                {noPartner && !loading && (
-                    <View style={styles.noPartnerBanner}>
-                        <Ionicons name="people-outline" size={16} color="#64748B" />
-                        <Text style={styles.noPartnerText}>
-                            Connect with your partner to share places 💕
-                        </Text>
-                    </View>
-                )}
-
-                {/* Right FABs: zoom + locate + refresh */}
-                <View style={styles.rightFabs}>
-                    <Pressable onPress={() => handleZoom('in')} style={styles.fab} android_ripple={null}>
-                        <Ionicons name="add" size={22} color="#334155" />
-                    </Pressable>
-                    <Pressable onPress={() => handleZoom('out')} style={styles.fab} android_ripple={null}>
-                        <Ionicons name="remove" size={22} color="#334155" />
-                    </Pressable>
-                    <Pressable onPress={handleCenterOnMe} style={styles.fab} android_ripple={null}>
-                        <Ionicons name="locate" size={20} color="#F43F5E" />
-                    </Pressable>
-                    <Pressable
-                        onPress={refetch}
-                        style={[styles.fab, loading && styles.fabLoading]}
-                        disabled={loading}
-                        android_ripple={null}
-                    >
-                        <Ionicons name="refresh" size={20} color={loading ? '#CBD5E1' : '#334155'} />
-                    </Pressable>
+                    {/* Place detail bottom sheet */}
+                    <PlaceBottomSheet
+                        place={selectedPlace}
+                        partnerName={partnerName}
+                        onClose={() => setSelectedPlace(null)}
+                        onPlaceDeleted={handlePlaceDeleted}
+                    />
                 </View>
 
-                {/* Bottom FAB: Add Place (hidden when detail card is open) */}
-                {!selectedPlace && !noPartner && (
-                    <Pressable
-                        onPress={handleAddButtonPress}
-                        style={styles.addFab}
-                        android_ripple={null}
-                    >
-                        <Ionicons name="add-circle-outline" size={20} color="#fff" />
-                        <Text style={styles.addFabText}>Add Our Place</Text>
-                    </Pressable>
-                )}
-
-                {/* Place detail bottom sheet */}
-                <PlaceBottomSheet
-                    place={selectedPlace}
-                    partnerName={partnerName}
-                    onClose={() => setSelectedPlace(null)}
-                    onPlaceDeleted={handlePlaceDeleted}
+                {/* Add Place Modal */}
+                <AddPlaceModal
+                    visible={showAddModal}
+                    onClose={() => {
+                        setShowAddModal(false);
+                        setPendingCoords(null);
+                    }}
+                    onSave={handleCreatePlace}
+                    loading={creating}
+                    initialCoords={pendingCoords}
                 />
             </View>
-
-            {/* Add Place Modal */}
-            <AddPlaceModal
-                visible={showAddModal}
-                onClose={() => {
-                    setShowAddModal(false);
-                    setPendingCoords(null);
-                }}
-                onSave={async (payload) => {
-                    await createPlace(payload);
-                }}
-                loading={creating}
-                initialCoords={pendingCoords}
-            />
-        </View>
+        </Screen>
     );
 }
 
@@ -444,6 +429,12 @@ const styles = StyleSheet.create({
         top: 16,
         gap: 10,
     },
+    bottomRightFabs: {
+        position: 'absolute',
+        right: 16,
+        bottom: 20,
+        gap: 10,
+    },
     fab: {
         width: 42,
         height: 42,
@@ -460,7 +451,7 @@ const styles = StyleSheet.create({
     addFab: {
         position: 'absolute',
         bottom: 20,
-        alignSelf: 'center',
+        left: 16,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F43F5E',

@@ -3,6 +3,9 @@ import { Alert } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { getProfileWithPartner } from "../services/pairService";
 
+/**
+ * Profil verisi tipi
+ */
 export type ProfileData = {
     id: string;
     first_name: string;
@@ -15,19 +18,25 @@ export type ProfileData = {
     relationship_start_date?: string;
 };
 
+/**
+ * Kullanıcı ve partner profil bilgilerini yöneten özel hook.
+ * Verileri global state'den (AuthContext) okur ve gerekirse günceller.
+ */
 export function useProfile() {
     const { state, dispatch } = useAuth();
     const { profile, partner, isFetchingProfile } = state;
 
     useEffect(() => {
-        // Optional background refresh: if we already have a profile, we don't *block* logic, 
-        // but we can silently update it if we want to. However, let's keep it clean
-        // and only fetch on mount if it's missing entirely (e.g. somehow it wasn't fetched).
+        // Eğer profil verisi yoksa ve kullanıcı giriş yapmışsa verileri yükle
         if (!profile && state.isLoggedIn) {
             loadProfileData();
         }
     }, [profile, state.isLoggedIn]);
 
+    /**
+     * Profil ve partner verilerini servisten çeken fonksiyon.
+     * @param silent true ise yükleme durumu (loading) gösterilmez.
+     */
     const loadProfileData = async (silent = false) => {
         try {
             if (!silent) {
@@ -45,17 +54,18 @@ export function useProfile() {
             if (!silent) {
                 dispatch({ type: 'FETCH_PROFILE_ERROR' });
             }
-            Alert.alert("Error loading profile", e.message);
+            Alert.alert("Profil yüklenirken hata oluştu", e.message);
         }
     };
 
     return {
         profile,
         partner,
-        // Only return true loading state if we actively fetching AND we don't have profile data yet.
-        // If we have profile data, it's just a background refresh.
+        // Aktif olarak veri çekiliyorsa ve henüz profil verisi yoksa loading true döner
         loading: isFetchingProfile && !profile,
+        // Arka planda güncelleme yapılıyorsa (hali hazırda veri varken) bu durum kullanılır
         isFetchingBackground: isFetchingProfile && !!profile,
+        // Verileri manuel olarak yeniden çekmek için kullanılır
         refetch: () => loadProfileData(true),
     };
 }

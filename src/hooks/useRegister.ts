@@ -6,6 +6,10 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
+/**
+ * Kullanıcı kayıt işlemlerini yöneten özel hook.
+ * Form verilerini, doğrulama mantığını ve kayıt sürecini kontrol eder.
+ */
 export function useRegister() {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -16,20 +20,26 @@ export function useRegister() {
     const [loading, setLoading] = useState(false);
     const { dispatch } = useAuth();
 
+    /**
+     * Kayıt Ol butonuna basıldığında çalışan ana fonksiyon.
+     */
     const handleRegister = async () => {
+        // Form alanlarının doluluğunu kontrol et
         if (!firstName || !lastName || !email || !password) {
-            Alert.alert("Missing Fields", "Please fill all fields.");
+            Alert.alert("Eksik Bilgi", "Lütfen tüm alanları doldurun.");
             return;
         }
 
+        // Koşulların kabul edilip edilmediğini kontrol et
         if (!accepted) {
-            Alert.alert("Terms", "Please agree to the Terms & Privacy.");
+            Alert.alert("Koşullar", "Lütfen Şartlar ve Gizlilik Politikasını kabul edin.");
             return;
         }
 
         try {
             setLoading(true);
 
+            // Kayıt servisini çağır
             const data = await registerUser({
                 firstName,
                 lastName,
@@ -37,7 +47,7 @@ export function useRegister() {
                 password,
             });
 
-            // Initialize the global auth state for the newly registered user
+            // Kayıt başarılıysa, yeni kullanıcı için global state'i hazırla
             if (data?.session && data?.user) {
                 dispatch({ type: 'FETCH_PROFILE_START' });
                 try {
@@ -52,7 +62,7 @@ export function useRegister() {
                         }
                     });
                 } catch (profileError) {
-                    // Even if profile fetch fails, still mark them as logged in
+                    // Profil çekilemese bile kullanıcıyı oturum açmış olarak işaretle
                     dispatch({
                         type: 'LOGIN_SUCCESS',
                         payload: {
@@ -65,13 +75,15 @@ export function useRegister() {
                 }
             }
 
+            // Başarı mesajı göster ve eşleşme ekranına yönlendir
             Alert.alert(
-                "Success",
-                "Account created successfully.",
-                [{ text: "OK", onPress: () => router.replace({ pathname: "/(pairing)/pair", params: { from: "register" } }) }]
+                "Başarılı",
+                "Hesabınız başarıyla oluşturuldu.",
+                [{ text: "Tamam", onPress: () => router.replace({ pathname: "/(pairing)/pair", params: { from: "register" } }) }]
             );
         } catch (error: any) {
-            Alert.alert("Register Error", error.message || "Something went wrong.");
+            // Hata durumunda kullanıcıyı bilgilendir
+            Alert.alert("Kayıt Hatası", error.message || "Bir şeyler ters gitti.");
         } finally {
             setLoading(false);
         }

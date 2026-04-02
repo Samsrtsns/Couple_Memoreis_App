@@ -21,6 +21,7 @@ export type UsePlaceCommentsReturn = {
     loading: boolean;
     error: string | null;
     refetch: () => Promise<void>;
+    removeCommentOptimistically: (commentId: string) => void;
 };
 
 export function usePlaceComments(placeId: string | null): UsePlaceCommentsReturn {
@@ -94,5 +95,9 @@ export function usePlaceComments(placeId: string | null): UsePlaceCommentsReturn
         };
     }, [placeId]); // Only placeId — fetchRef is a stable ref
 
-    return { comments, loading, error, refetch: fetch };
+    const removeCommentOptimistically = useCallback((commentId: string) => {
+        setComments((prev) => prev.filter((c) => c.id !== commentId));
+    }, []);
+
+    return { comments, loading, error, refetch: fetch, removeCommentOptimistically };
 }

@@ -1,50 +1,53 @@
-/**
- * MemoriesScreen
- *
- * The main screen for the Memories Timeline feature.
- * A FlatList-driven vertical timeline of shared couple memories.
- *
- * Features:
- * - Timeline layout with left-side line + dots per card
- * - Pull-to-refresh
- * - Realtime updates (via useMemories)
- * - Floating + FAB button to open AddMemoryModal
- * - Loading skeleton, empty, and error states
- */
-
-import { Ionicons } from '@expo/vector-icons';
-import { FlashList } from '@shopify/flash-list';
-import React, { useState } from 'react';
+import { Ionicons } from "@expo/vector-icons";
+import { FlashList } from "@shopify/flash-list";
+import React, { useState } from "react";
 import {
     ActivityIndicator,
     RefreshControl,
-    StyleSheet,
     Text,
     TouchableOpacity,
     View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+    useWindowDimensions,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { NavigationState, SceneMap, SceneRendererProps, TabView } from "react-native-tab-view";
 
-import { AddMemoryModal } from '../components/AddMemoryModal';
-import { MemoriesEmptyState } from '../components/MemoriesEmptyState';
-import { MemoryCard } from '../components/MemoryCard';
-import { MemoryCardSkeleton } from '../components/MemoryCardSkeleton';
-import { useMemories } from '../hooks/useMemories';
-import type { Memory } from '../types/memory.types';
+import { AddMemoryModal } from "../components/AddMemoryModal";
+import { MemoriesEmptyState } from "../components/MemoriesEmptyState";
+import { MemoryCard } from "../components/MemoryCard";
+import { MemoryCardSkeleton } from "../components/MemoryCardSkeleton";
+import { useMemories } from "../hooks/useMemories";
+import type { Memory } from "../types/memory.types";
 
-// ─────────────────────────────────────────────
-// Header component
-// ─────────────────────────────────────────────
-
-function ScreenHeader({ onAddPress, hasPartner }: { onAddPress: () => void; hasPartner: boolean }) {
+// Header
+function ScreenHeader({
+    onAddPress,
+    hasPartner,
+    title = "Memory Timeline",
+    subtitle = "Your love story, chapter by chapter",
+}: {
+    onAddPress: () => void;
+    hasPartner: boolean;
+    title?: string;
+    subtitle?: string;
+}) {
     return (
-        <View style={styles.header}>
+        <View className="flex-row items-center justify-between px-5 pt-4 pb-4 bg-bgLight">
             <View>
-                <Text style={styles.headerTitle}>Memory Timeline</Text>
-                <Text style={styles.headerSubtitle}>Your love story, chapter by chapter</Text>
+                <Text className="text-[26px] font-extrabold text-[#2d1020] tracking-tight">
+                    {title}
+                </Text>
+                <Text className="text-[13px] text-[#c084a0] italic">
+                    {subtitle}
+                </Text>
             </View>
+
             {hasPartner && (
-                <TouchableOpacity style={styles.addBtn} onPress={onAddPress} activeOpacity={0.85}>
+                <TouchableOpacity
+                    onPress={onAddPress}
+                    activeOpacity={0.85}
+                    className="w-[42px] h-[42px] rounded-full bg-[#FF8A8A] items-center justify-center shadow-lg"
+                >
                     <Ionicons name="add" size={22} color="#fff" />
                 </TouchableOpacity>
             )}
@@ -52,11 +55,31 @@ function ScreenHeader({ onAddPress, hasPartner }: { onAddPress: () => void; hasP
     );
 }
 
-// ─────────────────────────────────────────────
-// Main screen
-// ─────────────────────────────────────────────
+// Albums Placeholder
+function AlbumsScreen({ hasPartner, onAddPress }: { hasPartner: boolean; onAddPress: () => void }) {
+    return (
+        <View className="flex-1 items-center justify-center bg-bgLight px-5">
+            <View className="w-20 h-20 bg-[#fde8ef] rounded-full items-center justify-center mb-4">
+                <Ionicons name="images-outline" size={40} color="#FF8A8A" />
+            </View>
+            <Text className="text-[20px] font-bold text-[#2d1020] mb-2">Memory Albums</Text>
+            <Text className="text-[#9e6070] text-center mb-6 text-[15px]">
+                Organize your memories into beautiful albums for different occasions and adventures.
+            </Text>
+            {hasPartner && (
+                <TouchableOpacity
+                    onPress={onAddPress}
+                    className="bg-[#FF8A8A] px-6 py-3 rounded-full shadow-md"
+                >
+                    <Text className="text-white font-bold">Create New Album</Text>
+                </TouchableOpacity>
+            )}
+        </View>
+    );
+}
 
 export default function MemoriesScreen() {
+    const layout = useWindowDimensions();
     const {
         memories,
         loading,
@@ -71,51 +94,126 @@ export default function MemoriesScreen() {
 
     const [modalVisible, setModalVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [index, setIndex] = useState(0);
+    const [routes] = useState([
+        { key: "timeline", title: "Timeline" },
+        { key: "albums", title: "Albums" },
+    ]);
 
-    // ─── Pull-to-refresh ──────────────────────────────────────────
     const handleRefresh = async () => {
         setRefreshing(true);
         await refresh();
         setRefreshing(false);
     };
 
-    // ─── Add memory handler ───────────────────────────────────────
     const handleAddMemory = async (data: {
         title: string;
         description: string;
         memory_date: string;
         photoUri: string;
     }) => {
-        await addMemory({
-            title: data.title,
-            description: data.description,
-            memory_date: data.memory_date,
-            photoUri: data.photoUri,
-        });
+        await addMemory(data);
     };
 
-    // ─── Comment handler ──────────────────────────────────────────
     const handleAddComment = async (memoryId: string, text: string) => {
         await addComment({ memory_id: memoryId, comment: text });
     };
 
-    // ─── Render item ──────────────────────────────────────────────
-    const renderItem = ({ item, index }: { item: Memory; index: number }) => (
+    const renderItem = ({ item, index: memoryIndex }: { item: Memory; index: number }) => (
         <MemoryCard
             memory={item}
-            currentUserId={currentUserId ?? ''}
+            currentUserId={currentUserId ?? ""}
             onToggleLike={toggleLike}
             onAddComment={handleAddComment}
-            isLast={index === memories.length - 1}
+            isLast={memoryIndex === memories.length - 1}
         />
     );
 
-    // ─── Loading state ────────────────────────────────────────────
+    const renderTimeline = () => (
+        <View className="flex-1 w-full">
+            <FlashList
+                data={memories}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={handleRefresh}
+                        tintColor="#e91e8c"
+                        colors={["#e91e8c"]}
+                    />
+                }
+                ListEmptyComponent={
+                    <MemoriesEmptyState
+                        variant={hasPartner ? "no-memories" : "no-partner"}
+                        onAddMemory={
+                            hasPartner ? () => setModalVisible(true) : undefined
+                        }
+                    />
+                }
+                ListFooterComponent={
+                    loading && memories.length > 0 ? (
+                        <ActivityIndicator
+                            color="#e91e8c"
+                            style={{ paddingVertical: 20 }}
+                        />
+                    ) : null
+                }
+                contentContainerStyle={{
+                    paddingBottom: 100,
+                    flexGrow: memories.length === 0 ? 1 : undefined,
+                }}
+            />
+        </View>
+    );
+
+    const renderScene = SceneMap({
+        timeline: renderTimeline,
+        albums: () => (
+            <AlbumsScreen
+                hasPartner={hasPartner}
+                onAddPress={() => setModalVisible(true)}
+            />
+        ),
+    });
+
+    const renderTabBar = (props: SceneRendererProps & { navigationState: NavigationState<{ key: string; title: string }> }) => (
+        <View className="px-5 pb-2 bg-bgLight">
+            <View className="flex-row items-center bg-[#f3f3f4] rounded-[20px] p-1">
+                {props.navigationState.routes.map((route, i) => {
+                    const isSelected = index === i;
+                    return (
+                        <TouchableOpacity
+                            key={route.key}
+                            onPress={() => setIndex(i)}
+                            activeOpacity={0.7}
+                            className={`flex-1 items-center justify-center py-2.5 rounded-[18px] ${isSelected ? "bg-[#fde8ef]" : "bg-transparent"
+                                }`}
+                        >
+                            <Text
+                                className={`text-[14px] font-bold ${isSelected ? "text-[#e91e8c]" : "text-[#9e6070]"
+                                    }`}
+                            >
+                                {route.title}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
+            </View>
+        </View>
+    );
+
+    // Loading
     if (loading && memories.length === 0) {
         return (
-            <SafeAreaView className="flex-1 bg-bgLight" edges={['top']}>
-                <ScreenHeader onAddPress={() => setModalVisible(true)} hasPartner={false} />
-                <View style={styles.skeletons}>
+            <SafeAreaView className="flex-1 bg-bgLight" edges={["top"]}>
+                <ScreenHeader
+                    onAddPress={() => setModalVisible(true)}
+                    hasPartner={false}
+                />
+
+                <View className="flex-1 pt-2">
                     <MemoryCardSkeleton />
                     <MemoryCardSkeleton />
                     <MemoryCardSkeleton />
@@ -124,17 +222,31 @@ export default function MemoriesScreen() {
         );
     }
 
-    // ─── Error state ──────────────────────────────────────────────
+    // Error
     if (error && memories.length === 0) {
         return (
-            <SafeAreaView className="flex-1 bg-bgLight" edges={['top']}>
-                <ScreenHeader onAddPress={() => setModalVisible(true)} hasPartner={hasPartner} />
-                <View style={styles.centered}>
+            <SafeAreaView className="flex-1 bg-bgLight" edges={["top"]}>
+                <ScreenHeader
+                    onAddPress={() => setModalVisible(true)}
+                    hasPartner={hasPartner}
+                />
+
+                <View className="flex-1 items-center justify-center px-8 gap-3">
                     <Ionicons name="warning-outline" size={48} color="#f48fb1" />
-                    <Text style={styles.errorTitle}>Something went wrong</Text>
-                    <Text style={styles.errorMsg}>{error}</Text>
-                    <TouchableOpacity style={styles.retryBtn} onPress={refresh}>
-                        <Text style={styles.retryText}>Try Again</Text>
+
+                    <Text className="text-[20px] font-bold text-[#2d1020]">
+                        Something went wrong
+                    </Text>
+
+                    <Text className="text-[14px] text-[#9e6070] text-center">
+                        {error}
+                    </Text>
+
+                    <TouchableOpacity
+                        onPress={refresh}
+                        className="mt-2 bg-[#e91e8c] rounded-full px-7 py-3"
+                    >
+                        <Text className="text-white font-bold text-[15px]">Try Again</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -142,148 +254,28 @@ export default function MemoriesScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-bgLight" edges={['top']}>
-            {/* Modal */}
+        <SafeAreaView className="flex-1 bg-bgLight" edges={["top"]}>
             <AddMemoryModal
                 visible={modalVisible}
                 onClose={() => setModalVisible(false)}
                 onSubmit={handleAddMemory}
             />
 
-            {/* List */}
-            <View style={{ flex: 1, width: '100%' }}>
-                <FlashList
-                    data={memories}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderItem}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={handleRefresh}
-                            tintColor="#e91e8c"
-                            colors={['#e91e8c']}
-                        />
-                    }
-                    ListHeaderComponent={
-                        <ScreenHeader
-                            onAddPress={() => setModalVisible(true)}
-                            hasPartner={hasPartner}
-                        />
-                    }
-                    ListEmptyComponent={
-                        <MemoriesEmptyState
-                            variant={hasPartner ? 'no-memories' : 'no-partner'}
-                            onAddMemory={hasPartner ? () => setModalVisible(true) : undefined}
-                        />
-                    }
-                    ListFooterComponent={
-                        loading && memories.length > 0 ? (
-                            <ActivityIndicator color="#e91e8c" style={{ paddingVertical: 20 }} />
-                        ) : null
-                    }
-                    contentContainerStyle={[
-                        styles.listContent,
-                        memories.length === 0 && { flex: 1 },
-                    ]}
-                    showsVerticalScrollIndicator={false}
-                />
-            </View>
+            <ScreenHeader
+                onAddPress={() => setModalVisible(true)}
+                hasPartner={hasPartner}
+                title={index === 0 ? "Memory Timeline" : "Memory Albums"}
+                subtitle={index === 0 ? "Your love story, chapter by chapter" : "Captured moments, beautifully organized"}
+            />
+
+            <TabView
+                navigationState={{ index, routes }}
+                renderScene={renderScene}
+                onIndexChange={setIndex}
+                initialLayout={{ width: layout.width }}
+                renderTabBar={renderTabBar}
+                swipeEnabled={true}
+            />
         </SafeAreaView>
     );
 }
-
-// ─────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────
-
-const styles = StyleSheet.create({
-    // Header
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 16,
-        paddingBottom: 20,
-    },
-    headerTitle: {
-        fontSize: 26,
-        fontWeight: '800',
-        color: '#2d1020',
-        letterSpacing: -0.5,
-    },
-    headerSubtitle: {
-        fontSize: 13,
-        color: '#c084a0',
-        marginTop: 2,
-        fontStyle: 'italic',
-    },
-    addBtn: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        backgroundColor: '#FF8A8A',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#FF8A8A',
-        shadowOpacity: 0.35,
-        shadowRadius: 8,
-        elevation: 5,
-    },
-    // List
-    listContent: {
-        paddingBottom: 100,
-    },
-    // Loading skeletons
-    skeletons: {
-        flex: 1,
-        paddingTop: 8,
-    },
-    // Error state
-    centered: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-        paddingHorizontal: 32,
-    },
-    errorTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#2d1020',
-    },
-    errorMsg: {
-        fontSize: 14,
-        color: '#9e6070',
-        textAlign: 'center',
-    },
-    retryBtn: {
-        marginTop: 8,
-        backgroundColor: '#e91e8c',
-        borderRadius: 24,
-        paddingVertical: 12,
-        paddingHorizontal: 28,
-    },
-    retryText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 15,
-    },
-    // FAB
-    fab: {
-        position: 'absolute',
-        bottom: 28,
-        right: 20,
-        width: 58,
-        height: 58,
-        borderRadius: 29,
-        backgroundColor: '#e91e8c',
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#e91e8c',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        elevation: 8,
-    },
-});

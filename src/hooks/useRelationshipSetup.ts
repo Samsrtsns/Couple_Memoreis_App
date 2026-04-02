@@ -4,18 +4,26 @@ import { Alert, Platform } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { completeRelationshipSetup } from "../services/pairService";
 
+/**
+ * İlişki kurulum sürecini (doğum tarihleri, başlangıç tarihi) yöneten özel hook.
+ * Tarih seçicileri (DatePicker), tarih formatlama ve veritabanına kaydetme işlemlerini yönetir.
+ */
 export function useRelationshipSetup() {
     const { refreshProfile } = useAuth();
     const [myBirthDate, setMyBirthDate] = useState(new Date());
     const [partnerBirthDate, setPartnerBirthDate] = useState(new Date());
     const [relationshipStartDate, setRelationshipStartDate] = useState(new Date());
 
+    // Hangi tarih seçicinin (DatePicker) aktif olduğunu tutan state
     const [activeDatePicker, setActiveDatePicker] = useState<
         "myBirth" | "partnerBirth" | "relationStart" | null
     >(null);
 
     const [loading, setLoading] = useState(false);
 
+    /**
+     * Tarih nesnesini "gün.ay.yıl" formatında string'e dönüştürür.
+     */
     const formatDate = (date: Date) => {
         return date.toLocaleDateString("tr-TR", {
             day: "2-digit",
@@ -24,13 +32,20 @@ export function useRelationshipSetup() {
         });
     };
 
+    /**
+     * Tarih nesnesini veritabanı için "YYYY-MM-DD" formatına dönüştürür.
+     * Yerel zaman dilimi farkını hesaba katar.
+     */
     const toISODate = (date: Date) => {
-        // Adjust date to account for local timezone before returning the ISO string block
         const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
         return offsetDate.toISOString().split("T")[0];
     };
 
+    /**
+     * DatePicker'dan tarih seçildiğinde çalışan fonksiyon.
+     */
     const handleDateChange = (_: any, selectedDate?: Date) => {
+        // Android'de seçimden sonra picker'ı otomatik kapat
         if (Platform.OS !== "ios") {
             setActiveDatePicker(null);
         }
@@ -46,33 +61,40 @@ export function useRelationshipSetup() {
         }
     };
 
+    /**
+     * Tarih seçiciyi kapatır.
+     */
     const closePicker = () => {
         setActiveDatePicker(null);
     };
 
+    /**
+     * Formu gönderir ve ilişki kurulumunu veritabanında tamamlar.
+     */
     const submit = async () => {
         try {
             setLoading(true);
 
+            // Servisi çağırarak tarihleri kaydet
             await completeRelationshipSetup(
                 toISODate(myBirthDate),
                 toISODate(partnerBirthDate),
                 toISODate(relationshipStartDate)
             );
 
-            // Refetch the global auth context so the home/profile screens receive the new partner
+            // Global auth context'i yenile (yeni partner bilgilerinin yansıması için)
             if (refreshProfile) {
                 await refreshProfile();
             }
 
-            Alert.alert("Success", "Your relationship details have been saved.", [
+            Alert.alert("Başarılı", "İlişki detaylarınız kaydedildi.", [
                 {
-                    text: "OK",
+                    text: "Tamam",
                     onPress: () => router.replace("/(tabs)/home"),
                 },
             ]);
         } catch (e: any) {
-            Alert.alert("Error", e.message || "Failed to save relationship details.");
+            Alert.alert("Hata", e.message || "İlişki detayları kaydedilemedi.");
         } finally {
             setLoading(false);
         }

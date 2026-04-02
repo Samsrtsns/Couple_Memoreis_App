@@ -134,23 +134,13 @@ export async function fetchMemoriesForCurrentUser(
             memory_date,
             created_at,
             updated_at,
-            profiles:created_by (
-                id,
-                first_name,
-                last_name
-            ),
             memory_comments (
                 id,
                 memory_id,
                 user_id,
                 comment,
                 created_at,
-                updated_at,
-                profiles:user_id (
-                    id,
-                    first_name,
-                    last_name
-                )
+                updated_at
             ),
             memory_likes (
                 id,
@@ -165,8 +155,47 @@ export async function fetchMemoriesForCurrentUser(
         .order('created_at', { ascending: false });
 
     if (error) throw new Error(`Failed to fetch memories: ${error.message}`);
+    const rawMemories = data ?? [];
 
-    return (data ?? []).map((row) =>
+    // Collect all unique user IDs to fetch their profiles
+    const userIdsToFetch = new Set<string>();
+    rawMemories.forEach((m: any) => {
+        if (m.created_by) userIdsToFetch.add(m.created_by);
+        if (m.memory_comments) {
+            m.memory_comments.forEach((c: any) => {
+                if (c.user_id) userIdsToFetch.add(c.user_id);
+            });
+        }
+    });
+
+    const profilesMap: Record<string, { id: string; first_name: string; last_name: string }> = {};
+
+    if (userIdsToFetch.size > 0) {
+        const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', Array.from(userIdsToFetch));
+
+        if (profilesData) {
+            profilesData.forEach(p => {
+                profilesMap[p.id] = p;
+            });
+        }
+    }
+
+    // Attach profiles before normalizing
+    const enrichedMemories = rawMemories.map((m: any) => {
+        return {
+            ...m,
+            profiles: profilesMap[m.created_by],
+            memory_comments: m.memory_comments?.map((c: any) => ({
+                ...c,
+                profiles: profilesMap[c.user_id]
+            }))
+        };
+    });
+
+    return enrichedMemories.map((row) =>
         normalizeMemory(row as unknown as MemoryRow, currentUserId)
     );
 }
@@ -196,6 +225,7 @@ export async function createMemory({
     currentUserId,
     partnerId,
 }: CreateMemoryArgs): Promise<Memory> {
+    console.log('[createMemory] Starting with args:', { title, memory_date, photo_url, currentUserId, partnerId });
     const { userAId, userBId } = getPairUserIds(currentUserId, partnerId);
 
     const { data, error } = await supabase
@@ -223,10 +253,24 @@ export async function createMemory({
         `)
         .single();
 
+    console.log('[createMemory] Supabase query result:', { data, error });
+
     if (error) throw new Error(`Failed to create memory: ${error.message}`);
 
+    // Fetch the creator's profile since we can't join it automatically
+    const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('id', currentUserId)
+        .single();
+    
+    const memoryWithProfile = {
+        ...(data as any),
+        profiles: profileData
+    };
+
     return normalizeMemory(
-        { ...(data as unknown as MemoryRow), memory_comments: [], memory_likes: [] },
+        { ...memoryWithProfile, memory_comments: [], memory_likes: [] } as unknown as MemoryRow,
         currentUserId
     );
 }
@@ -249,6 +293,7 @@ export async function uploadMemoryPhoto(
     const base64 = await FileSystem.readAsStringAsync(localUri, {
         encoding: 'base64',
     });
+    console.log('[uploadMemoryPhoto] Read file as base64, length:', base64.length);
 
     const timestamp = Date.now();
     const path = `${currentUserId}/${timestamp}.jpg`;
@@ -261,6 +306,8 @@ export async function uploadMemoryPhoto(
             upsert: false,
         });
 
+    console.log('[uploadMemoryPhoto] Upload result:', { path, uploadError });
+
     if (uploadError) throw new Error(`Photo upload failed: ${uploadError.message}`);
 
     const { data: urlData } = supabase.storage
@@ -268,6 +315,7 @@ export async function uploadMemoryPhoto(
         .getPublicUrl(path);
 
     if (!urlData?.publicUrl) throw new Error('Could not get public URL for uploaded photo.');
+    console.log('[uploadMemoryPhoto] Public URL:', urlData.publicUrl);
     return urlData.publicUrl;
 }
 
@@ -295,18 +343,25 @@ export async function addMemoryComment(
             user_id,
             comment,
             created_at,
-            updated_at,
-            profiles:user_id (
-                id,
-                first_name,
-                last_name
-            )
+            updated_at
         `)
         .single();
 
     if (error) throw new Error(`Failed to add comment: ${error.message}`);
 
-    return normalizeComment(data as unknown as MemoryCommentRow);
+    // Fetch profile manually
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('id', currentUserId)
+        .single();
+    
+    const enrichedComment = {
+        ...(data as any),
+        profiles: profile
+    };
+
+    return normalizeComment(enrichedComment as unknown as MemoryCommentRow);
 }
 
 /**
