@@ -11,14 +11,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     addMemoryComment,
     createMemory,
+    deleteMemory as deleteMemoryService,
     fetchMemoriesForCurrentUser,
     getCurrentProfile,
     subscribeToMemories,
     subscribeToMemoryComments,
     subscribeToMemoryLikes,
     toggleMemoryLike,
+    updateMemory as updateMemoryService,
     uploadMemoryPhoto,
     type CreateMemoryArgs,
+    type UpdateMemoryArgs,
 } from '../services/memoriesService';
 import type {
     CreateCommentPayload,
@@ -27,6 +30,7 @@ import type {
     MemoryCommentRow,
     MemoryLike,
     MemoryRow,
+    UpdateMemoryPayload,
 } from '../types/memory.types';
 import { getPairUserIds } from '../utils/pair.utils';
 
@@ -43,6 +47,8 @@ export type UseMemoriesResult = {
     hasPartner: boolean;
     refresh: () => Promise<void>;
     addMemory: (payload: CreateMemoryPayload) => Promise<void>;
+    updateMemory: (payload: UpdateMemoryPayload) => Promise<void>;
+    deleteMemory: (memoryId: string) => Promise<void>;
     toggleLike: (memoryId: string) => Promise<void>;
     addComment: (payload: CreateCommentPayload) => Promise<void>;
 };
@@ -135,6 +141,23 @@ export function useMemories(): UseMemoriesResult {
                     if (prev.some((m) => m.id === normalised.id)) return prev;
                     return [normalised, ...prev];
                 });
+            },
+            onUpdate: (updatedRow: MemoryRow) => {
+                const uid = currentUserIdRef.current;
+                setMemories((prev) =>
+                    prev.map((m) => {
+                        if (m.id !== updatedRow.id) return m;
+                        // Merge: keep client-side fields (comments, likes) but update DB fields
+                        return {
+                            ...m,
+                            title: updatedRow.title,
+                            description: updatedRow.description,
+                            photo_url: updatedRow.photo_url,
+                            memory_date: updatedRow.memory_date,
+                            updated_at: updatedRow.updated_at,
+                        };
+                    })
+                );
             },
             onDelete: (deletedId: string) => {
                 setMemories((prev) => prev.filter((m) => m.id !== deletedId));
@@ -265,6 +288,56 @@ export function useMemories(): UseMemoriesResult {
         []
     );
 
+    const editMemory = useCallback(
+        async (payload: UpdateMemoryPayload) => {
+            const uid = currentUserIdRef.current;
+            if (!uid) throw new Error('Not authenticated.');
+
+            let newPhotoUrl: string | undefined;
+
+            // Upload new photo if provided
+            if (payload.photoUri) {
+                newPhotoUrl = await uploadMemoryPhoto(payload.photoUri, uid);
+            }
+
+            const args: UpdateMemoryArgs = {
+                memoryId: payload.memoryId,
+                title: payload.title,
+                description: payload.description,
+                memory_date: payload.memory_date,
+                photo_url: newPhotoUrl,
+                currentUserId: uid,
+            };
+
+            const updated = await updateMemoryService(args);
+
+            // Optimistic update (realtime will also fire)
+            setMemories((prev) =>
+                prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
+            );
+        },
+        []
+    );
+
+    const removeMemory = useCallback(
+        async (memoryId: string) => {
+            const uid = currentUserIdRef.current;
+            if (!uid) throw new Error('Not authenticated.');
+
+            // Optimistic delete
+            setMemories((prev) => prev.filter((m) => m.id !== memoryId));
+
+            try {
+                await deleteMemoryService(memoryId, uid);
+            } catch (e) {
+                // Revert on failure
+                await refresh();
+                throw e;
+            }
+        },
+        [refresh]
+    );
+
     const toggleLike = useCallback(async (memoryId: string) => {
         const uid = currentUserIdRef.current;
         if (!uid) return;
@@ -325,6 +398,8 @@ export function useMemories(): UseMemoriesResult {
         hasPartner: !!partnerId,
         refresh,
         addMemory,
+        updateMemory: editMemory,
+        deleteMemory: removeMemory,
         toggleLike,
         addComment,
     };

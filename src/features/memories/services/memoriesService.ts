@@ -319,6 +319,146 @@ export async function uploadMemoryPhoto(
     return urlData.publicUrl;
 }
 
+/**
+ * Extracts the storage path from a Supabase public URL.
+ * e.g. ".../memories/userId/12345.jpg" → "userId/12345.jpg"
+ */
+function extractStoragePath(publicUrl: string): string | null {
+    try {
+        const marker = '/object/public/memories/';
+        const idx = publicUrl.indexOf(marker);
+        if (idx === -1) return null;
+        return publicUrl.substring(idx + marker.length);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Deletes a photo from the `memories` storage bucket (best-effort).
+ */
+async function deletePhotoFromStorage(publicUrl: string): Promise<void> {
+    const path = extractStoragePath(publicUrl);
+    if (!path) return;
+    const { error } = await supabase.storage.from('memories').remove([path]);
+    if (error) console.warn('[deletePhotoFromStorage] Failed:', error.message);
+}
+
+// ─────────────────────────────────────────────
+// UPDATE
+// ─────────────────────────────────────────────
+
+export type UpdateMemoryArgs = {
+    memoryId: string;
+    title?: string;
+    description?: string;
+    memory_date?: string;
+    photo_url?: string;
+    currentUserId: string;
+};
+
+/**
+ * Updates a memory row in the database.
+ * Only the creator of the memory can update it.
+ * If `photo_url` changes, the old photo is optionally deleted from storage.
+ */
+export async function updateMemory({
+    memoryId,
+    title,
+    description,
+    memory_date,
+    photo_url,
+    currentUserId,
+}: UpdateMemoryArgs): Promise<Memory> {
+    // Build partial update object (only include changed fields)
+    const updates: Record<string, unknown> = {
+        updated_at: new Date().toISOString(),
+    };
+    if (title !== undefined) updates.title = title.trim();
+    if (description !== undefined) updates.description = description.trim() || null;
+    if (memory_date !== undefined) updates.memory_date = memory_date;
+    if (photo_url !== undefined) updates.photo_url = photo_url;
+
+    // Fetch old photo_url before updating (for cleanup)
+    let oldPhotoUrl: string | null = null;
+    if (photo_url !== undefined) {
+        const { data: oldRow } = await supabase
+            .from('memories')
+            .select('photo_url')
+            .eq('id', memoryId)
+            .single();
+        oldPhotoUrl = oldRow?.photo_url ?? null;
+    }
+
+    const { data, error } = await supabase
+        .from('memories')
+        .update(updates)
+        .eq('id', memoryId)
+        .eq('created_by', currentUserId) // Auth guard: only creator can update
+        .select(`
+            id, created_by, user_a_id, user_b_id,
+            title, description, photo_url, memory_date,
+            created_at, updated_at,
+            memory_comments (
+                id, memory_id, user_id, comment, created_at, updated_at
+            ),
+            memory_likes (
+                id, memory_id, user_id, created_at
+            )
+        `)
+        .single();
+
+    if (error) throw new Error(`Failed to update memory: ${error.message}`);
+
+    // Delete old photo from storage if it changed
+    if (oldPhotoUrl && photo_url && oldPhotoUrl !== photo_url) {
+        deletePhotoFromStorage(oldPhotoUrl).catch(() => {});
+    }
+
+    // Fetch creator profile
+    const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .eq('id', currentUserId)
+        .single();
+
+    const enriched = { ...(data as any), profiles: profileData };
+    return normalizeMemory(enriched as unknown as MemoryRow, currentUserId);
+}
+
+// ─────────────────────────────────────────────
+// DELETE
+// ─────────────────────────────────────────────
+
+/**
+ * Deletes a memory row and optionally removes its photo from storage.
+ * Only the creator of the memory can delete it.
+ */
+export async function deleteMemory(
+    memoryId: string,
+    currentUserId: string
+): Promise<void> {
+    // Fetch photo_url for cleanup before deleting
+    const { data: memRow } = await supabase
+        .from('memories')
+        .select('photo_url')
+        .eq('id', memoryId)
+        .single();
+
+    const { error } = await supabase
+        .from('memories')
+        .delete()
+        .eq('id', memoryId)
+        .eq('created_by', currentUserId); // Auth guard: only creator can delete
+
+    if (error) throw new Error(`Failed to delete memory: ${error.message}`);
+
+    // Clean up photo from storage (best-effort)
+    if (memRow?.photo_url) {
+        deletePhotoFromStorage(memRow.photo_url).catch(() => {});
+    }
+}
+
 // ─────────────────────────────────────────────
 // COMMENTS
 // ─────────────────────────────────────────────
@@ -441,8 +581,9 @@ export function subscribeToMemories(
     userAId: string,
     callbacks: RealtimeMemoryCallbacks
 ): () => void {
+    const uid = Math.random().toString(36).slice(2, 8);
     const channel = supabase
-        .channel(`memories:pair:${userAId}`)
+        .channel(`memories:pair:${userAId}:${uid}`)
         .on(
             'postgres_changes',
             { event: 'INSERT', schema: 'public', table: 'memories', filter: `user_a_id=eq.${userAId}` },
@@ -475,8 +616,9 @@ type RealtimeCommentCallbacks = {
 export function subscribeToMemoryComments(
     callbacks: RealtimeCommentCallbacks
 ): () => void {
+    const uid = Math.random().toString(36).slice(2, 8);
     const channel = supabase
-        .channel('memory_comments:all')
+        .channel(`memory_comments:all:${uid}`)
         .on(
             'postgres_changes',
             { event: 'INSERT', schema: 'public', table: 'memory_comments' },
@@ -504,8 +646,9 @@ type RealtimeLikeCallbacks = {
 export function subscribeToMemoryLikes(
     callbacks: RealtimeLikeCallbacks
 ): () => void {
+    const uid = Math.random().toString(36).slice(2, 8);
     const channel = supabase
-        .channel('memory_likes:all')
+        .channel(`memory_likes:all:${uid}`)
         .on(
             'postgres_changes',
             { event: 'INSERT', schema: 'public', table: 'memory_likes' },

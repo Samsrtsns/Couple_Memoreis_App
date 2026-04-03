@@ -75,6 +75,15 @@ export type CreateMemoryPayload = {
     photoUri: string;
 };
 
+export type UpdateMemoryPayload = {
+    memoryId: string;
+    title?: string;
+    description?: string;
+    memory_date?: string; // "YYYY-MM-DD"
+    /** If provided, a new local file URI to upload and replace the old photo */
+    photoUri?: string;
+};
+
 export type CreateCommentPayload = {
     memory_id: string;
     comment: string;

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
-import React, { useState } from "react";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
+import React, { useRef, useState } from "react";
 import {
     ActivityIndicator,
     RefreshControl,
@@ -53,6 +53,7 @@ export default function MemoriesScreen() {
         addComment,
     } = useMemories();
 
+    const listRef = useRef<FlashListRef<Memory>>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -69,6 +70,10 @@ export default function MemoriesScreen() {
         photoUri: string;
     }) => {
         await addMemory(data);
+        // Yeni anı eklendikten sonra listeyi en yukarı kaydır
+        setTimeout(() => {
+            listRef.current?.scrollToTop({ animated: true });
+        }, 300);
     };
 
     const handleAddComment = async (memoryId: string, text: string) => {
@@ -156,6 +161,7 @@ export default function MemoriesScreen() {
 
                 <View className="flex-1 w-full">
                     <FlashList
+                        ref={listRef}
                         data={memories}
                         keyExtractor={(item) => item.id}
                         renderItem={renderItem}

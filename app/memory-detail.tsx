@@ -3,14 +3,26 @@
  *
  * Shows a full-page, premium detail view for a single memory.
  * Data is passed via route params (cached) so no API re-fetch is needed.
+ * 
+ * Edit/Delete use service functions directly (NOT useMemories hook)
+ * to avoid creating a second realtime subscription that conflicts
+ * with the list screen's subscription.
  */
 
-import type { Memory } from "@/src/features/memories/types/memory.types";
+import { useAuth } from "@/src/context/AuthContext";
+import { EditMemoryModal } from "@/src/features/memories/components/EditMemoryModal";
+import {
+    deleteMemory as deleteMemoryService,
+    updateMemory as updateMemoryService,
+    uploadMemoryPhoto,
+} from "@/src/features/memories/services/memoriesService";
+import type { Memory, UpdateMemoryPayload } from "@/src/features/memories/types/memory.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
+    Alert,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -43,8 +55,16 @@ export default function MemoryDetailScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { data } = useLocalSearchParams<{ id: string; data: string }>();
+    const { state } = useAuth();
 
-    const memory: Memory | null = useMemo(() => {
+    // Current user ID from auth context (always available, no loading needed)
+    const currentUserId = state.user?.id ?? null;
+
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    const [memoryState, setMemoryState] = useState<Memory | null>(null);
+
+    // Parse memory from route params (cached) + allow local state overrides
+    const parsedMemory: Memory | null = useMemo(() => {
         if (!data) return null;
         try {
             return JSON.parse(data) as Memory;
@@ -52,6 +72,65 @@ export default function MemoryDetailScreen() {
             return null;
         }
     }, [data]);
+
+    // Use local state if updated, otherwise use parsed cache
+    const memory = memoryState ?? parsedMemory;
+
+    const isCreator = !!(currentUserId && memory && memory.created_by === currentUserId);
+
+    // ─── Handlers ────────────────────────────────────────────
+    const handleEdit = () => {
+        setEditModalVisible(true);
+    };
+
+    const handleEditSubmit = async (payload: UpdateMemoryPayload) => {
+        if (!currentUserId) throw new Error("Not authenticated.");
+
+        let newPhotoUrl: string | undefined;
+
+        // Upload new photo if provided
+        if (payload.photoUri) {
+            newPhotoUrl = await uploadMemoryPhoto(payload.photoUri, currentUserId);
+        }
+
+        const updated = await updateMemoryService({
+            memoryId: payload.memoryId,
+            title: payload.title,
+            description: payload.description,
+            memory_date: payload.memory_date,
+            photo_url: newPhotoUrl,
+            currentUserId,
+        });
+
+        // Update local memory state immediately
+        setMemoryState(updated);
+    };
+
+    const handleDelete = () => {
+        if (!memory || !currentUserId) return;
+        Alert.alert(
+            "Anıyı Sil",
+            "Bu anıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+            [
+                { text: "İptal", style: "cancel" },
+                {
+                    text: "Sil",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deleteMemoryService(memory.id, currentUserId);
+                            // Navigate back — the list screen's realtime
+                            // subscription will remove it from the timeline
+                            router.back();
+                        } catch (e: unknown) {
+                            const msg = e instanceof Error ? e.message : "Bir hata oluştu.";
+                            Alert.alert("Silme Başarısız", msg);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     if (!memory) {
         return (
@@ -76,6 +155,18 @@ export default function MemoryDetailScreen() {
             >
                 <Ionicons name="chevron-back" size={24} color="#1E293B" />
             </Pressable>
+
+            {/* ACTION BUTTONS (OVERLAY - only for creator) */}
+            {isCreator && (
+                <View style={[styles.actionButtons, { top: insets.top + 10 }]}>
+                    <Pressable onPress={handleEdit} style={styles.actionBtn}>
+                        <Ionicons name="pencil" size={18} color="#1E293B" />
+                    </Pressable>
+                    <Pressable onPress={handleDelete} style={[styles.actionBtn, styles.deleteBtn]}>
+                        <Ionicons name="trash-outline" size={18} color="#F43F5E" />
+                    </Pressable>
+                </View>
+            )}
 
             {/* SCROLLABLE CONTENT */}
             <ScrollView
@@ -126,6 +217,16 @@ export default function MemoryDetailScreen() {
                     </View>
                 ) : null}
             </ScrollView>
+
+            {/* EDIT MODAL */}
+            {memory && (
+                <EditMemoryModal
+                    visible={editModalVisible}
+                    memory={memory}
+                    onClose={() => setEditModalVisible(false)}
+                    onSubmit={handleEditSubmit}
+                />
+            )}
         </View>
     );
 }
@@ -174,6 +275,29 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 5,
     },
+    actionButtons: {
+        position: "absolute",
+        right: 20,
+        zIndex: 50,
+        flexDirection: "row",
+        gap: 8,
+    },
+    actionBtn: {
+        backgroundColor: "rgba(255, 255, 255, 0.9)",
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: "center",
+        justifyContent: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    deleteBtn: {
+        backgroundColor: "rgba(255, 240, 240, 0.95)",
+    },
     heroPlaceholder: {
         justifyContent: "center",
         alignItems: "center",
@@ -214,13 +338,5 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: "#475569",
         lineHeight: 24,
-    },
-
-    // Divider
-    divider: {
-        height: StyleSheet.hairlineWidth,
-        backgroundColor: "#E2E8F0",
-        marginHorizontal: 24,
-        marginVertical: 8,
     },
 });
