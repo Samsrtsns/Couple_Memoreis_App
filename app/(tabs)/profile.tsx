@@ -210,7 +210,7 @@ export default function ProfileScreen() {
         <View className="flex-col justify-center bg-bgLight flex-1">
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 40 }}
+                contentContainerStyle={{ paddingBottom: 120 }}
             >
                 {/* Profile Top */}
                 <View className="px-6 pt-8 pb-4 mt-12">

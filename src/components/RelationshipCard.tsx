@@ -29,9 +29,14 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
     return (
         <View className="px-6 bg-bgLight">
             <View
-                className="flex-col w-full items-center mt-6 p-6 bg-bgLight shadow-lg shadow-slate-200"
+                className="flex-col w-full items-center mt-6 p-6 bg-bgLight"
                 style={{
                     borderRadius: 24,
+                    shadowColor: "#FF8A8A",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.15,
+                    shadowRadius: 12,
+                    elevation: 4,
                 }}
             >
                 <View className="flex-row items-center gap-x-6 ">

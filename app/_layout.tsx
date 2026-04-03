@@ -51,6 +51,13 @@ export default function RootLayout() {
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="(events)/index" />
+                <Stack.Screen
+                    name="memory-detail"
+                    options={{
+                        presentation: "card",
+                        animation: "slide_from_right",
+                    }}
+                />
             </Stack>
         </AuthProvider>
     );

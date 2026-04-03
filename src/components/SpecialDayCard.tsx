@@ -1,13 +1,24 @@
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, View } from "react-native";
 import { calculateDaysRemaining } from "../utils/dateUtils";
+
+const TR_MONTHS = [
+    "OCA", "ŞUB", "MAR", "NİS", "MAY", "HAZ",
+    "TEM", "AĞU", "EYL", "EKİ", "KAS", "ARA",
+];
+
+const DATE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
+    gift: { bg: "#FEE2E2", text: "#DC2626" },
+    heart: { bg: "#FFE4E6", text: "#E11D48" },
+    sparkles: { bg: "#FEF3C7", text: "#D97706" },
+    calendar: { bg: "#DBEAFE", text: "#2563EB" },
+};
 
 type Props = {
     title: string;
     date: string;
     isYearly?: boolean;
-    iconName?: keyof typeof Ionicons.glyphMap;
+    iconName?: string;
 };
 
 export default function SpecialDayCard({
@@ -18,20 +29,54 @@ export default function SpecialDayCard({
 }: Props) {
     const remainingDays = calculateDaysRemaining(date, isYearly);
 
+    // Parse date string reliably to avoid timezone issues
+    const parts = date.split("-");
+    const monthIndex = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const monthAbbr = TR_MONTHS[monthIndex] || "---";
+
+    const colors = DATE_BADGE_COLORS[iconName ?? "heart"] || {
+        bg: "#FFE4E6",
+        text: "#E11D48",
+    };
+
     return (
         <View
             className="w-full rounded-2xl bg-bgLight px-4 py-4"
             style={{
-                shadowColor: "#000",
-                shadowOpacity: 0.08,
+                shadowColor: "#FF8A8A",
+                shadowOpacity: 0.15,
                 shadowRadius: 12,
-                shadowOffset: { width: 0, height: 6 },
-                elevation: 6,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 4,
             }}
         >
             <View className="flex-row items-center">
-                <View className="h-14 w-14 rounded-2xl bg-rose-100 items-center justify-center mr-4">
-                    <Ionicons name={iconName} size={24} color="#F43F5E" />
+                {/* Date Badge */}
+                <View
+                    className="h-14 w-14 rounded-2xl items-center justify-center mr-4"
+                    style={{ backgroundColor: colors.bg }}
+                >
+                    <Text
+                        style={{
+                            color: colors.text,
+                            fontSize: 10,
+                            fontWeight: "700",
+                            letterSpacing: 0.5,
+                        }}
+                    >
+                        {monthAbbr}
+                    </Text>
+                    <Text
+                        style={{
+                            color: colors.text,
+                            fontSize: 20,
+                            fontWeight: "800",
+                            marginTop: -1,
+                        }}
+                    >
+                        {String(day).padStart(2, "0")}
+                    </Text>
                 </View>
 
                 <View className="flex-1">
@@ -43,7 +88,9 @@ export default function SpecialDayCard({
                     </Text>
 
                     <Text className="text-rose-500 font-semibold text-[13px] mt-1">
-                        {remainingDays === 0 ? "🎉 Today!" : `${remainingDays} days left`}
+                        {remainingDays === 0
+                            ? "🎉 Bugün!"
+                            : `${remainingDays} gün kaldı`}
                     </Text>
                 </View>
             </View>

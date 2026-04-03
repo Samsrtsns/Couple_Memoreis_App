@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     StyleSheet,
@@ -23,6 +24,14 @@ export function MemoryCard({ memory, isLast }: Props) {
     const [descExpanded, setDescExpanded] = useState(false);
     const DESCRIPTION_LIMIT = 120;
     const isLongDesc = (memory.description?.length ?? 0) > DESCRIPTION_LIMIT;
+    const router = useRouter();
+
+    const handlePress = () => {
+        router.push({
+            pathname: "/memory-detail",
+            params: { id: memory.id, data: JSON.stringify(memory) },
+        });
+    };
 
     return (
         <View style={styles.row}>
@@ -33,7 +42,11 @@ export function MemoryCard({ memory, isLast }: Props) {
             </View>
 
             {/* Shadow wrapper */}
-            <View style={styles.cardShadow}>
+            <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handlePress}
+                style={styles.cardShadow}
+            >
                 <View style={styles.card}>
                     {/* IMAGE HEADER */}
                     <View style={styles.imageContainer}>
@@ -92,7 +105,7 @@ export function MemoryCard({ memory, isLast }: Props) {
                         </Text>
                     </View>
                 </View>
-            </View>
+            </TouchableOpacity>
         </View>
     );
 }

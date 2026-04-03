@@ -91,7 +91,7 @@ export default function SharedMapScreen() {
                 // Close modal and focus on new place
                 setShowAddModal(false);
                 setPendingCoords(null);
-                
+
                 // Give it a brief moment for the map to be ready for animation
                 setTimeout(() => {
                     mapRef.current?.animateToRegion(
@@ -431,8 +431,8 @@ const styles = StyleSheet.create({
     },
     bottomRightFabs: {
         position: 'absolute',
-        right: 16,
-        bottom: 20,
+        right: 26,
+        bottom: 110,
         gap: 10,
     },
     fab: {
@@ -450,8 +450,8 @@ const styles = StyleSheet.create({
     },
     addFab: {
         position: 'absolute',
-        bottom: 20,
-        left: 16,
+        bottom: 110,
+        left: 26,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#F43F5E',

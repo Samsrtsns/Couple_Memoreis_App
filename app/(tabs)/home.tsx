@@ -22,7 +22,7 @@ export default function HomeScreen() {
         const events: SpecialEvent[] = [
             {
                 id: "1",
-                title: "Birthday",
+                title: "Partner's Birthday",
                 date: partner?.birth_date || "2000-01-01",
                 isYearly: true,
                 iconName: "gift",
@@ -62,7 +62,7 @@ export default function HomeScreen() {
             <ScrollView
                 className="flex-1 bg-bgLight"
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 24 }}
+                contentContainerStyle={{ paddingBottom: 120 }}
             >
                 <View className="pt-4 px-6 flex-row justify-between items-center">
                     <View className="flex-1 mr-4">
@@ -116,9 +116,7 @@ export default function HomeScreen() {
                                 title={event.title}
                                 date={event.date}
                                 isYearly={event.isYearly}
-                                iconName={
-                                    event.iconName as keyof typeof Ionicons.glyphMap
-                                }
+                                iconName={event.iconName}
                             />
                         ))}
                     </View>

@@ -1,63 +1,119 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import React from "react";
+import { Platform, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function TabsLayout() {
-    const renderLabel = (label: string) => ({ focused, color }: { focused: boolean; color: string }) => (
-        <Text style={{ color, fontSize: 12, fontWeight: focused ? "700" : "400" }}>
-            {label}
-        </Text>
-    );
+const TAB_ICONS: Record<
+    string,
+    {
+        active: keyof typeof Ionicons.glyphMap;
+        inactive: keyof typeof Ionicons.glyphMap;
+    }
+> = {
+    home: { active: "home", inactive: "home-outline" },
+    memory: { active: "heart", inactive: "heart-outline" },
+    map: { active: "calendar", inactive: "calendar-outline" },
+    profile: { active: "person", inactive: "person-outline" },
+};
+
+function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+    const insets = useSafeAreaInsets();
 
     return (
-        <Tabs
-            screenOptions={{
-                headerShown: false,
-                tabBarActiveTintColor: "#ea5385",
-                tabBarInactiveTintColor: "#94a3b8",
-
+        <View
+            style={{
+                position: "absolute",
+                bottom: Math.max(insets.bottom, 16),
+                left: 24,
+                right: 24,
+                backgroundColor: "#FFFFFF",
+                borderRadius: 32,
+                height: 68,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-evenly",
+                paddingHorizontal: 12,
+                ...Platform.select({
+                    ios: {
+                        shadowColor: "#000",
+                        shadowOffset: { width: 0, height: 10 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 28,
+                    },
+                    android: {
+                        elevation: 12,
+                    },
+                }),
             }}
         >
-            <Tabs.Screen
-                name="home"
-                options={{
-                    title: "Ana Ekran",
-                    tabBarLabel: renderLabel("Ana Ekran"),
-                    tabBarIcon: ({ focused, color, size }) => (
-                        <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="memory"
-                options={{
-                    title: " Anılar",
-                    tabBarLabel: renderLabel("Anılar"),
-                    tabBarIcon: ({ focused, color, size }) => (
-                        <Ionicons name={focused ? "images" : "images-outline"} size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="map"
-                options={{
-                    title: "Harita",
-                    tabBarLabel: renderLabel("Harita"),
-                    tabBarIcon: ({ focused, color, size }) => (
-                        <Ionicons name={focused ? "map" : "map-outline"} size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="profile"
-                options={{
-                    title: "Profil",
-                    tabBarLabel: renderLabel("Profil"),
-                    tabBarIcon: ({ focused, color, size }) => (
-                        <Ionicons name={focused ? "person" : "person-outline"} size={size} color={color} />
-                    ),
-                }}
-            />
+            {state.routes.map((route, index) => {
+                const isFocused = state.index === index;
+                const icons = TAB_ICONS[route.name] || {
+                    active: "ellipse",
+                    inactive: "ellipse-outline",
+                };
+
+                const onPress = () => {
+                    const event = navigation.emit({
+                        type: "tabPress",
+                        target: route.key,
+                        canPreventDefault: true,
+                    });
+                    if (!isFocused && !event.defaultPrevented) {
+                        navigation.navigate(route.name);
+                    }
+                };
+
+                const onLongPress = () => {
+                    navigation.emit({
+                        type: "tabLongPress",
+                        target: route.key,
+                    });
+                };
+
+                return (
+                    <TouchableOpacity
+                        key={route.key}
+                        accessibilityRole="button"
+                        accessibilityState={isFocused ? { selected: true } : {}}
+                        onPress={onPress}
+                        onLongPress={onLongPress}
+                        activeOpacity={0.7}
+                        style={{
+                            alignItems: "center",
+                            justifyContent: "center",
+                            width: 52,
+                            height: 52,
+                            borderRadius: 26,
+                            backgroundColor: isFocused ? "#F43F5E" : "transparent",
+                        }}
+                    >
+                        <Ionicons
+                            name={isFocused ? icons.active : icons.inactive}
+                            size={24}
+                            color={isFocused ? "#FFFFFF" : "#94A3B8"}
+                        />
+                    </TouchableOpacity>
+                );
+            })}
+        </View>
+    );
+}
+
+export default function TabsLayout() {
+    return (
+        <Tabs
+            tabBar={(props) => <CustomTabBar {...props} />}
+            screenOptions={{
+                headerShown: false,
+            }}
+        >
+            <Tabs.Screen name="home" options={{ title: "Ana Ekran" }} />
+            <Tabs.Screen name="memory" options={{ title: "Anılar" }} />
+            <Tabs.Screen name="map" options={{ title: "Harita" }} />
+            <Tabs.Screen name="profile" options={{ title: "Profil" }} />
         </Tabs>
     );
 }
