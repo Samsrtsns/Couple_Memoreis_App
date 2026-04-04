@@ -178,11 +178,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
+    useEffect(() => {
+        if (!state.user?.id) return;
+        
+        // Subscribe to profile updates (for automatic match detection)
+        const profileSubscription = supabase
+            .channel(`profile-updates-${state.user.id}`)
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${state.user.id}` },
+                (payload) => {
+                    console.log('Profile updated via realtime:', payload);
+                    // Dynamically refresh profile to catch the new partner_id
+                    refreshProfile();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            profileSubscription.unsubscribe();
+        };
+    }, [state.user?.id]); // Using state.user?.id ensures it reinits when user changes
+
     const refreshProfile = async () => {
-        if (!state.session?.user) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
         try {
             dispatch({ type: 'FETCH_PROFILE_START' });
             const { profile, partner } = await getProfileWithPartner();

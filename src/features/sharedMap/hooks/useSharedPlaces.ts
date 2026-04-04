@@ -106,7 +106,7 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
                 partnerId,
             });
             // Update state immediately for instant feedback
-            setPlaces(prev => [newPlace, ...prev]);
+            setPlaces(prev => prev.some(p => p.id === newPlace.id) ? prev : [newPlace, ...prev]);
             return newPlace;
         } catch (e: any) {
             setError(e.message || 'Failed to add place.');

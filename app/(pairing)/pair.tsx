@@ -6,8 +6,19 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Keyboard, Modal, Pressable, Text, TouchableWithoutFeedback, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
+import { useAuth } from "@/src/context/AuthContext";
+import { useEffect } from "react";
+
 export default function PairScreen() {
+    const { state: { profile, partner } } = useAuth();
     const { from } = useLocalSearchParams<{ from?: string }>();
+    
+    // Automatically redirect when the active relationship setup is complete globally via Realtime
+    useEffect(() => {
+        if (partner && profile?.birth_date) {
+            router.replace("/(tabs)/home");
+        }
+    }, [partner, profile]);
     const {
         myCode,
         partnerCode,

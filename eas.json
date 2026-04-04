@@ -9,10 +9,23 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "node": "22.12.0",
+      "env": {
+        "EAS_BUILD_NPM_INSTALL_FLAGS": "--legacy-peer-deps",
+        "EAS_BUILD_USE_NPM_INSTALL": "1"
+      },
+      "android": {
+        "buildType": "apk"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "node": "22.12.0",
+      "env": {
+        "EAS_BUILD_NPM_INSTALL_FLAGS": "--legacy-peer-deps",
+        "EAS_BUILD_USE_NPM_INSTALL": "1"
+      }
     }
   },
   "submit": {

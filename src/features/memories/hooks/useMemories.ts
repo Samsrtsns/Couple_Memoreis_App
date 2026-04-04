@@ -230,7 +230,10 @@ export function useMemories(): UseMemoriesResult {
 
                 // 3. Mark this ID so realtime onInsert skips it, then insert optimistically
                 pendingOptimisticIds.current.add(newMemory.id);
-                setMemories((prev) => sortedInsertMemory(prev, newMemory));
+                setMemories((prev) => {
+                    if (prev.some((m) => m.id === newMemory.id)) return prev;
+                    return sortedInsertMemory(prev, newMemory);
+                });
             } catch (e: any) {
                 console.error('[useMemories] Failed to add memory:', e);
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
