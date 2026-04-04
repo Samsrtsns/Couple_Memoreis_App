@@ -17,11 +17,7 @@ import { supabase } from '@/src/lib/supabase';
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system/legacy';
 import type {
-    CreateCommentPayload,
     Memory,
-    MemoryComment,
-    MemoryCommentRow,
-    MemoryLike,
     MemoryRow,
 } from '../types/memory.types';
 import { getPairUserIds } from '../utils/pair.utils';
@@ -63,30 +59,7 @@ export async function getCurrentProfile(): Promise<ProfileResult> {
 // Normalize helpers
 // ─────────────────────────────────────────────
 
-function normalizeComment(row: MemoryCommentRow): MemoryComment {
-    return {
-        id: row.id,
-        memory_id: row.memory_id,
-        user_id: row.user_id,
-        comment: row.comment,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        author: row.profiles
-            ? {
-                id: row.profiles.id,
-                first_name: row.profiles.first_name,
-                last_name: row.profiles.last_name,
-            }
-            : undefined,
-    };
-}
-
 function normalizeMemory(row: MemoryRow, currentUserId: string): Memory {
-    const likes: MemoryLike[] = (row.memory_likes ?? []) as MemoryLike[];
-    const comments: MemoryComment[] = (row.memory_comments ?? []).map((c) =>
-        normalizeComment(c as unknown as MemoryCommentRow)
-    );
-
     return {
         id: row.id,
         created_by: row.created_by,
@@ -98,11 +71,6 @@ function normalizeMemory(row: MemoryRow, currentUserId: string): Memory {
         memory_date: row.memory_date,
         created_at: row.created_at,
         updated_at: row.updated_at,
-        comments,
-        likes,
-        isLikedByCurrentUser: likes.some((l) => l.user_id === currentUserId),
-        likeCount: likes.length,
-        commentCount: comments.length,
         creator_profile: row.profiles ?? undefined,
     };
 }
@@ -133,21 +101,7 @@ export async function fetchMemoriesForCurrentUser(
             photo_url,
             memory_date,
             created_at,
-            updated_at,
-            memory_comments (
-                id,
-                memory_id,
-                user_id,
-                comment,
-                created_at,
-                updated_at
-            ),
-            memory_likes (
-                id,
-                memory_id,
-                user_id,
-                created_at
-            )
+            updated_at
         `)
         .eq('user_a_id', userAId)
         .eq('user_b_id', userBId)
@@ -157,15 +111,9 @@ export async function fetchMemoriesForCurrentUser(
     if (error) throw new Error(`Failed to fetch memories: ${error.message}`);
     const rawMemories = data ?? [];
 
-    // Collect all unique user IDs to fetch their profiles
     const userIdsToFetch = new Set<string>();
     rawMemories.forEach((m: any) => {
         if (m.created_by) userIdsToFetch.add(m.created_by);
-        if (m.memory_comments) {
-            m.memory_comments.forEach((c: any) => {
-                if (c.user_id) userIdsToFetch.add(c.user_id);
-            });
-        }
     });
 
     const profilesMap: Record<string, { id: string; first_name: string; last_name: string }> = {};
@@ -188,10 +136,6 @@ export async function fetchMemoriesForCurrentUser(
         return {
             ...m,
             profiles: profilesMap[m.created_by],
-            memory_comments: m.memory_comments?.map((c: any) => ({
-                ...c,
-                profiles: profilesMap[c.user_id]
-            }))
         };
     });
 
@@ -270,7 +214,7 @@ export async function createMemory({
     };
 
     return normalizeMemory(
-        { ...memoryWithProfile, memory_comments: [], memory_likes: [] } as unknown as MemoryRow,
+        memoryWithProfile as unknown as MemoryRow,
         currentUserId
     );
 }
@@ -398,13 +342,7 @@ export async function updateMemory({
         .select(`
             id, created_by, user_a_id, user_b_id,
             title, description, photo_url, memory_date,
-            created_at, updated_at,
-            memory_comments (
-                id, memory_id, user_id, comment, created_at, updated_at
-            ),
-            memory_likes (
-                id, memory_id, user_id, created_at
-            )
+            created_at, updated_at
         `)
         .single();
 
@@ -460,109 +398,6 @@ export async function deleteMemory(
 }
 
 // ─────────────────────────────────────────────
-// COMMENTS
-// ─────────────────────────────────────────────
-
-/**
- * Adds a new comment to a memory.
- */
-export async function addMemoryComment(
-    payload: CreateCommentPayload,
-    currentUserId: string
-): Promise<MemoryComment> {
-    const { data, error } = await supabase
-        .from('memory_comments')
-        .insert({
-            memory_id: payload.memory_id,
-            user_id: currentUserId,
-            comment: payload.comment.trim(),
-        })
-        .select(`
-            id,
-            memory_id,
-            user_id,
-            comment,
-            created_at,
-            updated_at
-        `)
-        .single();
-
-    if (error) throw new Error(`Failed to add comment: ${error.message}`);
-
-    // Fetch profile manually
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .eq('id', currentUserId)
-        .single();
-    
-    const enrichedComment = {
-        ...(data as any),
-        profiles: profile
-    };
-
-    return normalizeComment(enrichedComment as unknown as MemoryCommentRow);
-}
-
-/**
- * Deletes a comment. Only the comment owner can delete.
- */
-export async function deleteMemoryComment(
-    commentId: string,
-    currentUserId: string
-): Promise<void> {
-    const { error } = await supabase
-        .from('memory_comments')
-        .delete()
-        .eq('id', commentId)
-        .eq('user_id', currentUserId);
-
-    if (error) throw new Error(`Failed to delete comment: ${error.message}`);
-}
-
-// ─────────────────────────────────────────────
-// LIKES
-// ─────────────────────────────────────────────
-
-/**
- * Toggles a like on a memory.
- * If the current user already liked it → deletes the like.
- * If not → inserts a like.
- * Returns true if liked, false if unliked.
- */
-export async function toggleMemoryLike(
-    memoryId: string,
-    currentUserId: string
-): Promise<boolean> {
-    // Check for existing like
-    const { data: existing, error: checkError } = await supabase
-        .from('memory_likes')
-        .select('id')
-        .eq('memory_id', memoryId)
-        .eq('user_id', currentUserId)
-        .maybeSingle();
-
-    if (checkError) throw new Error(`Failed to check like status: ${checkError.message}`);
-
-    if (existing) {
-        // Unlike
-        const { error } = await supabase
-            .from('memory_likes')
-            .delete()
-            .eq('id', existing.id);
-        if (error) throw new Error(`Failed to unlike: ${error.message}`);
-        return false;
-    } else {
-        // Like
-        const { error } = await supabase
-            .from('memory_likes')
-            .insert({ memory_id: memoryId, user_id: currentUserId });
-        if (error) throw new Error(`Failed to like: ${error.message}`);
-        return true;
-    }
-}
-
-// ─────────────────────────────────────────────
 // REALTIME SUBSCRIPTIONS
 // ─────────────────────────────────────────────
 
@@ -586,77 +421,22 @@ export function subscribeToMemories(
         .channel(`memories:pair:${userAId}:${uid}`)
         .on(
             'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'memories', filter: `user_a_id=eq.${userAId}` },
-            (payload) => callbacks.onInsert?.(payload.new as MemoryRow)
+            { event: 'INSERT', schema: 'public', table: 'memories' },
+            (payload) => {
+                const newRow = payload.new as MemoryRow;
+                if (newRow.user_a_id === userAId || newRow.user_b_id === userAId) {
+                    callbacks.onInsert?.(newRow);
+                }
+            }
         )
         .on(
             'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'memories', filter: `user_a_id=eq.${userAId}` },
+            { event: 'UPDATE', schema: 'public', table: 'memories' },
             (payload) => callbacks.onUpdate?.(payload.new as MemoryRow)
         )
         .on(
             'postgres_changes',
-            { event: 'DELETE', schema: 'public', table: 'memories', filter: `user_a_id=eq.${userAId}` },
-            (payload) => callbacks.onDelete?.((payload.old as { id: string }).id)
-        )
-        .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-}
-
-type RealtimeCommentCallbacks = {
-    onInsert?: (row: MemoryCommentRow) => void;
-    onDelete?: (id: string) => void;
-};
-
-/**
- * Subscribes to realtime events on `memory_comments`.
- * Returns an unsubscribe function.
- */
-export function subscribeToMemoryComments(
-    callbacks: RealtimeCommentCallbacks
-): () => void {
-    const uid = Math.random().toString(36).slice(2, 8);
-    const channel = supabase
-        .channel(`memory_comments:all:${uid}`)
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'memory_comments' },
-            (payload) => callbacks.onInsert?.(payload.new as MemoryCommentRow)
-        )
-        .on(
-            'postgres_changes',
-            { event: 'DELETE', schema: 'public', table: 'memory_comments' },
-            (payload) => callbacks.onDelete?.((payload.old as { id: string }).id)
-        )
-        .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-}
-
-type RealtimeLikeCallbacks = {
-    onInsert?: (row: MemoryLike) => void;
-    onDelete?: (id: string) => void;
-};
-
-/**
- * Subscribes to realtime events on `memory_likes`.
- * Returns an unsubscribe function.
- */
-export function subscribeToMemoryLikes(
-    callbacks: RealtimeLikeCallbacks
-): () => void {
-    const uid = Math.random().toString(36).slice(2, 8);
-    const channel = supabase
-        .channel(`memory_likes:all:${uid}`)
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'memory_likes' },
-            (payload) => callbacks.onInsert?.(payload.new as MemoryLike)
-        )
-        .on(
-            'postgres_changes',
-            { event: 'DELETE', schema: 'public', table: 'memory_likes' },
+            { event: 'DELETE', schema: 'public', table: 'memories' },
             (payload) => callbacks.onDelete?.((payload.old as { id: string }).id)
         )
         .subscribe();

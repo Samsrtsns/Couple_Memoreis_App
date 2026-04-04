@@ -1,8 +1,8 @@
 /**
  * Memories Timeline — Type Definitions
  *
- * Mirrors the Supabase schema for memories, memory_comments,
- * and memory_likes, providing strict compile-time safety.
+ * Mirrors the Supabase schema for memories,
+ * providing strict compile-time safety.
  */
 
 // ─────────────────────────────────────────────
@@ -12,31 +12,6 @@ export type AuthorProfile = {
     id: string;
     first_name: string;
     last_name: string;
-};
-
-// ─────────────────────────────────────────────
-// Memory Like (matches the `memory_likes` table)
-// ─────────────────────────────────────────────
-export type MemoryLike = {
-    id: string;
-    memory_id: string;
-    user_id: string;
-    created_at: string;
-};
-
-// ─────────────────────────────────────────────
-// Memory Comment (matches the `memory_comments` table)
-// with an optional embedded author profile
-// ─────────────────────────────────────────────
-export type MemoryComment = {
-    id: string;
-    memory_id: string;
-    user_id: string;
-    comment: string;
-    created_at: string;
-    updated_at: string;
-    /** Populated via join when fetching; not stored in DB column */
-    author?: AuthorProfile;
 };
 
 // ─────────────────────────────────────────────
@@ -54,18 +29,12 @@ export type Memory = {
     created_at: string;
     updated_at: string;
 
-    // Client-side derived fields (computed after fetch)
-    comments: MemoryComment[];
-    likes: MemoryLike[];
-    isLikedByCurrentUser: boolean;
-    likeCount: number;
-    commentCount: number;
     /** Author profile – populated from the profiles join */
     creator_profile?: AuthorProfile;
 };
 
 // ─────────────────────────────────────────────
-// Payloads for creating records
+// Payloads for creating/updating records
 // ─────────────────────────────────────────────
 export type CreateMemoryPayload = {
     title: string;
@@ -84,25 +53,9 @@ export type UpdateMemoryPayload = {
     photoUri?: string;
 };
 
-export type CreateCommentPayload = {
-    memory_id: string;
-    comment: string;
-};
-
 // ─────────────────────────────────────────────
 // Raw Supabase row shapes (for type assertions)
 // ─────────────────────────────────────────────
-
-/** Raw memory_comments row returned by Supabase with profiles join */
-export type MemoryCommentRow = {
-    id: string;
-    memory_id: string;
-    user_id: string;
-    comment: string;
-    created_at: string;
-    updated_at: string;
-    profiles: AuthorProfile | null;
-};
 
 /** Raw memories row returned by Supabase with nested relations */
 export type MemoryRow = {
@@ -116,13 +69,11 @@ export type MemoryRow = {
     memory_date: string;
     created_at: string;
     updated_at: string;
-    memory_comments: MemoryCommentRow[];
-    memory_likes: MemoryLike[];
     profiles: AuthorProfile | null; // creator profile join
 };
 
 // ─────────────────────────────────────────────
-// Async state helpers (reused pattern from sharedMap)
+// Async state helpers
 // ─────────────────────────────────────────────
 export type AsyncState<T> = {
     data: T | null;

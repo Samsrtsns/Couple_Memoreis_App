@@ -310,7 +310,7 @@ export default function ProfileScreen() {
                             icon="person-outline"
                             iconBg="#EFF6FF"
                             iconColor="#3B82F6"
-                            onPress={() => Alert.alert("Personal Info")}
+                            onPress={() => router.push("/(profile)/personal-info")}
                         />
                         <SettingsRow
                             title="Relationship Settings"
@@ -318,7 +318,7 @@ export default function ProfileScreen() {
                             icon="heart"
                             iconBg="#FFF1F2"
                             iconColor="#F43F5E"
-                            onPress={() => Alert.alert("Relationship Settings")}
+                            onPress={() => router.push("/(profile)/relationship")}
                         />
                         <SettingsRow
                             title="Notification Preferences"
@@ -327,7 +327,7 @@ export default function ProfileScreen() {
                             iconBg="#FFFBEB"
                             iconColor="#F59E0B"
                             withBorder={false}
-                            onPress={() => Alert.alert("Notification Preferences")}
+                            onPress={() => router.push("/(profile)/notifications")}
                         />
                     </View>
 
@@ -343,7 +343,7 @@ export default function ProfileScreen() {
                             icon="storage"
                             iconBg="#EEF2FF"
                             iconColor="#6366F1"
-                            onPress={() => Alert.alert("Data Management")}
+                            onPress={() => router.push("/(profile)/data-management")}
                         />
                         <SettingsRow
                             title="Privacy Policy"
@@ -352,7 +352,7 @@ export default function ProfileScreen() {
                             iconBg="#F8FAFC"
                             iconColor="#64748B"
                             withBorder={false}
-                            onPress={() => Alert.alert("Privacy Policy")}
+                            onPress={() => router.push("/(profile)/privacy")}
                         />
                     </View>
 

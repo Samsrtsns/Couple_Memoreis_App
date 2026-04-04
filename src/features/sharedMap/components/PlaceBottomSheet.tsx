@@ -2,7 +2,7 @@
  * PlaceBottomSheet — sliding panel showing a shared place's details + comments.
  *
  * Features:
- * - Animated slide-up / slide-down
+ * - Uses react-native-modal for true top-layer display
  * - Photo preview, title, description, address, date, creator info
  * - Comments list with chat-style bubbles
  * - Comment input at the bottom
@@ -11,18 +11,21 @@
 
 import { useAuth } from '@/src/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Alert,
-    Animated,
+    Keyboard,
     KeyboardAvoidingView,
     Platform,
     Pressable,
     ScrollView,
     StyleSheet,
     Text,
-    View
+    View,
 } from 'react-native';
+import Modal from 'react-native-modal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCreatePlaceComment } from '../hooks/useCreatePlaceComment';
 import { useDeleteSharedPlace } from '../hooks/useDeleteSharedPlace';
 import { usePlaceComments } from '../hooks/usePlaceComments';
@@ -49,72 +52,33 @@ export default function PlaceBottomSheet({
     onClose,
     onPlaceDeleted,
 }: Props) {
+    const insets = useSafeAreaInsets();
     const { state } = useAuth();
     const currentUserId = state.user?.id ?? '';
 
-    // Animation values
-    const slideAnim = useRef(new Animated.Value(400)).current;
-    const opacityAnim = useRef(new Animated.Value(0)).current;
-    // Snapshot holds the last non-null place so card can animate out with content
-    const [snapshot, setSnapshot] = useState<SharedPlace | null>(null);
     // Track if current user already has a comment on this place
     const [alreadyCommented, setAlreadyCommented] = useState(false);
 
-    useEffect(() => {
-        if (place) {
-            setSnapshot(place);
-            Animated.parallel([
-                Animated.spring(slideAnim, {
-                    toValue: 0,
-                    useNativeDriver: true,
-                    damping: 22,
-                    stiffness: 200,
-                }),
-                Animated.timing(opacityAnim, {
-                    toValue: 1,
-                    duration: 180,
-                    useNativeDriver: true,
-                }),
-            ]).start();
-        } else {
-            Animated.parallel([
-                Animated.timing(slideAnim, {
-                    toValue: 400,
-                    duration: 240,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(opacityAnim, {
-                    toValue: 0,
-                    duration: 180,
-                    useNativeDriver: true,
-                }),
-            ]).start(() => setSnapshot(null));
-        }
-    }, [place]);
-
-    // Comments
+    // Comments fetch and realtime sync
     const {
         comments,
         loading: commentsLoading,
         error: commentsError,
         refetch: refetchComments,
         removeCommentOptimistically,
-    } = usePlaceComments(snapshot?.id ?? null);
+    } = usePlaceComments(place?.id ?? null);
 
     // Re-check if user already commented whenever comments list changes
     useEffect(() => {
-        if (!snapshot?.id || !currentUserId) { setAlreadyCommented(false); return; }
-        hasUserCommented(snapshot.id, currentUserId).then(setAlreadyCommented);
-    }, [snapshot?.id, currentUserId, comments.length]);
+        if (!place?.id || !currentUserId) { setAlreadyCommented(false); return; }
+        hasUserCommented(place.id, currentUserId).then(setAlreadyCommented);
+    }, [place?.id, currentUserId, comments.length]);
 
-    // Create comment — use a ref for refetch so useCallback doesn't re-create
-    const refetchRef = useRef(refetchComments);
-    useEffect(() => { refetchRef.current = refetchComments; }, [refetchComments]);
-
+    // Create comment
     const onCommentCreated = useCallback(() => {
-        refetchRef.current();
+        refetchComments();
         setAlreadyCommented(true);
-    }, []); // stable — no deps
+    }, [refetchComments]);
 
     const { submit: submitComment, loading: submitLoading, error: submitError } =
         useCreatePlaceComment(onCommentCreated);
@@ -125,17 +89,17 @@ export default function PlaceBottomSheet({
     );
 
     const handleDeletePlace = () => {
-        if (!snapshot) return;
+        if (!place) return;
         Alert.alert(
             'Delete Place',
-            `Are you sure you want to delete "${snapshot.title}"? This cannot be undone.`,
+            `Are you sure you want to delete "${place.title}"? This cannot be undone.`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Delete',
                     style: 'destructive',
                     onPress: async () => {
-                        await removePlace(snapshot.id);
+                        await removePlace(place.id);
                         onClose();
                     },
                 },
@@ -158,13 +122,12 @@ export default function PlaceBottomSheet({
                     setDeletingCommentId(commentId);
                     try {
                         await deleteComment(commentId, currentUserId);
-                        // Optimistically remove from local list; realtime will also fire
                         removeCommentOptimistically(commentId);
                         setAlreadyCommented(false);
                     } catch (e: any) {
                         console.error('Delete error', e);
                         Alert.alert('Error', e.message ?? 'Could not delete comment.');
-                        refetchRef.current(); // rollback in case of error
+                        refetchComments();
                     } finally {
                         setDeletingCommentId(null);
                     }
@@ -173,7 +136,7 @@ export default function PlaceBottomSheet({
         ]);
     };
 
-    const handleEditComment = (commentId: string, currentText: string) => {
+    const handleEditComment = (commentId: string) => {
         setEditingCommentId(commentId);
     };
 
@@ -182,44 +145,51 @@ export default function PlaceBottomSheet({
     };
 
     const handleSubmitComment = async (text: string) => {
-        if (!snapshot || !currentUserId) return;
+        if (!place || !currentUserId) return;
 
         if (editingCommentId) {
             try {
-                // We're importing updateComment directly to use here
                 const { updateComment } = require('../services/placeCommentsService');
                 await updateComment(editingCommentId, { comment: text }, currentUserId);
                 setEditingCommentId(null);
-                refetchRef.current();
+                refetchComments();
             } catch (e: any) {
                 Alert.alert('Error', e.message ?? 'Could not update comment.');
             }
         } else {
-            await submitComment({ place_id: snapshot.id, comment: text });
+            await submitComment({ place_id: place.id, comment: text });
+            Keyboard.dismiss();
         }
     };
 
-    if (!snapshot) return null;
-
-    const isCreator = canDeletePlace(snapshot, currentUserId);
-
-    // Find the comment being edited to pass its text
+    const isCreator = place ? canDeletePlace(place, currentUserId) : false;
     const editingComment = comments.find((c) => c.id === editingCommentId);
 
     return (
-        <Animated.View
-            style={[
-                styles.container,
-                { opacity: opacityAnim, transform: [{ translateY: slideAnim }] },
-            ]}
-            pointerEvents={place ? 'box-none' : 'none'}
+        <Modal
+            isVisible={!!place}
+            onBackdropPress={onClose}
+            onBackButtonPress={onClose}
+            onSwipeComplete={onClose}
+            swipeDirection={['down']}
+            propagateSwipe
+            style={{ margin: 0, justifyContent: 'flex-end' }}
+            backdropOpacity={0.4}
+            useNativeDriverForBackdrop
+            avoidKeyboard={true}
+            statusBarTranslucent
         >
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                keyboardVerticalOffset={0}
             >
-                <View style={styles.card}>
-                    {/* Drag Handle */}
+                <View 
+                    style={[
+                        styles.card, 
+                        { paddingBottom: Math.max(insets.bottom, 16) }
+                    ]}
+                >
+                    {/* Handle */}
                     <View style={styles.handleWrapper}>
                         <View style={styles.handle} />
                     </View>
@@ -229,29 +199,45 @@ export default function PlaceBottomSheet({
                         keyboardShouldPersistTaps="handled"
                         contentContainerStyle={styles.scrollContent}
                         nestedScrollEnabled={true}
-                        scrollEnabled={true}
                     >
-                        {/* Top row: image + info + actions */}
-                        <View style={styles.topRow}>
+                        {/* Optional Photo */}
+                        {place?.photo_url && (
+                            <Image
+                                source={{ uri: place.photo_url }}
+                                style={styles.photo}
+                                contentFit="cover"
+                                transition={200}
+                                cachePolicy="memory-disk"
+                            />
+                        )}
 
-                            {/* Info */}
+                        {/* Top row: info + actions */}
+                        <View style={styles.topRow}>
                             <View style={styles.info}>
                                 <Text style={styles.title} numberOfLines={2}>
-                                    {snapshot.title}
+                                    {place?.title}
                                 </Text>
-                                {snapshot.visited_at && (
+                                
+                                {place?.address && (
+                                    <View style={styles.metaRow}>
+                                        <Ionicons name="location-outline" size={12} color="#94A3B8" />
+                                        <Text style={styles.metaText} numberOfLines={1}>
+                                            {place.address}
+                                        </Text>
+                                    </View>
+                                )}
+
+                                {place?.visited_at && (
                                     <View style={styles.metaRow}>
                                         <Ionicons name="calendar-outline" size={12} color="#94A3B8" />
                                         <Text style={styles.metaText}>
-                                            {formatVisitedDate(snapshot.visited_at)}
+                                            {formatVisitedDate(place.visited_at)}
                                         </Text>
                                     </View>
                                 )}
                             </View>
 
-                            {/* Actions column */}
                             <View className="flex-row items-center gap-4">
-
                                 {isCreator && (
                                     <Pressable
                                         onPress={handleDeletePlace}
@@ -267,12 +253,19 @@ export default function PlaceBottomSheet({
                             </View>
                         </View>
 
-                        {/* Creator tag */}
+                        {/* Description */}
+                        {place?.description && (
+                            <Text style={styles.descriptionText}>
+                                {place.description}
+                            </Text>
+                        )}
+
                         <View style={styles.divider} />
+                        
                         <View style={styles.creatorRow} className="mb-4">
                             <Ionicons name="person-circle-outline" size={14} color="#94A3B8" />
                             <Text style={styles.creatorText}>
-                                {snapshot.created_by === currentUserId
+                                {place?.created_by === currentUserId
                                     ? 'Added by you'
                                     : partnerName
                                         ? `Added by ${partnerName}`
@@ -280,7 +273,7 @@ export default function PlaceBottomSheet({
                             </Text>
                         </View>
 
-
+                        {/* Comments Section */}
                         <CommentsList
                             comments={comments}
                             loading={commentsLoading}
@@ -291,7 +284,7 @@ export default function PlaceBottomSheet({
                             onEditComment={handleEditComment}
                         />
 
-                        {/* Comment input — disabled if user already commented and not editing */}
+                        {/* Comment input area */}
                         <View style={styles.inputWrapper}>
                             {editingCommentId ? (
                                 <View>
@@ -326,19 +319,13 @@ export default function PlaceBottomSheet({
                             )}
                         </View>
                     </ScrollView>
-                </View>{/* end card */}
+                </View>
             </KeyboardAvoidingView>
-        </Animated.View>
+        </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-    },
     card: {
         backgroundColor: '#fff',
         borderTopLeftRadius: 28,
@@ -369,20 +356,6 @@ const styles = StyleSheet.create({
         gap: 12,
         alignItems: 'flex-start',
     },
-    thumbnail: {
-        width: 80,
-        height: 80,
-        borderRadius: 16,
-        backgroundColor: '#FFE4E6',
-    },
-    thumbnailPlaceholder: {
-        width: 80,
-        height: 80,
-        borderRadius: 16,
-        backgroundColor: '#FFE4E6',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     info: {
         flex: 1,
         paddingTop: 2,
@@ -404,8 +377,18 @@ const styles = StyleSheet.create({
         color: '#94A3B8',
         fontWeight: '500',
     },
-    actionsRow: {
-        gap: 8,
+    descriptionText: {
+        fontSize: 14,
+        color: '#475569',
+        lineHeight: 20,
+        marginTop: 12,
+    },
+    photo: {
+        width: '100%',
+        height: 160,
+        borderRadius: 16,
+        marginBottom: 16,
+        backgroundColor: '#F1F5F9',
     },
     actionBtn: {
         width: 36,
@@ -426,11 +409,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#F1F5F9',
         marginVertical: 12,
     },
-    description: {
-        fontSize: 13,
-        color: '#64748B',
-        lineHeight: 20,
-    },
     creatorRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -440,15 +418,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#94A3B8',
         fontStyle: 'italic',
-    },
-    sectionLabel: {
-        fontSize: 11,
-        fontWeight: '700',
-        color: '#94A3B8',
-        letterSpacing: 0.8,
-        textTransform: 'uppercase',
-        marginTop: 6,
-        marginBottom: 12,
     },
     inputWrapper: {
         marginTop: 12,
@@ -474,15 +443,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#F8FAFC',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
-        marginBottom: -10, // Pulls the input up slightly so they connect
-        zIndex: 10,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 12,
+        marginBottom: 8,
         borderWidth: 1,
         borderColor: '#E2E8F0',
-        borderBottomWidth: 0,
     },
     editingText: {
         fontSize: 12,

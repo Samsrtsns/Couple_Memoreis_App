@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { FlashList, type FlashListRef } from "@shopify/flash-list";
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import {
     ActivityIndicator,
+    FlatList,
     RefreshControl,
     Text,
     TouchableOpacity,
@@ -49,11 +49,8 @@ export default function MemoriesScreen() {
         hasPartner,
         refresh,
         addMemory,
-        toggleLike,
-        addComment,
     } = useMemories();
 
-    const listRef = useRef<FlashListRef<Memory>>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -70,22 +67,13 @@ export default function MemoriesScreen() {
         photoUri: string;
     }) => {
         await addMemory(data);
-        // Yeni anı eklendikten sonra listeyi en yukarı kaydır
-        setTimeout(() => {
-            listRef.current?.scrollToTop({ animated: true });
-        }, 300);
-    };
-
-    const handleAddComment = async (memoryId: string, text: string) => {
-        await addComment({ memory_id: memoryId, comment: text });
+        // Yeni anı doğru tarih pozisyonuna ekleniyor, scroll gerekmez
     };
 
     const renderItem = ({ item, index: memoryIndex }: { item: Memory; index: number }) => (
         <MemoryCard
             memory={item}
             currentUserId={currentUserId ?? ""}
-            onToggleLike={toggleLike}
-            onAddComment={handleAddComment}
             isLast={memoryIndex === memories.length - 1}
         />
     );
@@ -160,10 +148,9 @@ export default function MemoriesScreen() {
                 <ScreenHeader />
 
                 <View className="flex-1 w-full">
-                    <FlashList
-                        ref={listRef}
+                    <FlatList
                         data={memories}
-                        keyExtractor={(item) => item.id}
+                        keyExtractor={(item: Memory) => item.id}
                         renderItem={renderItem}
                         showsVerticalScrollIndicator={false}
                         refreshControl={

@@ -1,5 +1,6 @@
 import { supabase } from '@/src/lib/supabase';
 import type { SharedPlace } from '../types/sharedPlace.types';
+import { getPairUserIds } from '../utils/pair.utils';
 
 /**
  * fetchSharedPlaces(currentUserId)
@@ -51,12 +52,14 @@ export async function addSharedPlace(params: {
         visitedAt
     } = params;
 
+    const { userAId, userBId } = getPairUserIds(currentUserId, partnerId);
+
     const { data, error } = await supabase
         .from('shared_places')
         .insert({
             created_by: currentUserId,
-            user_a_id: currentUserId,
-            user_b_id: partnerId,
+            user_a_id: userAId,
+            user_b_id: userBId,
             title,
             description,
             latitude,
@@ -83,8 +86,9 @@ export function subscribeToSharedPlaces(
     currentUserId: string,
     callback: (payload: any) => void
 ) {
-    return supabase
-        .channel('shared_places_live')
+    const uid = Math.random().toString(36).slice(2, 8);
+    const channel = supabase
+        .channel(`shared_places_live:${uid}`)
         .on(
             'postgres_changes',
             {
@@ -93,13 +97,25 @@ export function subscribeToSharedPlaces(
                 table: 'shared_places'
             },
             (payload) => {
+                // Determine if this event is relevant to CurrentUser natively over Javascript
                 const record = (payload.new || payload.old) as Partial<SharedPlace>;
-                if (record && (record.user_a_id === currentUserId || record.user_b_id === currentUserId)) {
+                
+                // For INSERT, user_a_id will exist.
+                if (record && record.user_a_id) {
+                    if (record.user_a_id === currentUserId || record.user_b_id === currentUserId) {
+                        callback(payload);
+                    }
+                } else {
+                    // For UPDATE/DELETE without full replica identity, let it pass so local state can filter by ID
                     callback(payload);
                 }
             }
         )
-        .subscribe();
+        .subscribe((status) => {
+            console.log('SharedPlaces Realtime status:', status);
+        });
+        
+    return channel;
 }
 
 /**

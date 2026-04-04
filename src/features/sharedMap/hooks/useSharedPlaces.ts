@@ -43,9 +43,9 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
     const partnerId = partner?.id;
     const noPartner = isLoggedIn && !!profile?.id && !partner?.id;
 
-    const loadPlaces = useCallback(async () => {
+    const loadPlaces = useCallback(async (silent = false) => {
         if (!currentUserId) return;
-        setLoading(true);
+        if (!silent) setLoading(true);
         setError(null);
         try {
             const data = await fetchSharedPlaces(currentUserId);
@@ -53,7 +53,7 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
         } catch (e: any) {
             setError(e.message || 'Failed to load shared places.');
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     }, [currentUserId]);
 
@@ -63,9 +63,21 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
         loadPlaces();
 
         const channel = subscribeToSharedPlaces(currentUserId, (payload) => {
-            // "auto refresh list after change"
-            // INSERT, UPDATE, DELETE all trigger a reload
-            loadPlaces();
+            setPlaces(prev => {
+                const { eventType, new: newRecord, old: oldRecord } = payload;
+                if (eventType === 'INSERT') {
+                    // Prevent duplicate if optimistic UI already added it
+                    if (prev.some(p => p.id === newRecord.id)) return prev;
+                    return [newRecord as SharedPlace, ...prev];
+                }
+                if (eventType === 'DELETE') {
+                    return prev.filter(p => p.id !== oldRecord.id);
+                }
+                if (eventType === 'UPDATE') {
+                    return prev.map(p => p.id === newRecord.id ? (newRecord as SharedPlace) : p);
+                }
+                return prev;
+            });
         });
 
         // "cleanup subscription on unmount"
@@ -93,8 +105,8 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
                 currentUserId,
                 partnerId,
             });
-            // State will be updated by the realtime subscription auto-refresh,
-            // but we return the newPlace for immediate UI use if needed.
+            // Update state immediately for instant feedback
+            setPlaces(prev => [newPlace, ...prev]);
             return newPlace;
         } catch (e: any) {
             setError(e.message || 'Failed to add place.');

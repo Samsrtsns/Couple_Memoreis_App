@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
     StyleSheet,
     Text,
@@ -15,15 +15,10 @@ import { formatMemoryDate } from '../utils/date.utils';
 type Props = {
     memory: Memory;
     currentUserId: string;
-    onToggleLike: (memoryId: string) => Promise<void>;
-    onAddComment: (memoryId: string, text: string) => Promise<void>;
     isLast: boolean;
 };
 
 export function MemoryCard({ memory, isLast }: Props) {
-    const [descExpanded, setDescExpanded] = useState(false);
-    const DESCRIPTION_LIMIT = 120;
-    const isLongDesc = (memory.description?.length ?? 0) > DESCRIPTION_LIMIT;
     const router = useRouter();
 
     const handlePress = () => {
@@ -83,18 +78,10 @@ export function MemoryCard({ memory, isLast }: Props) {
                         <View style={styles.descriptionContainer}>
                             <Text
                                 style={styles.description}
-                                numberOfLines={descExpanded || !isLongDesc ? undefined : 3}
+                                numberOfLines={2}
                             >
                                 {memory.description}
                             </Text>
-
-                            {isLongDesc && (
-                                <TouchableOpacity onPress={() => setDescExpanded(v => !v)}>
-                                    <Text style={styles.readMore}>
-                                        {descExpanded ? 'Read less ↑' : 'Read more ↓'}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
                         </View>
                     ) : null}
 
@@ -220,17 +207,10 @@ const styles = StyleSheet.create({
         lineHeight: 21,
     },
 
-    readMore: {
-        fontSize: 13,
-        color: '#e91e8c',
-        fontWeight: '600',
-        marginTop: 4,
-    },
-
     footer: {
         paddingHorizontal: 16,
         paddingBottom: 12,
-        marginTop: 6,
+        marginTop: 2,
     },
 
     createdBy: {

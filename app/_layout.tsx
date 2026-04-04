@@ -3,7 +3,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, Text } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import "./global.css";
 
 import {
@@ -45,20 +46,22 @@ export default function RootLayout() {
     if (!fontsLoaded) return null;
 
     return (
-        <AuthProvider>
-            <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(onboarding)" />
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="(events)/index" />
-                <Stack.Screen
-                    name="memory-detail"
-                    options={{
-                        presentation: "card",
-                        animation: "slide_from_right",
-                    }}
-                />
-            </Stack>
-        </AuthProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <AuthProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(onboarding)" />
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="(events)/index" />
+                    <Stack.Screen
+                        name="memory-detail"
+                        options={{
+                            presentation: "card",
+                            animation: "slide_from_right",
+                        }}
+                    />
+                </Stack>
+            </AuthProvider>
+        </GestureHandlerRootView>
     );
 }

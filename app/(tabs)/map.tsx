@@ -21,6 +21,7 @@ import AddPlaceModal from '@/src/features/sharedMap/components/AddPlaceModal';
 import MapHeader from '@/src/features/sharedMap/components/MapHeader';
 import PlaceBottomSheet from '@/src/features/sharedMap/components/PlaceBottomSheet';
 import PlaceMarker from '@/src/features/sharedMap/components/PlaceMarker';
+import DraggableHeart from '@/src/features/sharedMap/components/DraggableHeart';
 import { useSharedPlaces } from '@/src/features/sharedMap/hooks/useSharedPlaces';
 import type { SharedPlace } from '@/src/features/sharedMap/types/sharedPlace.types';
 import {
@@ -46,7 +47,7 @@ import {
     Text,
     View
 } from 'react-native';
-import MapView, { LongPressEvent, MapType, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { LongPressEvent, MapPressEvent, MapType, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SharedMapScreen() {
@@ -57,6 +58,7 @@ export default function SharedMapScreen() {
     // ─── State ───────────────────────────────────────────────────────────────
     const [selectedPlace, setSelectedPlace] = useState<SharedPlace | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    const hasFittedPlaces = useRef(false);
     const [pendingCoords, setPendingCoords] = useState<{
         latitude: number;
         longitude: number;
@@ -69,6 +71,7 @@ export default function SharedMapScreen() {
         longitude: number;
     } | null>(null);
     const [mapReady, setMapReady] = useState(false);
+    const [mapLayout, setMapLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
 
     // ─── Data Hooks ──────────────────────────────────────────────────────────
     const { places, loading, error, refetch, noPartner, addPlace } = useSharedPlaces();
@@ -92,34 +95,37 @@ export default function SharedMapScreen() {
                 setShowAddModal(false);
                 setPendingCoords(null);
 
-                // Give it a brief moment for the map to be ready for animation
+                // Safe delay before switching focus
                 setTimeout(() => {
                     mapRef.current?.animateToRegion(
                         {
                             latitude: newPlace.latitude,
                             longitude: newPlace.longitude,
-                            latitudeDelta: 0.02,
-                            longitudeDelta: 0.01,
+                            latitudeDelta: 0.012,
+                            longitudeDelta: 0.006,
                         },
-                        600
+                        1000
                     );
                     setSelectedPlace(newPlace);
-                }, 300);
+                }, 1200);
             }
         } catch (e: any) {
             Alert.alert('Error', e.message || 'Failed to add place.');
         } finally {
-            setCreating(false);
+            // Keep creating true until the animation starts or a bit longer
+            // to prevent the Add FAB from flickering too soon
+            setTimeout(() => setCreating(false), 2000);
         }
     };
 
     // ─── Initial map region ──────────────────────────────────────────────────
     useEffect(() => {
-        if (mapReady && places.length > 0 && !selectedPlace) {
+        if (mapReady && places.length > 0 && !hasFittedPlaces.current && !selectedPlace) {
+            hasFittedPlaces.current = true;
             const region = fitRegionToPlaces(places);
             mapRef.current?.animateToRegion(region, 800);
         }
-    }, [mapReady, places.length]);
+    }, [mapReady, places.length, !!selectedPlace]);
 
     // ─── Filter places by search ─────────────────────────────────────────────
     const filteredPlaces = useMemo(() => {
@@ -163,10 +169,24 @@ export default function SharedMapScreen() {
         });
     };
 
-    const handleLongPress = (event: LongPressEvent) => {
-        const { latitude, longitude } = event.nativeEvent.coordinate;
-        setPendingCoords({ latitude, longitude });
-        setShowAddModal(true);
+
+
+    const handleHeartDrop = async (absoluteX: number, absoluteY: number) => {
+        if (!mapRef.current || !mapLayout) return;
+        
+        try {
+            // Convert absolute screen coordinates to relative map coordinates
+            const relativeX = absoluteX - mapLayout.x;
+            const relativeY = absoluteY - mapLayout.y;
+
+            const coord = await mapRef.current.coordinateForPoint({ x: relativeX, y: relativeY });
+            if (coord) {
+                 setPendingCoords(coord);
+                 setShowAddModal(true);
+            }
+        } catch (e) {
+            console.error('Drop conversion failed:', e);
+        }
     };
 
     const handleAddButtonPress = async () => {
@@ -200,8 +220,12 @@ export default function SharedMapScreen() {
         );
     }, []);
 
-    const handleMapPress = () => {
-        if (selectedPlace) setSelectedPlace(null);
+    const handleMapPress = (event: MapPressEvent) => {
+        // If a place is selected, clicking the map unselects it
+        if (selectedPlace) {
+            setSelectedPlace(null);
+            return;
+        }
     };
 
     const handlePlaceDeleted = useCallback((placeId: string) => {
@@ -236,8 +260,20 @@ export default function SharedMapScreen() {
                     refreshing={loading}
                 />
 
+                <DraggableHeart onDrop={handleHeartDrop} topInset={insets.top} />
+
                 {/* ── Map ── */}
-                <View style={styles.mapContainer}>
+                <View 
+                    style={styles.mapContainer}
+                    onLayout={(e) => {
+                        // We use measureInWindow for more accuracy but for now onLayout is a good start
+                        // Actually, since it's inside a Screen with fixed container, onLayout is usually enough
+                        // But let's use measure to be sure on all devices
+                        e.currentTarget.measure((x, y, width, height, pageX, pageY) => {
+                            setMapLayout({ x: pageX, y: pageY, width, height });
+                        });
+                    }}
+                >
                     {/* Loading overlay */}
                     {loading && (
                         <View style={styles.loadingOverlay}>
@@ -263,7 +299,6 @@ export default function SharedMapScreen() {
                         mapType={mapType}
                         initialRegion={initialRegion}
                         onPress={handleMapPress}
-                        onLongPress={handleLongPress}
                         onMapReady={() => setMapReady(true)}
                         showsUserLocation
                         showsMyLocationButton={false}
@@ -279,6 +314,16 @@ export default function SharedMapScreen() {
                                 onPress={handleMarkerPress}
                             />
                         ))}
+
+                        {/* Preview marker for new place */}
+                        {pendingCoords && (
+                            <Marker
+                                coordinate={pendingCoords}
+                                pinColor="#F43F5E"
+                                title="New Memory Location"
+                                description="Saving this spot..."
+                            />
+                        )}
                     </MapView>
 
                     {/* No-partner banner (only shown when user has no partner) */}

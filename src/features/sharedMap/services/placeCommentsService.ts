@@ -31,14 +31,13 @@ async function assertPlaceBelongsToPair(
     currentUserId: string,
     partnerId: string
 ): Promise<void> {
-    const { userAId, userBId } = getPairFilterArgs(currentUserId, partnerId);
-
     const { data, error } = await supabase
         .from('shared_places')
         .select('id')
         .eq('id', placeId)
-        .eq('user_a_id', userAId)
-        .eq('user_b_id', userBId)
+        .or(
+            `and(user_a_id.eq.${currentUserId},user_b_id.eq.${partnerId}),and(user_a_id.eq.${partnerId},user_b_id.eq.${currentUserId})`
+        )
         .maybeSingle();
 
     if (error) throw new Error(`Yer erişimi doğrulanamadı: ${error.message}`);

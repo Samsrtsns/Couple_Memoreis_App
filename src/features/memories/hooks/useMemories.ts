@@ -9,30 +9,52 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    addMemoryComment,
     createMemory,
     deleteMemory as deleteMemoryService,
     fetchMemoriesForCurrentUser,
     getCurrentProfile,
     subscribeToMemories,
-    subscribeToMemoryComments,
-    subscribeToMemoryLikes,
-    toggleMemoryLike,
     updateMemory as updateMemoryService,
     uploadMemoryPhoto,
     type CreateMemoryArgs,
     type UpdateMemoryArgs,
 } from '../services/memoriesService';
 import type {
-    CreateCommentPayload,
     CreateMemoryPayload,
     Memory,
-    MemoryCommentRow,
-    MemoryLike,
     MemoryRow,
     UpdateMemoryPayload,
 } from '../types/memory.types';
 import { getPairUserIds } from '../utils/pair.utils';
+
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+/**
+ * Inserts `newMemory` into `list` at the correct position,
+ * maintaining memory_date DESC → created_at DESC sort order.
+ * This avoids always prepending to the top (which caused scroll gaps
+ * when the new photo's date is older than existing ones).
+ */
+function sortedInsertMemory(list: Memory[], newMemory: Memory): Memory[] {
+    // Find the first item that is "older" than the new memory
+    const insertIndex = list.findIndex((m) => {
+        // Primary: compare by memory_date
+        if (m.memory_date < newMemory.memory_date) return true;
+        // Secondary: same date → compare by created_at
+        if (m.memory_date === newMemory.memory_date && m.created_at < newMemory.created_at) return true;
+        return false;
+    });
+
+    if (insertIndex === -1) {
+        // New memory is the oldest → append at the end
+        return [...list, newMemory];
+    }
+    const result = [...list];
+    result.splice(insertIndex, 0, newMemory);
+    return result;
+}
 
 // ─────────────────────────────────────────────
 // Types
@@ -49,8 +71,8 @@ export type UseMemoriesResult = {
     addMemory: (payload: CreateMemoryPayload) => Promise<void>;
     updateMemory: (payload: UpdateMemoryPayload) => Promise<void>;
     deleteMemory: (memoryId: string) => Promise<void>;
-    toggleLike: (memoryId: string) => Promise<void>;
-    addComment: (payload: CreateCommentPayload) => Promise<void>;
+    toggleLike?: (memoryId: string) => Promise<void>;
+    addComment?: (payload: any) => Promise<void>;
 };
 
 // ─────────────────────────────────────────────
@@ -67,6 +89,9 @@ export function useMemories(): UseMemoriesResult {
     // Stable ref to avoid stale closures in subscriptions
     const currentUserIdRef = useRef<string | null>(null);
     const partnerIdRef = useRef<string | null>(null);
+
+    // IDs that were inserted optimistically — realtime onInsert should skip these
+    const pendingOptimisticIds = useRef<Set<string>>(new Set());
 
     // ─── Initial load ───────────────────────────────────────────
     const load = useCallback(async () => {
@@ -130,121 +155,47 @@ export function useMemories(): UseMemoriesResult {
                     memory_date: newRow.memory_date,
                     created_at: newRow.created_at,
                     updated_at: newRow.updated_at,
-                    comments: [],
-                    likes: [],
-                    isLikedByCurrentUser: false,
-                    likeCount: 0,
-                    commentCount: 0,
                 };
+                // If we inserted this optimistically, skip the realtime event
+                // (this is more reliable than checking prev[] inside setMemories,
+                //  because React can batch the two setMemories calls and give
+                //  both the same stale `prev`, causing duplicates)
+                if (pendingOptimisticIds.current.has(newRow.id)) {
+                    pendingOptimisticIds.current.delete(newRow.id);
+                    return;
+                }
                 setMemories((prev) => {
-                    // Avoid duplicates (may have already been added optimistically)
                     if (prev.some((m) => m.id === normalised.id)) return prev;
-                    return [normalised, ...prev];
+                    return sortedInsertMemory(prev, normalised);
                 });
             },
             onUpdate: (updatedRow: MemoryRow) => {
-                const uid = currentUserIdRef.current;
-                setMemories((prev) =>
-                    prev.map((m) => {
+                setMemories((prev) => {
+                    const updatedArray = prev.map((m) => {
                         if (m.id !== updatedRow.id) return m;
-                        // Merge: keep client-side fields (comments, likes) but update DB fields
                         return {
                             ...m,
-                            title: updatedRow.title,
-                            description: updatedRow.description,
-                            photo_url: updatedRow.photo_url,
-                            memory_date: updatedRow.memory_date,
-                            updated_at: updatedRow.updated_at,
+                            title: updatedRow.title ?? m.title,
+                            description: updatedRow.description ?? m.description,
+                            photo_url: updatedRow.photo_url ?? m.photo_url,
+                            memory_date: updatedRow.memory_date ?? m.memory_date,
+                            updated_at: updatedRow.updated_at ?? m.updated_at,
                         };
-                    })
-                );
+                    });
+                    
+                    // Re-sort in case the memory_date was changed
+                    return updatedArray.sort(
+                        (a, b) => new Date(b.memory_date).getTime() - new Date(a.memory_date).getTime()
+                    );
+                });
             },
             onDelete: (deletedId: string) => {
                 setMemories((prev) => prev.filter((m) => m.id !== deletedId));
             },
         });
 
-        // Subscribe to comments changes
-        const unsubComments = subscribeToMemoryComments({
-            onInsert: (newRow: MemoryCommentRow) => {
-                setMemories((prev) =>
-                    prev.map((m) => {
-                        if (m.id !== newRow.memory_id) return m;
-                        // Avoid duplicate comment
-                        if (m.comments.some((c) => c.id === newRow.id)) return m;
-                        const newComment = {
-                            id: newRow.id,
-                            memory_id: newRow.memory_id,
-                            user_id: newRow.user_id,
-                            comment: newRow.comment,
-                            created_at: newRow.created_at,
-                            updated_at: newRow.updated_at,
-                            author: newRow.profiles
-                                ? {
-                                    id: newRow.profiles.id,
-                                    first_name: newRow.profiles.first_name,
-                                    last_name: newRow.profiles.last_name,
-                                }
-                                : undefined,
-                        };
-                        const updated = [...m.comments, newComment];
-                        return { ...m, comments: updated, commentCount: updated.length };
-                    })
-                );
-            },
-            onDelete: (deletedId: string) => {
-                setMemories((prev) =>
-                    prev.map((m) => {
-                        const updated = m.comments.filter((c) => c.id !== deletedId);
-                        if (updated.length === m.comments.length) return m;
-                        return { ...m, comments: updated, commentCount: updated.length };
-                    })
-                );
-            },
-        });
-
-        // Subscribe to likes changes
-        const unsubLikes = subscribeToMemoryLikes({
-            onInsert: (newLike: MemoryLike) => {
-                const uid = currentUserIdRef.current;
-                setMemories((prev) =>
-                    prev.map((m) => {
-                        if (m.id !== newLike.memory_id) return m;
-                        if (m.likes.some((l) => l.id === newLike.id)) return m;
-                        const updated = [...m.likes, newLike];
-                        return {
-                            ...m,
-                            likes: updated,
-                            likeCount: updated.length,
-                            isLikedByCurrentUser:
-                                m.isLikedByCurrentUser || newLike.user_id === uid,
-                        };
-                    })
-                );
-            },
-            onDelete: (deletedId: string) => {
-                const uid = currentUserIdRef.current;
-                setMemories((prev) =>
-                    prev.map((m) => {
-                        const removed = m.likes.find((l) => l.id === deletedId);
-                        if (!removed) return m;
-                        const updated = m.likes.filter((l) => l.id !== deletedId);
-                        return {
-                            ...m,
-                            likes: updated,
-                            likeCount: updated.length,
-                            isLikedByCurrentUser:
-                                removed.user_id === uid ? false : m.isLikedByCurrentUser,
-                        };
-                    })
-                );
-            },
-        });
-
         return () => {
             unsubMemories();
-            unsubComments();
-            unsubLikes();
         };
     }, [currentUserId, partnerId]);
 
@@ -277,8 +228,9 @@ export function useMemories(): UseMemoriesResult {
                 const newMemory = await createMemory(args);
                 console.log('[useMemories] Memory created in DB:', newMemory.id);
 
-                // 3. Prepend optimistically (realtime will be deduplicated)
-                setMemories((prev) => [newMemory, ...prev]);
+                // 3. Mark this ID so realtime onInsert skips it, then insert optimistically
+                pendingOptimisticIds.current.add(newMemory.id);
+                setMemories((prev) => sortedInsertMemory(prev, newMemory));
             } catch (e: any) {
                 console.error('[useMemories] Failed to add memory:', e);
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
@@ -338,56 +290,7 @@ export function useMemories(): UseMemoriesResult {
         [refresh]
     );
 
-    const toggleLike = useCallback(async (memoryId: string) => {
-        const uid = currentUserIdRef.current;
-        if (!uid) return;
-
-        // Optimistic update
-        setMemories((prev) =>
-            prev.map((m) => {
-                if (m.id !== memoryId) return m;
-                const isLiked = m.isLikedByCurrentUser;
-                return {
-                    ...m,
-                    isLikedByCurrentUser: !isLiked,
-                    likeCount: isLiked ? m.likeCount - 1 : m.likeCount + 1,
-                    likes: isLiked
-                        ? m.likes.filter((l) => l.user_id !== uid)
-                        : [
-                            ...m.likes,
-                            { id: 'optimistic', memory_id: memoryId, user_id: uid, created_at: new Date().toISOString() },
-                        ],
-                };
-            })
-        );
-
-        try {
-            await toggleMemoryLike(memoryId, uid);
-        } catch {
-            // Revert on error — pull fresh data
-            await refresh();
-        }
-    }, [refresh]);
-
-    const addComment = useCallback(
-        async (payload: CreateCommentPayload) => {
-            const uid = currentUserIdRef.current;
-            if (!uid) throw new Error('Not authenticated.');
-
-            const newComment = await addMemoryComment(payload, uid);
-
-            // Optimistic update (realtime will dedup)
-            setMemories((prev) =>
-                prev.map((m) => {
-                    if (m.id !== payload.memory_id) return m;
-                    if (m.comments.some((c) => c.id === newComment.id)) return m;
-                    const updated = [...m.comments, newComment];
-                    return { ...m, comments: updated, commentCount: updated.length };
-                })
-            );
-        },
-        []
-    );
+    // Handlers removed for toggleLike, addComment
 
     return {
         memories,
@@ -400,7 +303,5 @@ export function useMemories(): UseMemoriesResult {
         addMemory,
         updateMemory: editMemory,
         deleteMemory: removeMemory,
-        toggleLike,
-        addComment,
     };
 }
