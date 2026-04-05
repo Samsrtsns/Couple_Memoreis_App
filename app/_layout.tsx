@@ -12,6 +12,7 @@ import {
     Inter_700Bold,
     Inter_900Black
 } from '@expo-google-fonts/inter';
+import { initRevenueCat } from '@/src/services/revenueCatService';
 
 // Prevent auto-hiding the splash screen until our fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -30,6 +31,7 @@ export default function RootLayout() {
     useEffect(() => {
         if (fontsLoaded) {
             SplashScreen.hideAsync();
+            initRevenueCat().catch(err => console.error('[initRevenueCat] Failed:', err));
 
             // Override global Text font family
             const TextRender = Text as any;

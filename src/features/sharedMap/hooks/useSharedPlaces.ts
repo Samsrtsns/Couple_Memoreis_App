@@ -109,7 +109,11 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
             setPlaces(prev => prev.some(p => p.id === newPlace.id) ? prev : [newPlace, ...prev]);
             return newPlace;
         } catch (e: any) {
-            setError(e.message || 'Failed to add place.');
+            const errorMessage = e.message || 'Failed to add place.';
+            if (errorMessage.includes('Place upload limit reached')) {
+                throw new Error('PLACE_LIMIT_REACHED');
+            }
+            setError(errorMessage);
             throw e;
         }
     };

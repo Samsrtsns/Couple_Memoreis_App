@@ -16,6 +16,7 @@ export type ProfileData = {
     avatar_path?: string;
     birth_date?: string;
     relationship_start_date?: string;
+    user_type?: 'base' | 'premium';
 };
 
 /**

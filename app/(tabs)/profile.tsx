@@ -2,6 +2,7 @@ import PrimaryButton from "@/src/components/PrimaryButton";
 import ProfileAvatar from "@/src/components/ProfileAvatar";
 import { useAuth } from "@/src/context/AuthContext";
 import { useProfile } from "@/src/hooks/useProfile";
+import { useUsageStats } from "@/src/hooks/useUsageStats";
 import { logoutUser } from "@/src/services/authService";
 import {
     compressImage,
@@ -11,7 +12,8 @@ import {
 } from "@/src/services/profilePhotoService";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { presentPremiumPaywall } from "@/src/services/revenueCatService";
 import {
     ActionSheetIOS,
     ActivityIndicator,
@@ -81,8 +83,13 @@ function SettingsRow({
 export default function ProfileScreen() {
     const { profile, partner, loading } = useProfile();
     const { state, dispatch, refreshProfile } = useAuth();
+    const { stats, fetchStats } = useUsageStats();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
+
+    useEffect(() => {
+        if (state.user?.id) fetchStats(state.user.id);
+    }, [state.user?.id, fetchStats]);
 
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return "Not set";
@@ -105,7 +112,6 @@ export default function ProfileScreen() {
         try {
             setIsLoggingOut(true);
             await logoutUser();
-            // Important: clear the global state when logging out
             dispatch({ type: 'LOGOUT' });
             router.replace("/(auth)/login");
         } catch (error: any) {
@@ -155,13 +161,12 @@ export default function ProfileScreen() {
         try {
             if (!state.session?.user) return;
             const uri = await pickImage();
-            if (!uri) return; // User cancelled
+            if (!uri) return;
 
             setIsUpdatingPhoto(true);
             const compressed = await compressImage(uri);
             await updateProfileAvatar(state.session.user.id, compressed, profile?.avatar_path);
 
-            // Refresh global user state to update the avatar everywhere
             await refreshProfile();
         } catch (error: any) {
             Alert.alert("Upload Failed", error.message || "Failed to upload photo");
@@ -296,6 +301,58 @@ export default function ProfileScreen() {
                         </View>
                     </View>
                 )}
+
+
+
+                {/* Plan & Limits */}
+                <View className="mt-6">
+                    <Text className="px-8 pb-3 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
+                        Plan & Limits
+                    </Text>
+
+                    <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100 p-4">
+                        {stats?.user_type === 'premium' ? (
+                            <View className="items-center py-4 bg-amber-50 rounded-[16px] border border-amber-100">
+                                <Text className="font-extrabold text-amber-500 text-lg mb-1">✨ Premium Partner</Text>
+                                <Text className="text-amber-700/60 text-xs font-semibold">Unlimited limits unlocked.</Text>
+                            </View>
+                        ) : (
+                            <View className="space-y-4">
+                                <Text className="text-slate-800 font-bold mb-2">Base Plan Details</Text>
+                                
+                                <View className="flex-row justify-between items-center mb-3">
+                                    <Text className="text-slate-500 text-sm font-medium flex-1">Photo Memories</Text>
+                                    <Text className="text-slate-700 font-bold">{stats?.total_photo_memories || 0} / {stats?.max_photo_memories || 8}</Text>
+                                </View>
+                                
+                                <View className="flex-row justify-between items-center mb-3">
+                                    <Text className="text-slate-500 text-sm font-medium flex-1">Shared Places</Text>
+                                    <Text className="text-slate-700 font-bold">{stats?.total_places || 0} / {stats?.max_places || 8}</Text>
+                                </View>
+                                
+                                <View className="flex-row justify-between items-center mb-2">
+                                    <Text className="text-slate-500 text-sm font-medium flex-1">Daily Custom Photos</Text>
+                                    <Text className="text-slate-700 font-bold">{stats?.today_photos || 0} / {stats?.max_daily_photos || 1}</Text>
+                                </View>
+                                
+                                <View className="mt-4">
+                                    <PrimaryButton 
+                                        title="Upgrade to Premium" 
+                                        onPress={async () => {
+                                            if (state.user?.id) {
+                                                const success = await presentPremiumPaywall(state.user.id);
+                                                if (success) {
+                                                    await refreshProfile();
+                                                    fetchStats(state.user.id);
+                                                }
+                                            }
+                                        }} 
+                                    />
+                                </View>
+                            </View>
+                        )}
+                    </View>
+                </View>
 
                 {/* General Settings */}
                 <View className="mt-6">

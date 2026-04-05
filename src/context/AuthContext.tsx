@@ -4,6 +4,7 @@ import { ProfileData } from '../hooks/useProfile';
 import { supabase } from '../lib/supabase';
 import { getCurrentSession } from '../services/authService';
 import { getProfileWithPartner } from '../services/pairService';
+import { identifyUser } from '../services/revenueCatService';
 
 // --- Types ---
 type AuthState = {
@@ -185,6 +186,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!state.user?.id) return;
+
+        // Identify user in RevenueCat
+        identifyUser(state.user.id).then(() => {
+            // After identifying, the profile might have been updated to premium
+            // if they were premium in RevenueCat but base in Supabase
+            refreshProfile();
+        }).catch(err => console.error('[RevenueCatIdentify] Failed:', err));
         
         // Subscribe to profile updates (for automatic match detection)
         const profileSubscription = supabase

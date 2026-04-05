@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -16,6 +16,8 @@ import { MemoryCard } from "../components/MemoryCard";
 import { MemoryCardSkeleton } from "../components/MemoryCardSkeleton";
 import { useMemories } from "../hooks/useMemories";
 import type { Memory } from "../types/memory.types";
+import { useUsageStats } from "@/src/hooks/useUsageStats";
+import PremiumUpsellModal from "@/src/components/PremiumUpsellModal";
 
 // Header
 function ScreenHeader({
@@ -51,12 +53,22 @@ export default function MemoriesScreen() {
         addMemory,
     } = useMemories();
 
+    const { fetchStats, isDailyLimitReached, timeRemaining } = useUsageStats();
+
     const [modalVisible, setModalVisible] = useState(false);
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+
+    useEffect(() => {
+        if (currentUserId) {
+            fetchStats(currentUserId);
+        }
+    }, [currentUserId, fetchStats]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
         await refresh();
+        if (currentUserId) await fetchStats(currentUserId);
         setRefreshing(false);
     };
 
@@ -66,8 +78,16 @@ export default function MemoriesScreen() {
         memory_date: string;
         photoUri: string;
     }) => {
-        await addMemory(data);
-        // Yeni anı doğru tarih pozisyonuna ekleniyor, scroll gerekmez
+        try {
+            await addMemory(data);
+            if (currentUserId) fetchStats(currentUserId);
+        } catch (e: any) {
+            if (e.message === 'MEMORY_LIMIT_REACHED') {
+                setShowPremiumModal(true);
+            } else {
+                console.error("Unknown error adding memory:", e);
+            }
+        }
     };
 
     const renderItem = ({ item, index: memoryIndex }: { item: Memory; index: number }) => (
@@ -115,12 +135,18 @@ export default function MemoriesScreen() {
                 visible={modalVisible}
                 onClose={() => setModalVisible(false)}
                 onSubmit={handleAddMemory}
+                isDailyLimitReached={isDailyLimitReached}
+                timeRemaining={timeRemaining}
             />
 
             {/* FIXED ADD BUTTON */}
             {hasPartner && (
                 <TouchableOpacity
-                    onPress={() => setModalVisible(true)}
+                    onPress={async () => {
+                        // Önce en güncel istatistikleri (ve premium durumunu) çek
+                        if (currentUserId) await fetchStats(currentUserId);
+                        setModalVisible(true);
+                    }}
                     activeOpacity={0.85}
                     style={{
                         position: 'absolute',
@@ -164,7 +190,10 @@ export default function MemoriesScreen() {
                         ListEmptyComponent={
                             <MemoriesEmptyState
                                 variant={hasPartner ? "no-memories" : "no-partner"}
-                                onAddMemory={hasPartner ? () => setModalVisible(true) : undefined}
+                                onAddMemory={hasPartner ? async () => {
+                                    if (currentUserId) await fetchStats(currentUserId);
+                                    setModalVisible(true);
+                                } : undefined}
                             />
                         }
                         ListFooterComponent={
@@ -179,6 +208,13 @@ export default function MemoriesScreen() {
                     />
                 </View>
             </SafeAreaView>
+            <PremiumUpsellModal 
+                visible={showPremiumModal} 
+                onClose={() => {
+                    setShowPremiumModal(false);
+                    if (currentUserId) fetchStats(currentUserId);
+                }} 
+            />
         </View>
     );
 }

@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Tabs } from "expo-router";
+import { Tabs, Redirect } from "expo-router";
 import React from "react";
 import { Platform, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAuth } from "@/src/context/AuthContext";
 
 const TAB_ICONS: Record<
     string,
@@ -103,6 +104,13 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
+    const { state } = useAuth();
+
+    // Oturum kapandıysa veya hesap silindiyse direkt Login ekranına fırlat
+    if (state.isInitialized && !state.isLoggedIn) {
+        return <Redirect href="/(auth)/login" />;
+    }
+
     return (
         <Tabs
             tabBar={(props) => <CustomTabBar {...props} />}

@@ -45,13 +45,15 @@ type Props = {
         memory_date: string;
         photoUri: string;
     }) => Promise<void>;
+    isDailyLimitReached?: boolean;
+    timeRemaining?: string;
 };
 
 // ─────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────
 
-export function AddMemoryModal({ visible, onClose, onSubmit }: Props) {
+export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached, timeRemaining }: Props) {
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -173,6 +175,11 @@ export function AddMemoryModal({ visible, onClose, onSubmit }: Props) {
             onClose();
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : 'Something went wrong.';
+            if (msg === 'MEMORY_LIMIT_REACHED') {
+                resetForm();
+                onClose();
+                throw e; // so parent can catch it
+            }
             Alert.alert('Could not save memory', msg);
         } finally {
             setLoading(false);
@@ -232,9 +239,12 @@ export function AddMemoryModal({ visible, onClose, onSubmit }: Props) {
                     >
                         {/* Photo picker */}
                         <TouchableOpacity
-                            style={styles.photoPicker}
-                            onPress={pickPhoto}
-                            activeOpacity={0.85}
+                            style={[
+                                styles.photoPicker,
+                                isDailyLimitReached && !photoUri && styles.photoPickerDisabled
+                            ]}
+                            onPress={isDailyLimitReached && !photoUri ? undefined : pickPhoto}
+                            activeOpacity={isDailyLimitReached && !photoUri ? 1 : 0.85}
                             disabled={loading}
                         >
                             {photoUri ? (
@@ -249,6 +259,18 @@ export function AddMemoryModal({ visible, onClose, onSubmit }: Props) {
                                         <Text style={styles.photoOverlayText}>Change photo</Text>
                                     </View>
                                 </>
+                            ) : isDailyLimitReached ? (
+                                <View style={styles.photoLimitContainer}>
+                                    <View style={styles.photoIconWrapLimit}>
+                                        <Ionicons name="time-outline" size={36} color="#FF8A8A" />
+                                    </View>
+                                    <Text style={styles.photoLimitTitle}>GÜNLÜK LİMİTE ULAŞILDI</Text>
+                                    <Text style={styles.photoLimitSubtitle}>BİR SONRAKİ FOTOĞRAF HAKKINA KALAN SÜRE ŞUDUR :</Text>
+                                    <Text style={styles.photoLimitTimer}>{timeRemaining || 'Hesaplanıyor...'}</Text>
+                                    <View className="mt-4 bg-rose-100 px-4 py-2 rounded-xl">
+                                        <Text style={styles.photoLimitPremiumText}>SINIRSIZ FOTOĞRAF YÜKLEMEK İÇİN PREMİUM ALABİLİRSİNİZ.</Text>
+                                    </View>
+                                </View>
                             ) : (
                                 <View style={styles.photoEmpty}>
                                     <View style={styles.photoIconWrap}>
@@ -407,7 +429,13 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         overflow: 'hidden',
         backgroundColor: '#FFF2F2',
-        height: 220,
+        height: 250,
+    },
+    photoPickerDisabled: {
+        backgroundColor: '#FFF8F8',
+        borderWidth: 2,
+        borderColor: '#FFE4E4',
+        borderStyle: 'dashed',
     },
     photoPreview: {
         width: '100%',
@@ -513,5 +541,51 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         fontSize: 15,
         paddingHorizontal: 8,
+    },
+    photoLimitContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        gap: 8,
+    },
+    photoIconWrapLimit: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 4,
+        shadowColor: '#FF8A8A',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    photoLimitTitle: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#2d1020',
+        letterSpacing: 1,
+    },
+    photoLimitSubtitle: {
+        fontSize: 11,
+        color: '#9e6070',
+        textAlign: 'center',
+        fontWeight: '600',
+        textTransform: 'uppercase',
+    },
+    photoLimitTimer: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#FF8A8A',
+        fontVariant: ['tabular-nums'],
+    },
+    photoLimitPremiumText: {
+        fontSize: 10,
+        color: '#F43F5E',
+        textAlign: 'center',
+        fontWeight: '800',
     },
 });

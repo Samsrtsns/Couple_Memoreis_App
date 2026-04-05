@@ -18,10 +18,10 @@
 import Screen from '@/src/components/Screen';
 import { useAuth } from '@/src/context/AuthContext';
 import AddPlaceModal from '@/src/features/sharedMap/components/AddPlaceModal';
+import DraggableHeart from '@/src/features/sharedMap/components/DraggableHeart';
 import MapHeader from '@/src/features/sharedMap/components/MapHeader';
 import PlaceBottomSheet from '@/src/features/sharedMap/components/PlaceBottomSheet';
 import PlaceMarker from '@/src/features/sharedMap/components/PlaceMarker';
-import DraggableHeart from '@/src/features/sharedMap/components/DraggableHeart';
 import { useSharedPlaces } from '@/src/features/sharedMap/hooks/useSharedPlaces';
 import type { SharedPlace } from '@/src/features/sharedMap/types/sharedPlace.types';
 import {
@@ -47,8 +47,10 @@ import {
     Text,
     View
 } from 'react-native';
-import MapView, { LongPressEvent, MapPressEvent, MapType, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { MapPressEvent, MapType, Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import PremiumUpsellModal from '@/src/components/PremiumUpsellModal';
 
 export default function SharedMapScreen() {
     const insets = useSafeAreaInsets();
@@ -58,6 +60,7 @@ export default function SharedMapScreen() {
     // ─── State ───────────────────────────────────────────────────────────────
     const [selectedPlace, setSelectedPlace] = useState<SharedPlace | null>(null);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
     const hasFittedPlaces = useRef(false);
     const [pendingCoords, setPendingCoords] = useState<{
         latitude: number;
@@ -110,7 +113,12 @@ export default function SharedMapScreen() {
                 }, 1200);
             }
         } catch (e: any) {
-            Alert.alert('Error', e.message || 'Failed to add place.');
+            if (e.message === 'PLACE_LIMIT_REACHED') {
+                setShowAddModal(false);
+                setShowPremiumModal(true);
+            } else {
+                Alert.alert('Error', e.message || 'Failed to add place.');
+            }
         } finally {
             // Keep creating true until the animation starts or a bit longer
             // to prevent the Add FAB from flickering too soon
@@ -173,7 +181,7 @@ export default function SharedMapScreen() {
 
     const handleHeartDrop = async (absoluteX: number, absoluteY: number) => {
         if (!mapRef.current || !mapLayout) return;
-        
+
         try {
             // Convert absolute screen coordinates to relative map coordinates
             const relativeX = absoluteX - mapLayout.x;
@@ -181,8 +189,8 @@ export default function SharedMapScreen() {
 
             const coord = await mapRef.current.coordinateForPoint({ x: relativeX, y: relativeY });
             if (coord) {
-                 setPendingCoords(coord);
-                 setShowAddModal(true);
+                setPendingCoords(coord);
+                setShowAddModal(true);
             }
         } catch (e) {
             console.error('Drop conversion failed:', e);
@@ -263,7 +271,7 @@ export default function SharedMapScreen() {
                 <DraggableHeart onDrop={handleHeartDrop} topInset={insets.top} />
 
                 {/* ── Map ── */}
-                <View 
+                <View
                     style={styles.mapContainer}
                     onLayout={(e) => {
                         // We use measureInWindow for more accuracy but for now onLayout is a good start
@@ -384,6 +392,11 @@ export default function SharedMapScreen() {
                     onSave={handleCreatePlace}
                     loading={creating}
                     initialCoords={pendingCoords}
+                />
+
+                <PremiumUpsellModal
+                    visible={showPremiumModal}
+                    onClose={() => setShowPremiumModal(false)}
                 />
             </View>
         </Screen>

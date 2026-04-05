@@ -1,8 +1,16 @@
-import { Stack, router } from 'expo-router';
+import { Stack, router, Redirect } from 'expo-router';
 import { Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/src/context/AuthContext';
 
 export default function ProfileLayout() {
+    const { state } = useAuth();
+
+    // Oturum kapandıysa veya hesap silindiyse direkt Login ekranına fırlat
+    if (state.isInitialized && !state.isLoggedIn) {
+        return <Redirect href="/(auth)/login" />;
+    }
+
     return (
         <Stack 
             screenOptions={{ 

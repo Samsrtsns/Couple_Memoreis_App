@@ -237,6 +237,9 @@ export function useMemories(): UseMemoriesResult {
             } catch (e: any) {
                 console.error('[useMemories] Failed to add memory:', e);
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                if (errorMessage.includes('Upload limit reached')) {
+                    throw new Error('MEMORY_LIMIT_REACHED');
+                }
                 throw new Error(`Memory creation failed: ${errorMessage}`);
             }
         },
