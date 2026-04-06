@@ -92,7 +92,7 @@ export default function ProfileScreen() {
     }, [state.user?.id, fetchStats]);
 
     const formatDate = (dateString?: string | null) => {
-        if (!dateString) return "Not set";
+        if (!dateString) return "Ayarlanmadı";
 
         const date = new Date(dateString);
 
@@ -115,7 +115,7 @@ export default function ProfileScreen() {
             dispatch({ type: 'LOGOUT' });
             router.replace("/(auth)/login");
         } catch (error: any) {
-            Alert.alert("Logout Error", error.message || "Something went wrong.");
+            Alert.alert("Çıkış Hatası", error.message || "Bir şeyler yanlış gitti.");
         } finally {
             setIsLoggingOut(false);
         }
@@ -146,12 +146,12 @@ export default function ProfileScreen() {
             );
         } else {
             Alert.alert(
-                'Profile Photo',
-                'Choose an option',
+                'Profil Fotoğrafı',
+                'Bir seçenek belirleyin',
                 [
-                    { text: 'Change Photo', onPress: handleUploadPhoto },
-                    ...(profile?.avatar_url ? [{ text: 'Remove Photo', onPress: handleRemovePhoto, style: 'destructive' as const }] : []),
-                    { text: 'Cancel', style: 'cancel' }
+                    { text: 'Fotoğrafı Değiştir', onPress: handleUploadPhoto },
+                    ...(profile?.avatar_url ? [{ text: 'Fotoğrafı Kaldır', onPress: handleRemovePhoto, style: 'destructive' as const }] : []),
+                    { text: 'İptal', style: 'cancel' }
                 ]
             );
         }
@@ -169,7 +169,7 @@ export default function ProfileScreen() {
 
             await refreshProfile();
         } catch (error: any) {
-            Alert.alert("Upload Failed", error.message || "Failed to upload photo");
+            Alert.alert("Yükleme Başarısız", error.message || "Fotoğraf yüklenemedi");
         } finally {
             setIsUpdatingPhoto(false);
         }
@@ -180,12 +180,12 @@ export default function ProfileScreen() {
         if (!userId || !profile?.avatar_path) return;
 
         Alert.alert(
-            "Remove Photo",
-            "Are you sure you want to remove your profile photo?",
+            "Fotoğrafı Kaldır",
+            "Profil fotoğrafını kaldırmak istediğinden emin misin?",
             [
-                { text: "Cancel", style: "cancel" },
+                { text: "İptal", style: "cancel" },
                 {
-                    text: "Remove",
+                    text: "Kaldır",
                     style: "destructive",
                     onPress: async () => {
                         try {
@@ -193,7 +193,7 @@ export default function ProfileScreen() {
                             await deleteProfilePhoto(userId, profile.avatar_path!);
                             await refreshProfile();
                         } catch (error: any) {
-                            Alert.alert("Error", error.message || "Failed to remove photo");
+                            Alert.alert("Hata", error.message || "Fotoğraf kaldırılamadı");
                         } finally {
                             setIsUpdatingPhoto(false);
                         }
@@ -256,7 +256,7 @@ export default function ProfileScreen() {
                                     <View className="mt-3 flex-row items-center gap-x-1.5 bg-rose-50 px-4 py-2 rounded-full border border-rose-100">
                                         <Ionicons name="heart" size={14} color="#F43F5E" />
                                         <Text className="text-rose-500 text-[11px] font-bold uppercase tracking-[1px]">
-                                            Linked with {partner.first_name} {partner.last_name}
+                                            {partner.first_name} {partner.last_name} ile bağlı
                                         </Text>
                                     </View>
                                 )}
@@ -265,7 +265,7 @@ export default function ProfileScreen() {
                                     <View className="mt-4 flex-row items-center gap-x-1.5">
                                         <MaterialIcons name="calendar-today" size={15} color="#94A3B8" />
                                         <Text className="text-slate-500 text-sm font-medium">
-                                            Together since {formatDate(profile.relationship_start_date)}
+                                            {formatDate(profile.relationship_start_date)} tarihinden beri beraber
                                         </Text>
                                     </View>
                                 )}
@@ -280,16 +280,16 @@ export default function ProfileScreen() {
                         <View className="rounded-[24px] bg-rose-50 border border-rose-100 px-6 py-6 items-center">
                             <View className="items-center">
                                 <Text className="text-rose-900 text-base font-bold">
-                                    Partner Connection
+                                    Partner Bağlantısı
                                 </Text>
                                 <Text className="text-rose-700/70 text-sm font-medium text-center leading-5 mt-1 max-w-[240px]">
-                                    Share your unique pairing code to connect with your partner.
+                                    Partnerinle bağlanmak için sana özel eşleşme kodunu paylaş.
                                 </Text>
                             </View>
 
                             <View className="w-full mt-5">
                                 <PrimaryButton
-                                    title="View Pairing Code"
+                                    title="Eşleşme Kodunu Gör"
                                     onPress={() =>
                                         router.push({
                                             pathname: "/(pairing)/pair",
@@ -304,65 +304,17 @@ export default function ProfileScreen() {
 
 
 
-                {/* Plan & Limits */}
-                <View className="mt-6">
-                    <Text className="px-8 pb-3 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
-                        Plan & Limits
-                    </Text>
 
-                    <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100 p-4">
-                        {stats?.user_type === 'premium' ? (
-                            <View className="items-center py-4 bg-amber-50 rounded-[16px] border border-amber-100">
-                                <Text className="font-extrabold text-amber-500 text-lg mb-1">✨ Premium Partner</Text>
-                                <Text className="text-amber-700/60 text-xs font-semibold">Unlimited limits unlocked.</Text>
-                            </View>
-                        ) : (
-                            <View className="space-y-4">
-                                <Text className="text-slate-800 font-bold mb-2">Base Plan Details</Text>
-                                
-                                <View className="flex-row justify-between items-center mb-3">
-                                    <Text className="text-slate-500 text-sm font-medium flex-1">Photo Memories</Text>
-                                    <Text className="text-slate-700 font-bold">{stats?.total_photo_memories || 0} / {stats?.max_photo_memories || 8}</Text>
-                                </View>
-                                
-                                <View className="flex-row justify-between items-center mb-3">
-                                    <Text className="text-slate-500 text-sm font-medium flex-1">Shared Places</Text>
-                                    <Text className="text-slate-700 font-bold">{stats?.total_places || 0} / {stats?.max_places || 8}</Text>
-                                </View>
-                                
-                                <View className="flex-row justify-between items-center mb-2">
-                                    <Text className="text-slate-500 text-sm font-medium flex-1">Daily Custom Photos</Text>
-                                    <Text className="text-slate-700 font-bold">{stats?.today_photos || 0} / {stats?.max_daily_photos || 1}</Text>
-                                </View>
-                                
-                                <View className="mt-4">
-                                    <PrimaryButton 
-                                        title="Upgrade to Premium" 
-                                        onPress={async () => {
-                                            if (state.user?.id) {
-                                                const success = await presentPremiumPaywall(state.user.id);
-                                                if (success) {
-                                                    await refreshProfile();
-                                                    fetchStats(state.user.id);
-                                                }
-                                            }
-                                        }} 
-                                    />
-                                </View>
-                            </View>
-                        )}
-                    </View>
-                </View>
 
                 {/* General Settings */}
                 <View className="mt-6">
                     <Text className="px-8 pb-3 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
-                        General Settings
+                        Genel Ayarlar
                     </Text>
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
                         <SettingsRow
-                            title="Personal Info"
+                            title="Kişisel Bilgiler"
                             iconType="ion"
                             icon="person-outline"
                             iconBg="#EFF6FF"
@@ -370,7 +322,7 @@ export default function ProfileScreen() {
                             onPress={() => router.push("/(profile)/personal-info")}
                         />
                         <SettingsRow
-                            title="Relationship Settings"
+                            title="İlişki Ayarları"
                             iconType="ion"
                             icon="heart"
                             iconBg="#FFF1F2"
@@ -378,7 +330,15 @@ export default function ProfileScreen() {
                             onPress={() => router.push("/(profile)/relationship")}
                         />
                         <SettingsRow
-                            title="Notification Preferences"
+                            title="Plan ve Limitler"
+                            iconType="material"
+                            icon="workspace-premium"
+                            iconBg="#FFF7ED"
+                            iconColor="#F59E0B"
+                            onPress={() => router.push("/(profile)/plan-limits")}
+                        />
+                        <SettingsRow
+                            title="Bildirim Tercihleri"
                             iconType="ion"
                             icon="notifications"
                             iconBg="#FFFBEB"
@@ -390,12 +350,12 @@ export default function ProfileScreen() {
 
                     {/* Security */}
                     <Text className="px-8 pb-3 pt-8 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
-                        Security & Privacy
+                        Güvenlik ve Gizlilik
                     </Text>
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
                         <SettingsRow
-                            title="Data Management"
+                            title="Veri Yönetimi"
                             iconType="material"
                             icon="storage"
                             iconBg="#EEF2FF"
@@ -403,7 +363,7 @@ export default function ProfileScreen() {
                             onPress={() => router.push("/(profile)/data-management")}
                         />
                         <SettingsRow
-                            title="Privacy Policy"
+                            title="Gizlilik Politikası"
                             iconType="ion"
                             icon="shield-checkmark-outline"
                             iconBg="#F8FAFC"
@@ -416,13 +376,13 @@ export default function ProfileScreen() {
                     {/* Footer */}
                     <View className="px-12 py-12 items-center justify-center">
                         <Text className="text-[11px] font-bold text-slate-300 uppercase tracking-[2px]">
-                            Memory Archive v2.4.0
+                            Anı Arşivi v2.4.0
                         </Text>
 
                         <View className="mt-2 flex-row items-center gap-x-1.5 opacity-30">
                             <Ionicons name="heart" size={12} color="#64748B" />
                             <Text className="text-[10px] font-medium text-slate-500">
-                                Made with love for couples
+                                Çiftler için sevgiyle yapıldı
                             </Text>
                         </View>
                     </View>
@@ -430,7 +390,7 @@ export default function ProfileScreen() {
                     {/* Logout */}
                     <View className="px-6">
                         <PrimaryButton
-                            title="Log Out"
+                            title="Çıkış Yap"
                             loading={isLoggingOut}
                             variant="secondary"
                             onPress={handleLogout}

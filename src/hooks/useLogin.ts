@@ -2,6 +2,7 @@
 import { useAuth } from '@/src/context/AuthContext';
 import { loginUser } from '@/src/services/authService';
 import { getProfileWithPartner } from '@/src/services/pairService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
@@ -67,7 +68,7 @@ export function useLogin() {
                 }
             }
 
-            // Başarılı girişten sonra ana sayfaya yönlendir
+            await AsyncStorage.setItem('hasLaunched', 'true');
             router.replace("/(tabs)/home");
         } catch (error: any) {
             // Hata durumunda kullanıcıyı bilgilendir

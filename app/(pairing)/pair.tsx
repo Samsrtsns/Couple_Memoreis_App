@@ -69,10 +69,10 @@ export default function PairScreen() {
                     {/* Header and subhead text */}
                     <View className="flex-col justify-center items-center w-full mt-4 gap-y-2 px-6">
                         <Text className="text-center text-[26px] font-bold">
-                            Better Together
+                            Birlikte Daha Güzel
                         </Text>
-                        <Text className="text-center text-[14px] font-normal text-slate500">
-                            Share your invate code or enter your partner&apos;s code to start your shared journey.
+                        <Text className="text-center text-[14px] font-normal text-slate-500">
+                            Ortak yolculuğunuza başlamak için davet kodunu paylaş veya partnerinin kodunu gir.
                         </Text>
                     </View>
 
@@ -85,7 +85,7 @@ export default function PairScreen() {
                                 </View>
 
                                 <Text className="mt-6 text-[#E65D4F] uppercase text-xs font-bold tracking-[2px]">
-                                    Your Invite Code
+                                    Davet Kodun
                                 </Text>
 
                                 <Text className="mt-6 font-bold text-[42px] text-slate-900 tracking-[6px]">
@@ -100,7 +100,7 @@ export default function PairScreen() {
                                     >
                                         <Ionicons name="copy-outline" size={18} color="#ffffff" />
                                         <Text className="ml-2 text-white font-semibold">
-                                            Copy
+                                            Kopyala
                                         </Text>
                                     </Pressable>
 
@@ -110,7 +110,7 @@ export default function PairScreen() {
                                     >
                                         <Ionicons name="share-social-outline" size={18} color="#ffffff" />
                                         <Text className="ml-2 text-white font-semibold">
-                                            Share
+                                            Paylaş
                                         </Text>
                                     </Pressable>
                                 </View>
@@ -120,7 +120,7 @@ export default function PairScreen() {
                         <View className="flex-row items-center w-full gap-4 py-4 mt-8">
                             <View className="flex-1 h-[1px] bg-slate-200" />
                             <Text className="text-xs font-bold text-slate-400 uppercase tracking-[3px]">
-                                Or Join
+                                Veya Katıl
                             </Text>
                             <View className="flex-1 h-[1px] bg-slate-200" />
                         </View>
@@ -128,9 +128,9 @@ export default function PairScreen() {
                         {/* Input Field Section */}
                         <View className="w-full gap-y-4">
 
-                            <TextInputArea label={""} keyboardType="numeric" value={partnerCode} onChangeText={setPartnerCode} placeholder="Enter Partner's Code" autoCapitalize="characters" ></TextInputArea>
+                            <TextInputArea label={""} keyboardType="numeric" value={partnerCode} onChangeText={setPartnerCode} placeholder="Partnerinin Kodunu Gir" autoCapitalize="characters" ></TextInputArea>
 
-                            <PrimaryButton title={"Connect Now"} onPress={connectPartner}></PrimaryButton>
+                            <PrimaryButton title={"Şimdi Bağlan"} onPress={connectPartner}></PrimaryButton>
                         </View>
 
                         {loading && (
@@ -144,8 +144,8 @@ export default function PairScreen() {
                         {/* Footer Help */}
                         <View className="w-full mt-24 mb-6 items-center">
                             <Text className="text-sm text-slate-500 text-center">
-                                Need help?{" "}
-                                <Text className="text-[#FF7F6E] font-bold">Visit our guide</Text>
+                                Yardıma mı ihtiyacın var?{" "}
+                                <Text className="text-[#FF7F6E] font-bold">Kılavuzumuzu incele</Text>
                             </Text>
                         </View>
 

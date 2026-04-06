@@ -88,7 +88,7 @@ export function MemoryCard({ memory, isLast }: Props) {
                     {/* FOOTER */}
                     <View style={styles.footer}>
                         <Text style={styles.createdBy}>
-                            ✨ {memory.creator_profile?.first_name ?? 'Partner'} added
+                            ✨ {memory.creator_profile?.first_name ?? 'Partner'} ekledi
                         </Text>
                     </View>
                 </View>

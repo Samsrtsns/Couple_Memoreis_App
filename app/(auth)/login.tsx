@@ -64,12 +64,11 @@ export default function LoginScreen() {
                                 </View>
 
                                 <View className="items-center">
-                                    <Text className="text-3xl font-bold tracking-tight text-bgDark">
-                                        Couply
+                                    <Text className="text-3xl font-black tracking-tight text-bgDark" style={{ fontFamily: 'InterBlack' }}>
+                                        forLovers
                                     </Text>
-
-                                    <Text className="mt-2 text-slate400 text-center">
-                                        Keep your memories with your lover
+                                    <Text className="mt-1 text-slate-400 text-center text-sm">
+                                        Sevgilinle anılarını biriktir
                                     </Text>
                                 </View>
                             </View>
@@ -78,17 +77,17 @@ export default function LoginScreen() {
                             <View className="pt-8">
                                 <View className="gap-y-6 w-full">
                                     <TextInputArea
-                                        label="Email"
+                                        label="E-posta"
                                         value={email}
                                         onChangeText={setEmail}
-                                        placeholder="hello@ourlove.com"
+                                        placeholder="merhaba@askimiz.com"
                                         keyboardType="email-address"
                                         autoCapitalize="none"
                                     />
 
                                     <View className="gap-y-2">
                                         <TextInputArea
-                                            label="Password"
+                                            label="Şifre"
                                             value={pass}
                                             onChangeText={setPass}
                                             placeholder="••••••••"
@@ -106,41 +105,41 @@ export default function LoginScreen() {
                                         <View className="items-end px-1">
                                             <Pressable onPress={() => { }}>
                                                 <Text className="text-sm font-medium text-primary">
-                                                    Forgot Password?
+                                                    Şifremi Unuttum?
                                                 </Text>
                                             </Pressable>
                                         </View>
                                     </View>
 
                                     <PrimaryButton
-                                        title="Log In"
+                                        title="Giriş Yap"
                                         loading={loading}
                                         onPress={handleLogin}
                                     />
 
                                     <View className="flex-row items-center gap-x-4 pt-4 px-1">
-                                        <View className="h-[1px] flex-1 bg-slate200" />
-                                        <Text className="text-xs font-medium text-slate400 uppercase tracking-widest">
-                                            Or continue with
+                                        <View className="h-[1px] flex-1 bg-slate-200" />
+                                        <Text className="text-xs font-medium text-slate-400 uppercase tracking-widest">
+                                            Veya şununla devam et
                                         </Text>
-                                        <View className="h-[1px] flex-1 bg-slate200" />
+                                        <View className="h-[1px] flex-1 bg-slate-200" />
                                     </View>
 
                                     <View className="flex-row gap-x-4">
                                         <Pressable
                                             onPress={() => { }}
-                                            className="flex-1 h-14 border border-slate200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
+                                            className="flex-1 h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
                                         >
                                             <Image source={Icons.google} className="w-5 h-5" />
-                                            <Text className="font-semibold text-slate700">Google</Text>
+                                            <Text className="font-semibold text-slate-700">Google</Text>
                                         </Pressable>
 
                                         <Pressable
                                             onPress={() => { }}
-                                            className="flex-1 h-14 border border-slate200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
+                                            className="flex-1 h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
                                         >
                                             <Image source={Icons.apple} className="w-5 h-5" />
-                                            <Text className="font-semibold text-slate700">Apple</Text>
+                                            <Text className="font-semibold text-slate-700">Apple</Text>
                                         </Pressable>
                                     </View>
                                 </View>
@@ -148,7 +147,7 @@ export default function LoginScreen() {
 
                             {/* Footer */}
                             <View className="pb-12 pt-8 items-center flex-row justify-center">
-                                <Text className="text-slate600">Don't have an account? </Text>
+                                <Text className="text-slate-400 text-sm font-medium">Hesabın yok mu? </Text>
 
                                 <Pressable
                                     onPress={() => router.push("/(auth)/register")}
@@ -159,9 +158,10 @@ export default function LoginScreen() {
                                         },
                                     ]}
                                 >
-                                    <Text className="text-primary font-bold">Sign Up</Text>
+                                    <Text className="text-primary font-bold text-sm">Kaydol</Text>
                                 </Pressable>
                             </View>
+
                         </View>
                     </KeyboardAwareScrollView>
                 </View>

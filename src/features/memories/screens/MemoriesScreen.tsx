@@ -21,8 +21,8 @@ import PremiumUpsellModal from "@/src/components/PremiumUpsellModal";
 
 // Header
 function ScreenHeader({
-    title = "Memory Timeline",
-    subtitle = "Your love story, chapter by chapter",
+    title = "Anı Zaman Tüneli",
+    subtitle = "Aşk hikayeniz, bölüm bölüm",
 }: {
     title?: string;
     subtitle?: string;
@@ -119,10 +119,10 @@ export default function MemoriesScreen() {
                 <ScreenHeader />
                 <View className="flex-1 items-center justify-center px-8 gap-3">
                     <Ionicons name="warning-outline" size={48} color="#f48fb1" />
-                    <Text className="text-[20px] font-bold text-[#2d1020]">Something went wrong</Text>
+                    <Text className="text-[20px] font-bold text-[#2d1020]">Bir şeyler yanlış gitti</Text>
                     <Text className="text-[14px] text-[#9e6070] text-center">{error}</Text>
                     <TouchableOpacity onPress={refresh} className="mt-2 bg-[#e91e8c] rounded-full px-7 py-3">
-                        <Text className="text-white font-bold text-[15px]">Try Again</Text>
+                        <Text className="text-white font-bold text-[15px]">Tekrar Dene</Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>

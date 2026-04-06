@@ -29,11 +29,12 @@ export default function ProfileLayout() {
                 )
             }}
         >
-            <Stack.Screen name="personal-info" options={{ title: 'Personal Info' }} />
-            <Stack.Screen name="relationship" options={{ title: 'Relationship Settings' }} />
-            <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
-            <Stack.Screen name="data-management" options={{ title: 'Data Management' }} />
-            <Stack.Screen name="privacy" options={{ title: 'Privacy Policy' }} />
+            <Stack.Screen name="personal-info" options={{ title: 'Kişisel Bilgiler' }} />
+            <Stack.Screen name="relationship" options={{ title: 'İlişki Ayarları' }} />
+            <Stack.Screen name="plan-limits" options={{ title: 'Plan ve Limitler' }} />
+            <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
+            <Stack.Screen name="data-management" options={{ title: 'Veri Yönetimi' }} />
+            <Stack.Screen name="privacy" options={{ title: 'Gizlilik Politikası' }} />
         </Stack>
     );
 }

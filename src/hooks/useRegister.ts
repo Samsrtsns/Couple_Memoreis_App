@@ -2,6 +2,7 @@
 import { useAuth } from '@/src/context/AuthContext';
 import { registerUser } from '@/src/services/authService';
 import { getProfileWithPartner } from '@/src/services/pairService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
@@ -73,6 +74,10 @@ export function useRegister() {
                         }
                     });
                 }
+            }
+
+            if (data?.session) {
+                await AsyncStorage.setItem('hasLaunched', 'true');
             }
 
             // Başarı mesajı göster ve eşleşme ekranına yönlendir

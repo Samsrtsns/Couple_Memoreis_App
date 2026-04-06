@@ -79,12 +79,12 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
     // ─── Photo Picker ────────────────────────────────────────────
     const pickPhoto = () => {
         Alert.alert(
-            'Add a Photo',
-            'Choose where to get your photo from:',
+            'Fotoğraf Ekle',
+            'Fotoğrafı nereden seçeceğinizi belirleyin:',
             [
-                { text: 'Take Photo', onPress: handleCamera },
-                { text: 'Choose from Gallery', onPress: handleGallery },
-                { text: 'Cancel', style: 'cancel' }
+                { text: 'Fotoğraf Çek', onPress: handleCamera },
+                { text: 'Galeriden Seç', onPress: handleGallery },
+                { text: 'Vazgeç', style: 'cancel' }
             ]
         );
     };
@@ -92,7 +92,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
     const handleCamera = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission needed', 'Please allow access to your camera.');
+            Alert.alert('İzin Gerekli', 'Lütfen kameranıza erişime izin verin.');
             return;
         }
 
@@ -111,7 +111,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
         if (existingStatus !== 'granted') {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission needed', 'Please allow access to your photo library.');
+                Alert.alert('İzin Gerekli', 'Lütfen fotoğraf kitaplığınıza erişime izin verin.');
                 return;
             }
         }
@@ -150,8 +150,8 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
 
     // ─── Validation ──────────────────────────────────────────────
     const validate = (): string | null => {
-        if (!photoUri) return 'Please add a photo to this memory.';
-        if (!title.trim()) return 'Please give this memory a title.';
+        if (!photoUri) return 'Lütfen bu anıya bir fotoğraf ekleyin.';
+        if (!title.trim()) return 'Lütfen bu anıya bir başlık verin.';
         return null;
     };
 
@@ -159,7 +159,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
     const handleSubmit = async () => {
         const err = validate();
         if (err) {
-            Alert.alert('Missing information', err);
+            Alert.alert('Eksik Bilgi', err);
             return;
         }
 
@@ -174,20 +174,20 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
             resetForm();
             onClose();
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'Something went wrong.';
+            const msg = e instanceof Error ? e.message : 'Bir şeyler yanlış gitti.';
             if (msg === 'MEMORY_LIMIT_REACHED') {
                 resetForm();
                 onClose();
                 throw e; // so parent can catch it
             }
-            Alert.alert('Could not save memory', msg);
+            Alert.alert('Anı kaydedilemedi', msg);
         } finally {
             setLoading(false);
         }
     };
 
     // ─── Date display ────────────────────────────────────────────
-    const displayDate = memoryDate.toLocaleDateString('en-US', {
+    const displayDate = memoryDate.toLocaleDateString('tr-TR', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -213,10 +213,10 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
                             disabled={loading}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
-                            <Text style={styles.cancelText}>Cancel</Text>
+                            <Text style={styles.cancelText}>Vazgeç</Text>
                         </TouchableOpacity>
 
-                        <Text style={styles.headerTitle}>New Memory ✨</Text>
+                        <Text style={styles.headerTitle}>Yeni Anı ✨</Text>
 
                         <TouchableOpacity
                             onPress={handleSubmit}
@@ -226,7 +226,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
                             {loading ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                                <Text style={styles.saveText}>Save</Text>
+                                <Text style={styles.saveText}>Kaydet</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -256,7 +256,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
                                     />
                                     <View style={styles.photoOverlay}>
                                         <Ionicons name="camera" size={24} color="#fff" />
-                                        <Text style={styles.photoOverlayText}>Change photo</Text>
+                                        <Text style={styles.photoOverlayText}>Fotoğrafı değiştir</Text>
                                     </View>
                                 </>
                             ) : isDailyLimitReached ? (
@@ -276,9 +276,9 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
                                     <View style={styles.photoIconWrap}>
                                         <Ionicons name="images-outline" size={36} color="#FF8A8A" />
                                     </View>
-                                    <Text style={styles.photoEmptyTitle}>Add a photo</Text>
+                                    <Text style={styles.photoEmptyTitle}>Fotoğraf ekle</Text>
                                     <Text style={styles.photoEmptySubtitle}>
-                                        Every great memory deserves a picture
+                                        Her güzel anı bir fotoğrafı hak eder
                                     </Text>
                                 </View>
                             )}
@@ -286,10 +286,10 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
 
                         {/* Title */}
                         <View style={styles.field}>
-                            <Text style={styles.label}>Title *</Text>
+                            <Text style={styles.label}>Başlık *</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="e.g. Valentine's Day Dinner ❤️"
+                                placeholder="örn: Sevgililer Günü Yemeği ❤️"
                                 placeholderTextColor="#c9a0b2"
                                 value={title}
                                 onChangeText={setTitle}
@@ -301,10 +301,10 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
 
                         {/* Description */}
                         <View style={styles.field}>
-                            <Text style={styles.label}>Description</Text>
+                            <Text style={styles.label}>Açıklama</Text>
                             <TextInput
                                 style={[styles.input, styles.inputMultiline]}
-                                placeholder="What made this moment special?"
+                                placeholder="Bu anı özel kılan neydi?"
                                 placeholderTextColor="#c9a0b2"
                                 value={description}
                                 onChangeText={setDescription}
@@ -318,7 +318,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
 
                         {/* Date */}
                         <View style={styles.field}>
-                            <Text style={styles.label}>Memory Date</Text>
+                            <Text style={styles.label}>Anı Tarihi</Text>
                             <TouchableOpacity
                                 style={styles.dateTrigger}
                                 onPress={() => {
@@ -350,7 +350,7 @@ export function AddMemoryModal({ visible, onClose, onSubmit, isDailyLimitReached
                                         style={styles.iosDoneBtnWrapper}
                                         onPress={() => setShowDatePicker(false)}
                                     >
-                                        <Text style={styles.iosDoneBtn}>Done</Text>
+                                        <Text style={styles.iosDoneBtn}>Bitti</Text>
                                     </TouchableOpacity>
                                 </View>
                             ) : (

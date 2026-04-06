@@ -28,7 +28,7 @@ export default function MapHeader({
         >
             <View className="flex-row items-center gap-2">
                 <Text className="text-[26px] font-extrabold  text-slate-800">
-                    Our Places
+                    Konumlarımız
                 </Text>
 
                 <View className="w-8 h-8 rounded-full bg-rose-100 items-center justify-center">

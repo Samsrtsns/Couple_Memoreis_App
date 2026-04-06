@@ -29,17 +29,17 @@ export default function RelationshipScreen() {
                 relationship_start_date: startDate ? startDate.toISOString() : null,
             });
             await refetch();
-            Alert.alert("Success", "Relationship settings updated successfully.");
+            Alert.alert("Başarılı", "İlişki ayarları başarıyla güncellendi.");
         } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to update relationship settings.");
+            Alert.alert("Hata", error.message || "İlişki ayarları güncellenemedi.");
         } finally {
             setSaving(false);
         }
     };
 
     const formatDate = (date: Date | null) => {
-        if (!date) return 'Not set yet';
-        return date.toLocaleDateString("en-US", {
+        if (!date) return 'Henüz ayarlanmadı';
+        return date.toLocaleDateString("tr-TR", {
             day: "numeric",
             month: "long",
             year: "numeric",
@@ -50,13 +50,13 @@ export default function RelationshipScreen() {
         <View className="flex-1 bg-[#FDF8F7]">
             <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 12 }}>
                 <Text className="text-slate-500 text-sm mb-8">
-                    Manage your partner connection and relation anniversary date.
+                    Partner bağlantınızı ve ilişki yıldönümü tarihinizi buradan yönetin.
                 </Text>
 
                 {/* Partner Info Card */}
                 <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mb-6">
                     <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-4 ml-1">
-                        Connected Partner
+                        Bağlı Partner
                     </Text>
                     {partner ? (
                         <View className="flex-row items-center gap-x-4 bg-rose-50 p-4 rounded-2xl border border-rose-100">
@@ -67,12 +67,12 @@ export default function RelationshipScreen() {
                                 <Text className="text-slate-800 font-bold text-base">
                                     {partner.first_name} {partner.last_name}
                                 </Text>
-                                <Text className="text-rose-500 text-xs font-semibold">Matched and Connected</Text>
+                                <Text className="text-rose-500 text-xs font-semibold">Eşleşti ve Bağlandı</Text>
                             </View>
                         </View>
                     ) : (
                         <View className="bg-slate-50 p-4 rounded-2xl border border-slate-100 items-center">
-                            <Text className="text-slate-400 font-medium italic">No partner connected yet.</Text>
+                            <Text className="text-slate-400 font-medium italic">Henüz bir partnerle bağlantı kurulmadı.</Text>
                         </View>
                     )}
                 </View>
@@ -80,7 +80,7 @@ export default function RelationshipScreen() {
                 {/* Anniversary Setting */}
                 <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
                     <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-4 ml-1">
-                        Our Anniversary
+                        Yıldönümümüz
                     </Text>
                     <TouchableOpacity
                         onPress={() => setShowDatePicker(true)}
@@ -95,7 +95,7 @@ export default function RelationshipScreen() {
                         <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
                     </TouchableOpacity>
                     <Text className="text-[11px] text-slate-400 mt-3 ml-1 leading-4">
-                        This date is used to calculate how long you have been together.
+                        Bu tarih, ne kadar süredir birlikte olduğunuzu hesaplamak için kullanılır.
                     </Text>
                 </View>
 
@@ -121,14 +121,14 @@ export default function RelationshipScreen() {
                     {saving ? (
                         <ActivityIndicator color="white" />
                     ) : (
-                        <Text className="text-white font-bold text-lg">Save Changes</Text>
+                        <Text className="text-white font-bold text-lg">Değişiklikleri Kaydet</Text>
                     )}
                 </TouchableOpacity>
 
                 {/* Unpair Option (Future) */}
                 <TouchableOpacity className="mt-10 items-center">
                     <Text className="text-slate-300 font-bold text-xs uppercase tracking-widest">
-                        Manage Connection Code
+                        Bağlantı Kodunu Yönet
                     </Text>
                 </TouchableOpacity>
             </ScrollView>

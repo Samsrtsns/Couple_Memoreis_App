@@ -17,7 +17,7 @@ type Props = {
 };
 
 function formatDate(dateStr: string) {
-    return new Date(dateStr).toLocaleDateString("en-US", {
+    return new Date(dateStr).toLocaleDateString("tr-TR", {
         month: "long",
         day: "numeric",
         year: "numeric",
@@ -220,7 +220,7 @@ export default function PlaceDetailCard({ place, onClose, onToggleFavorite }: Pr
                             marginBottom: 12,
                         }}
                     >
-                        Our Memories
+                        Bizim Anılarımız
                     </Text>
 
                     {data?.comments.map((comment, index) => {
@@ -304,7 +304,7 @@ export default function PlaceDetailCard({ place, onClose, onToggleFavorite }: Pr
                                 fontSize: 15,
                             }}
                         >
-                            View Memory Archive
+                            Anı Arşivini Gör
                         </Text>
                     </Pressable>
                 </ScrollView>

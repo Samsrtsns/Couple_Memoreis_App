@@ -117,7 +117,7 @@ export default function SharedMapScreen() {
                 setShowAddModal(false);
                 setShowPremiumModal(true);
             } else {
-                Alert.alert('Error', e.message || 'Failed to add place.');
+                Alert.alert('Hata', e.message || 'Yer eklenemedi.');
             }
         } finally {
             // Keep creating true until the animation starts or a bit longer
@@ -151,7 +151,7 @@ export default function SharedMapScreen() {
     const handleCenterOnMe = async () => {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission denied', 'Location access is needed to center the map.');
+            Alert.alert('İzin reddedildi', 'Haritayı ortalamak için konum erişimi gereklidir.');
             return;
         }
         const loc = await Location.getCurrentPositionAsync({});
@@ -295,7 +295,7 @@ export default function SharedMapScreen() {
                             <Ionicons name="warning-outline" size={16} color="#fff" />
                             <Text style={styles.errorBannerText}>{error}</Text>
                             <Pressable onPress={refetch} style={styles.retryBtn}>
-                                <Text style={styles.retryBtnText}>Retry</Text>
+                                <Text style={styles.retryBtnText}>Tekrar Dene</Text>
                             </Pressable>
                         </View>
                     )}
@@ -328,8 +328,8 @@ export default function SharedMapScreen() {
                             <Marker
                                 coordinate={pendingCoords}
                                 pinColor="#F43F5E"
-                                title="New Memory Location"
-                                description="Saving this spot..."
+                                title="Yeni Anı Konumu"
+                                description="Bu nokta kaydediliyor..."
                             />
                         )}
                     </MapView>
@@ -339,7 +339,7 @@ export default function SharedMapScreen() {
                         <View style={styles.noPartnerBanner}>
                             <Ionicons name="people-outline" size={16} color="#64748B" />
                             <Text style={styles.noPartnerText}>
-                                Connect with your partner to share places 💕
+                                Yerleri paylaşmak için partnerinle bağlan 💕
                             </Text>
                         </View>
                     )}
@@ -369,7 +369,7 @@ export default function SharedMapScreen() {
                             android_ripple={null}
                         >
                             <Ionicons name="add-circle-outline" size={20} color="#fff" />
-                            <Text style={styles.addFabText}>Add Our Place</Text>
+                            <Text style={styles.addFabText}>Anı Ekle</Text>
                         </Pressable>
                     )}
 

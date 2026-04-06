@@ -18,7 +18,7 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
     const daysTogether = calculateDaysTogether(relationshipStartDate);
 
     const formattedDate = new Date(relationshipStartDate).toLocaleDateString(
-        "en-US",
+        "tr-TR",
         {
             year: "numeric",
             month: "long",

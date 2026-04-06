@@ -1,11 +1,12 @@
 import { Icons } from "@/assets/icons";
+import PrivacyPolicyModal from "@/src/components/PrivacyPolicyModal";
 import PrimaryButton from "@/src/components/PrimaryButton";
 import Screen from "@/src/components/Screen";
 import { TextInputArea } from "@/src/components/TextInput";
 import { useRegister } from "@/src/hooks/useRegister";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
     Image,
     Platform,
@@ -32,6 +33,13 @@ export default function RegisterScreen() {
         loading,
         handleRegister,
     } = useRegister();
+
+    const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+    const handleAcceptTerms = () => {
+        setAccepted(true);
+        setShowPrivacyModal(false);
+    };
 
     return (
         <Screen>
@@ -62,47 +70,47 @@ export default function RegisterScreen() {
 
                     {/* Title */}
                     <View className="px-6 pt-1 pb-8">
-                        <Text className="text-[36px] font-extrabold leading-tight text-bgDark">
-                            Save yours{"\n"}
-                            <Text className="text-primary">memories.</Text>
+                        <Text className="text-[36px] font-extrabold leading-tight text-bgDark" style={{ fontFamily: 'InterBlack' }}>
+                            Anılarınızı{"\n"}
+                            <Text className="text-primary">biriktirin.</Text>
                         </Text>
 
-                        <Text className="text-slate500 text-base font-medium leading-relaxed pt-2">
-                            Preserve every moment together in your shared digital sanctuary.
+                        <Text className="text-slate-500 text-base font-medium leading-relaxed pt-2">
+                            Birlikte her anınızı ortak dijital sığınağınızda saklayın.
                         </Text>
                     </View>
 
                     {/* Form */}
                     <View className="px-6 gap-y-6">
                         <TextInputArea
-                            label="First Name"
+                            label="Ad"
                             value={firstName}
                             onChangeText={setFirstName}
-                            placeholder="exp: John"
+                            placeholder="örn: Can"
                             keyboardType="default"
                             autoCapitalize="words"
                         />
 
                         <TextInputArea
-                            label="Last Name"
+                            label="Soyad"
                             value={lastName}
                             onChangeText={setLastName}
-                            placeholder="exp: Doe"
+                            placeholder="örn: Yılmaz"
                             keyboardType="default"
                             autoCapitalize="words"
                         />
 
                         <TextInputArea
-                            label="Email"
+                            label="E-posta"
                             value={email}
                             onChangeText={setEmail}
-                            placeholder="hello@ourlove.com"
+                            placeholder="merhaba@askimiz.com"
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
 
                         <TextInputArea
-                            label="Password"
+                            label="Şifre"
                             value={password}
                             onChangeText={setPass}
                             placeholder="••••••••"
@@ -118,70 +126,71 @@ export default function RegisterScreen() {
                         />
 
                         {/* Terms */}
-                        <Pressable
-                            onPress={() => setAccepted((v) => !v)}
-                            className="flex-row items-center gap-x-3 py-1"
-                        >
-                            <View
+                        <View className="flex-row items-center gap-x-3 py-1">
+                            <Pressable
+                                onPress={() => setAccepted((v) => !v)}
                                 className={[
                                     "w-5 h-5 rounded-full border items-center justify-center",
                                     accepted
                                         ? "bg-primary border-primary"
-                                        : "bg-white border-slate200",
+                                        : "bg-white border-slate-200",
                                 ].join(" ")}
                             >
                                 {accepted ? (
                                     <Ionicons name="checkmark" size={12} color="#fff" />
                                 ) : null}
-                            </View>
+                            </Pressable>
 
-                            <Text className="text-[13px] text-slate500 font-medium flex-1">
-                                I agree to the{" "}
-                                <Text className="text-slate900 font-bold underline">
-                                    Terms & Privacy
+                            <Text className="text-[13px] text-slate-500 font-medium flex-1">
+                                <Text
+                                    onPress={() => setShowPrivacyModal(true)}
+                                    className="text-slate-900 font-bold underline"
+                                >
+                                    Kullanım Şartları ve Gizlilik Politikası
                                 </Text>
+                                'nı kabul ediyorum.
                             </Text>
-                        </Pressable>
+                        </View>
 
                         <PrimaryButton
-                            title="Create Account"
+                            title="Hesap Oluştur"
                             loading={loading}
                             onPress={handleRegister}
                         />
 
                         {/* Divider */}
                         <View className="flex-row items-center gap-x-4 pt-2 px-1">
-                            <View className="h-[1px] flex-1 bg-slate200" />
-                            <Text className="text-xs font-medium text-slate400 uppercase tracking-widest">
-                                Or continue with
+                            <View className="h-[1px] flex-1 bg-slate-200" />
+                            <Text className="text-xs font-medium text-slate-400 uppercase tracking-widest">
+                                Veya şununla devam et
                             </Text>
-                            <View className="h-[1px] flex-1 bg-slate200" />
+                            <View className="h-[1px] flex-1 bg-slate-200" />
                         </View>
 
                         {/* Social Buttons */}
                         <View className="flex-row gap-x-4">
                             <Pressable
                                 onPress={() => { }}
-                                className="flex-1 h-14 border border-slate200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
+                                className="flex-1 h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
                             >
                                 <Image source={Icons.google} className="w-5 h-5" />
-                                <Text className="font-semibold text-slate700">Google</Text>
+                                <Text className="font-semibold text-slate-700">Google</Text>
                             </Pressable>
 
                             <Pressable
                                 onPress={() => { }}
-                                className="flex-1 h-14 border border-slate200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
+                                className="flex-1 h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
                             >
                                 <Image source={Icons.apple} className="w-5 h-5" />
-                                <Text className="font-semibold text-slate700">Apple</Text>
+                                <Text className="font-semibold text-slate-700">Apple</Text>
                             </Pressable>
                         </View>
                     </View>
 
                     {/* Footer */}
                     <View className="pt-10 pb-6 items-center px-6 flex-row justify-center">
-                        <Text className="text-slate400 text-sm font-medium">
-                            Already have an account?{" "}
+                        <Text className="text-slate-400 text-sm font-medium">
+                            Zaten hesabın var mı?{" "}
                         </Text>
 
                         <Pressable
@@ -193,11 +202,18 @@ export default function RegisterScreen() {
                                 },
                             ]}
                         >
-                            <Text className="text-primary font-bold text-sm">Log In →</Text>
+                            <Text className="text-primary font-bold text-sm">Giriş Yap →</Text>
                         </Pressable>
                     </View>
+
                 </View>
             </KeyboardAwareScrollView>
+
+            <PrivacyPolicyModal 
+                visible={showPrivacyModal} 
+                onClose={() => setShowPrivacyModal(false)}
+                onAccept={handleAcceptTerms}
+            />
         </Screen>
     );
 }

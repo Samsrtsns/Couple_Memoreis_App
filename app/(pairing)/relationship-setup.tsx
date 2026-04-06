@@ -41,11 +41,11 @@ export default function RelationshipSetupScreen() {
             {/* Header */}
             <View className="items-center mt-6 px-3">
                 <Text className="text-[26px] font-bold text-slate-900 text-center">
-                    One Last Step
+                    Son Bir Adım
                 </Text>
                 <Text className="text-[14px] text-slate-500 text-center mt-2 leading-5">
-                    Enter your and your partner&apos;s birthday, and the date your
-                    relationship started. These details will be saved for both of you.
+                    Kendi doğum gününü, partnerininkini ve ilişkinizin başladığı tarihi girin.
+                    Bu detaylar ikiniz için de kaydedilecektir.
                 </Text>
             </View>
 
@@ -53,7 +53,7 @@ export default function RelationshipSetupScreen() {
             <View className="mt-10 bg-white rounded-3xl p-5 shadow-sm">
                 {/* My Birthday */}
                 <Text className="text-sm font-semibold text-slate-700 mb-3">
-                    Your Birthday
+                    Senin Doğum Günün
                 </Text>
 
                 <Pressable
@@ -68,7 +68,7 @@ export default function RelationshipSetupScreen() {
 
                 {/* Partner Birthday */}
                 <Text className="text-sm font-semibold text-slate-700 mt-6 mb-3">
-                    Partner&apos;s Birthday
+                    Partnerinin Doğum Günü
                 </Text>
 
                 <Pressable
@@ -83,7 +83,7 @@ export default function RelationshipSetupScreen() {
 
                 {/* Relationship Start */}
                 <Text className="text-sm font-semibold text-slate-700 mt-6 mb-3">
-                    Relationship Start Date
+                    İlişki Başlangıç Tarihi
                 </Text>
 
                 <Pressable
@@ -132,10 +132,10 @@ export default function RelationshipSetupScreen() {
                                 <Pressable className="bg-white rounded-t-3xl p-5 shadow-lg max-h-[40%]">
                                     <View className="flex-row justify-between items-center px-4 mb-2">
                                         <Text className="font-bold text-slate-800 text-lg">
-                                            Select Date
+                                            Tarih Seç
                                         </Text>
                                         <Pressable onPress={closePicker}>
-                                            <Text className="text-[#ea5385] font-bold text-base">Done</Text>
+                                            <Text className="text-[#ea5385] font-bold text-base">Bitti</Text>
                                         </Pressable>
                                     </View>
                                     <DateTimePicker

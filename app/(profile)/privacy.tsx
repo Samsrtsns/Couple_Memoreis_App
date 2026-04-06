@@ -39,7 +39,7 @@ export default function PrivacyPolicyScreen() {
         return (
             <View className="flex-1 bg-[#FDF8F7] items-center justify-center">
                 <ActivityIndicator size="large" color="#ea5385" />
-                <Text className="mt-4 text-slate-400 font-medium tracking-wide">Loading Privacy Policy...</Text>
+                <Text className="mt-4 text-slate-400 font-medium tracking-wide">Gizlilik Politikası yükleniyor...</Text>
             </View>
         );
     }
@@ -50,15 +50,15 @@ export default function PrivacyPolicyScreen() {
                 <View className="w-16 h-16 bg-rose-50 rounded-full items-center justify-center mb-4">
                     <Ionicons name="warning-outline" size={32} color="#F43F5E" />
                 </View>
-                <Text className="text-slate-800 text-lg font-bold text-center">Connection Error</Text>
+                <Text className="text-slate-800 text-lg font-bold text-center">Bağlantı Hatası</Text>
                 <Text className="text-slate-500 text-center mt-2 leading-5">
-                    Unable to load privacy policy. Please check your connection and try again.
+                    Gizlilik politikası yüklenemedi. Lütfen bağlantınızı kontrol edip tekrar deneyin.
                 </Text>
                 <Pressable 
                     onPress={fetchPolicy}
                     className="mt-8 bg-rose-500 px-8 py-3 rounded-full active:opacity-80"
                 >
-                    <Text className="text-white font-bold">Retry</Text>
+                    <Text className="text-white font-bold">Tekrar Dene</Text>
                 </Pressable>
             </View>
         );
@@ -71,7 +71,7 @@ export default function PrivacyPolicyScreen() {
                 contentContainerStyle={{ padding: 24, paddingBottom: 48 }}
             >
                 <Text className="text-slate-700 text-base leading-6 tracking-wide">
-                    {policy || 'No policy content available.'}
+                    {policy || 'Henüz politika içeriği bulunmamaktadır.'}
                 </Text>
             </ScrollView>
         </SafeAreaView>

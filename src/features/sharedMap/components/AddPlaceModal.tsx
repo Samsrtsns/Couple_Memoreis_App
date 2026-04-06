@@ -72,19 +72,19 @@ export default function AddPlaceModal({
         const trimmedTitle = title.trim();
 
         if (!trimmedTitle || trimmedTitle.length < 2) {
-            setTitleError('Place name must be at least 2 characters.');
+            setTitleError('Yer adı en az 2 karakter olmalıdır.');
             return;
         }
 
         if (trimmedTitle.length > 80) {
-            setTitleError('Place name must be under 80 characters.');
+            setTitleError('Yer adı 80 karakterden az olmalıdır.');
             return;
         }
 
         if (!initialCoords) {
             Alert.alert(
-                'Location not available',
-                'Could not get your location. Try long-pressing on the map to add a place manually.'
+                'Konum mevcut değil',
+                'Konumunuz alınamadı. Haritaya uzun basarak manuel yer eklemeyi deneyin.'
             );
             return;
         }
@@ -99,7 +99,7 @@ export default function AddPlaceModal({
                 visited_at: visitedAt ? visitedAt.toISOString() : undefined,
             });
         } catch (e: any) {
-            Alert.alert('Error', e?.message ?? 'Failed to save place. Please try again.');
+            Alert.alert('Hata', e?.message ?? 'Yer kaydedilemedi. Lütfen tekrar deneyin.');
         }
     };
 
@@ -108,12 +108,12 @@ export default function AddPlaceModal({
     }, [title, loading]);
 
     const formattedDate = visitedAt
-        ? visitedAt.toLocaleDateString('en-US', {
+        ? visitedAt.toLocaleDateString('tr-TR', {
             month: 'long',
             day: 'numeric',
             year: 'numeric',
         })
-        : 'Select a date (optional)';
+        : 'Tarih seçin (isteğe bağlı)';
 
     return (
         <>
@@ -157,10 +157,10 @@ export default function AddPlaceModal({
 
                             <View className="flex-1">
                                 <Text className="text-[18px] font-extrabold text-slate-800">
-                                    Save This Place
+                                    Bu Yeri Kaydet
                                 </Text>
                                 <Text className="mt-0.5 text-[12px] text-slate-400">
-                                    Add it to your shared memory map 💕
+                                    Ortak anı haritanıza ekleyin 💕
                                 </Text>
                             </View>
                         </View>
@@ -175,7 +175,7 @@ export default function AddPlaceModal({
 
                             {/* Title */}
                             <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
-                                PLACE NAME *
+                                YER ADI *
                             </Text>
 
                             <TextInput
@@ -184,7 +184,7 @@ export default function AddPlaceModal({
                                     setTitle(t);
                                     setTitleError('');
                                 }}
-                                placeholder="e.g. Our First Coffee Date ☕"
+                                placeholder="Örn: İlk Kahve Randevumuz ☕"
                                 placeholderTextColor="#CBD5E1"
                                 className={`rounded-2xl border px-4 text-[15px] text-slate-800 ${title ? 'border-rose-500' : 'border-slate-200'
                                     } bg-slate-50`}
@@ -204,13 +204,13 @@ export default function AddPlaceModal({
 
                             {/* Description */}
                             <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
-                                MEMORY NOTE
+                                ANI NOTU
                             </Text>
 
                             <TextInput
                                 value={description}
                                 onChangeText={setDescription}
-                                placeholder="What made this place special?"
+                                placeholder="Bu yeri özel kılan neydi?"
                                 placeholderTextColor="#CBD5E1"
                                 multiline
                                 textAlignVertical="top"
@@ -222,7 +222,7 @@ export default function AddPlaceModal({
 
                             {/* Date */}
                             <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
-                                DATE VISITED
+                                ZİYARET TARİHİ
                             </Text>
 
                             <Pressable
@@ -283,7 +283,7 @@ export default function AddPlaceModal({
                                         className="items-end bg-rose-50 px-4 py-3"
                                     >
                                         <Text className="text-[15px] font-bold text-black">
-                                            Done
+                                            Bitti
                                         </Text>
                                     </Pressable>
                                 </View>
@@ -297,7 +297,7 @@ export default function AddPlaceModal({
                                     className="mr-3 flex-1 items-center justify-center rounded-2xl bg-slate-100 py-4"
                                 >
                                     <Text className="text-[15px] font-bold text-slate-500">
-                                        Cancel
+                                        Vazgeç
                                     </Text>
                                 </Pressable>
 
@@ -314,7 +314,7 @@ export default function AddPlaceModal({
                                         <>
                                             <Ionicons name="heart" size={16} color="#fff" />
                                             <Text className="ml-2 text-[15px] font-bold text-white">
-                                                Save Memory
+                                                Anıyı Kaydet
                                             </Text>
                                         </>
                                     )}

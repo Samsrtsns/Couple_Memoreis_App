@@ -5,6 +5,8 @@ import SpecialDayCard from "@/src/components/SpecialDayCard";
 import { useAuth } from "@/src/context/AuthContext";
 import { useMemories } from "@/src/features/memories/hooks/useMemories";
 import { useSharedPlaces } from "@/src/features/sharedMap/hooks/useSharedPlaces";
+import { useSpecialDays } from "@/src/features/specialDays/hooks/useSpecialDays";
+import { iconNameForSpecialDayId } from "@/src/features/specialDays/utils/specialDayIcons";
 import { calculateDaysRemaining, SpecialEvent } from "@/src/utils/dateUtils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
@@ -17,45 +19,55 @@ export default function HomeScreen() {
 
     const { memories } = useMemories();
     const { places } = useSharedPlaces();
+    const { specialDays } = useSpecialDays();
 
     const upcomingEvents = useMemo(() => {
-        const events: SpecialEvent[] = [
+        const builtin: SpecialEvent[] = [
             {
                 id: "1",
-                title: "Partner's Birthday",
+                title: "Partnerin Doğum Günü",
                 date: partner?.birth_date || "2000-01-01",
                 isYearly: true,
                 iconName: "gift",
             },
             {
                 id: "2",
-                title: "Valentine's Day",
+                title: "Sevgililer Günü",
                 date: "2026-02-14",
                 isYearly: true,
                 iconName: "heart",
             },
             {
                 id: "3",
-                title: "New Year",
+                title: "Yılbaşı",
                 date: "2026-01-01",
                 isYearly: true,
                 iconName: "sparkles",
             },
             {
                 id: "4",
-                title: "Anniversary",
-                date: profile?.relationship_start_date || "2024-01-01",
+                title: "Yıldönümü",
+                date: profile?.relationship_start_date || "2000-01-01",
                 isYearly: true,
                 iconName: "calendar",
             },
         ];
 
+        const fromDb: SpecialEvent[] = specialDays.map((s) => ({
+            id: s.id,
+            title: s.title,
+            date: s.special_date,
+            isYearly: true,
+            iconName: iconNameForSpecialDayId(s.id),
+        }));
+
+        const events = [...builtin, ...fromDb];
         return events.sort(
             (a, b) =>
                 calculateDaysRemaining(a.date, a.isYearly) -
                 calculateDaysRemaining(b.date, b.isYearly)
         );
-    }, [partner?.birth_date, profile?.relationship_start_date]);
+    }, [partner?.birth_date, profile?.relationship_start_date, specialDays]);
 
     return (
         <Screen>
@@ -67,13 +79,13 @@ export default function HomeScreen() {
                 <View className="pt-4 px-6 flex-row justify-between items-center">
                     <View className="flex-1 mr-4">
                         <Text className="text-slate-500 font-medium text-[14px]">
-                            Welcome back
+                            Tekrar hoş geldin
                         </Text>
                         <Text
                             className="text-slate-800 font-extrabold text-[28px] mt-1"
                             numberOfLines={1}
                         >
-                            {profile?.first_name || "User"} 👋🏻
+                            {profile?.first_name || "Kullanıcı"} 👋🏻
                         </Text>
                     </View>
                 </View>
@@ -91,7 +103,7 @@ export default function HomeScreen() {
                 <View className="mt-6">
                     <View className="px-6 flex-row items-center justify-between mb-4">
                         <Text className="text-slate-800 font-bold text-lg">
-                            Special Days
+                            Özel Günler
                         </Text>
 
                         <Pressable
@@ -99,7 +111,7 @@ export default function HomeScreen() {
                             className="flex-row items-center"
                         >
                             <Text className="text-rose-500 font-semibold text-sm mr-1">
-                                View All
+                                Hepsini Gör
                             </Text>
                             <Ionicons
                                 name="chevron-forward"

@@ -52,7 +52,7 @@ export default function RelationshipDashboard({
                     {memoriesCount}
                 </Text>
                 <Text className="text-slate-400 font-medium text-[11px] mt-0.5">
-                    Memories
+                    Anılar
                 </Text>
             </TouchableOpacity>
 
@@ -70,7 +70,7 @@ export default function RelationshipDashboard({
                     {placesCount}
                 </Text>
                 <Text className="text-slate-400 font-medium text-[11px] mt-0.5">
-                    Places
+                    Yerler
                 </Text>
             </TouchableOpacity>
 
@@ -83,13 +83,13 @@ export default function RelationshipDashboard({
                     <Ionicons name="calendar" size={20} color="#F43F5E" />
                 </View>
                 <Text className="text-slate-800 font-bold text-lg leading-tight mt-1">
-                    {daysRemaining !== null ? `${daysRemaining}d` : "-"}
+                    {daysRemaining !== null ? `${daysRemaining}g` : "-"}
                 </Text>
                 <Text
                     className="text-slate-400 font-medium text-[11px] mt-0.5"
                     numberOfLines={1}
                 >
-                    {nearestEvent ? nearestEvent.title : "Events"}
+                    {nearestEvent ? nearestEvent.title : "Etkinlikler"}
                 </Text>
             </View>
         </View>
