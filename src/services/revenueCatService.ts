@@ -16,24 +16,57 @@ try {
     // Native modules not available (Expo Go)
 }
 
-const REVENUECAT_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_API_KEY || 'placeholder';
-const ENTITLEMENT_ID = 'Memories Premium';
+const REVENUECAT_IOS_KEY =
+    process.env.EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY?.trim() ||
+    process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY?.trim() ||
+    '';
+const REVENUECAT_ANDROID_KEY =
+    process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY?.trim() ||
+    process.env.EXPO_PUBLIC_REVENUECAT_API_KEY?.trim() ||
+    '';
+
+const ENTITLEMENT_ID = 'For Lovers Pro';
+
+function resolveRevenueCatApiKey(): string {
+    if (Platform.OS === 'ios') {
+        if (!REVENUECAT_IOS_KEY) {
+            throw new Error(
+                '[RevenueCat] iOS key missing. Set EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY (or EXPO_PUBLIC_REVENUECAT_IOS_API_KEY).'
+            );
+        }
+        return REVENUECAT_IOS_KEY;
+    }
+    if (Platform.OS === 'android') {
+        if (!REVENUECAT_ANDROID_KEY) {
+            throw new Error(
+                '[RevenueCat] Android key missing. Set EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY (or EXPO_PUBLIC_REVENUECAT_API_KEY).'
+            );
+        }
+        return REVENUECAT_ANDROID_KEY;
+    }
+    throw new Error('[RevenueCat] Unsupported platform for Purchases.configure');
+}
 
 // Check if we should use mock mode (Expo Go or missing native module)
 const isMockMode = Constants.appOwnership === 'expo' || !Purchases;
+let hasLoggedMockMode = false;
 
 export const initRevenueCat = async () => {
     if (isMockMode) {
-        console.log('[RevenueCat] Running in Mock Mode (Expo Go)');
+        if (!hasLoggedMockMode) {
+            hasLoggedMockMode = true;
+            console.log('[RevenueCat] Running in Mock Mode (Expo Go)');
+        }
         return;
     }
 
     const { LOG_LEVEL } = require('react-native-purchases');
     Purchases.setLogLevel(LOG_LEVEL.VERBOSE);
 
-    if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        Purchases.configure({ apiKey: REVENUECAT_API_KEY });
-    }
+    if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
+
+    const apiKey = resolveRevenueCatApiKey();
+    Purchases.configure({ apiKey });
 };
 
 /**

@@ -9,6 +9,7 @@
       "distribution": "internal"
     },
     "preview": {
+      "environment": "preview",
       "distribution": "internal",
       "node": "22.12.0",
       "env": {
@@ -20,6 +21,7 @@
       }
     },
     "production": {
+      "environment": "production",
       "autoIncrement": true,
       "node": "22.12.0",
       "env": {

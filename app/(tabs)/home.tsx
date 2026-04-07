@@ -16,13 +16,14 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 export default function HomeScreen() {
     const { state } = useAuth();
     const { profile, partner } = state;
+    const hasPartner = !!partner?.id;
 
     const { memories } = useMemories();
     const { places } = useSharedPlaces();
     const { specialDays } = useSpecialDays();
 
     const upcomingEvents = useMemo(() => {
-        const builtin: SpecialEvent[] = [
+        const builtinCouple: SpecialEvent[] = [
             {
                 id: "1",
                 title: "Partnerin Doğum Günü",
@@ -53,6 +54,25 @@ export default function HomeScreen() {
             },
         ];
 
+        const builtinSolo: SpecialEvent[] = [
+            {
+                id: "solo-2",
+                title: "Sevgililer Günü",
+                date: "2026-02-14",
+                isYearly: true,
+                iconName: "heart",
+            },
+            {
+                id: "solo-3",
+                title: "Yılbaşı",
+                date: "2026-01-01",
+                isYearly: true,
+                iconName: "sparkles",
+            },
+        ];
+
+        const builtin = hasPartner ? builtinCouple : builtinSolo;
+
         const fromDb: SpecialEvent[] = specialDays.map((s) => ({
             id: s.id,
             title: s.title,
@@ -67,7 +87,7 @@ export default function HomeScreen() {
                 calculateDaysRemaining(a.date, a.isYearly) -
                 calculateDaysRemaining(b.date, b.isYearly)
         );
-    }, [partner?.birth_date, profile?.relationship_start_date, specialDays]);
+    }, [hasPartner, partner?.birth_date, profile?.relationship_start_date, specialDays]);
 
     return (
         <Screen>
@@ -91,13 +111,16 @@ export default function HomeScreen() {
                 </View>
 
                 <RelationshipCard
-                    relationshipStartDate={profile?.relationship_start_date}
+                    relationshipStartDate={
+                        hasPartner ? profile?.relationship_start_date : null
+                    }
                 />
 
                 <RelationshipDashboard
                     memoriesCount={memories?.length || 0}
                     placesCount={places?.length || 0}
-                    nearestEvent={upcomingEvents[0]}
+                    nearestEvent={hasPartner ? upcomingEvents[0] : undefined}
+                    isLinked={hasPartner}
                 />
 
                 <View className="mt-6">
@@ -107,7 +130,7 @@ export default function HomeScreen() {
                         </Text>
 
                         <Pressable
-                            onPress={() => router.push("/(events)")}
+                            onPress={() => router.push("/(events)" as any)}
                             className="flex-row items-center"
                         >
                             <Text className="text-rose-500 font-semibold text-sm mr-1">

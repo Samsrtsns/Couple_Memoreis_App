@@ -103,7 +103,7 @@ export default function LoginScreen() {
                                         />
 
                                         <View className="items-end px-1">
-                                            <Pressable onPress={() => { }}>
+                                            <Pressable onPress={() => router.push("/(auth)/forgot-password")}>
                                                 <Text className="text-sm font-medium text-primary">
                                                     Şifremi Unuttum?
                                                 </Text>

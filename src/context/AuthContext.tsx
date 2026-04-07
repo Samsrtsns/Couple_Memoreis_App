@@ -158,8 +158,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth event:', event);
 
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'PASSWORD_RECOVERY') {
                 if (session) {
+                    // If it's a password recovery, we don't necessarily want to fetch the full profile 
+                    // and redirect to home yet. The session is valid for updating the user.
+                    if (event === 'PASSWORD_RECOVERY') {
+                        console.log('Password recovery mode detected');
+                        // We still need to set the session in state so the user is "authenticated" 
+                        // enough to call updateUser, but we might want a different action 
+                        // or just skip the profile fetch to avoid redirects.
+                    }
+
                     try {
                         dispatch({ type: 'FETCH_PROFILE_START' });
                         const { profile, partner } = await getProfileWithPartner();

@@ -2,14 +2,18 @@
  * AddPlaceModal
  *
  * NativeWind + swipe-to-close + keyboard-safe + scrollable bottom sheet
+ * Integrated with expo-image-picker for photo upload
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Image,
     Keyboard,
     KeyboardAvoidingView,
     Platform,
@@ -21,7 +25,16 @@ import {
 } from 'react-native';
 import Modal from 'react-native-modal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { CreateSharedPlacePayload } from '../types/sharedPlace.types';
+
+export type CreateSharedPlacePayload = {
+    title: string;
+    description?: string;
+    latitude: number;
+    longitude: number;
+    address?: string;
+    visited_at?: string;
+    imageUri?: string;
+};
 
 type Props = {
     visible: boolean;
@@ -44,6 +57,7 @@ export default function AddPlaceModal({
     const [description, setDescription] = useState('');
     const [address, setAddress] = useState('');
     const [visitedAt, setVisitedAt] = useState<Date | null>(null);
+    const [imageUri, setImageUri] = useState<string | null>(null);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [titleError, setTitleError] = useState('');
 
@@ -53,6 +67,7 @@ export default function AddPlaceModal({
             setDescription('');
             setAddress('');
             setVisitedAt(null);
+            setImageUri(null);
             setShowDatePicker(false);
             setTitleError('');
         }
@@ -63,6 +78,34 @@ export default function AddPlaceModal({
         Keyboard.dismiss();
         setShowDatePicker(false);
         onClose();
+    };
+
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('İzin Gerekli', 'Fotoğraf seçmek için galeriye erişim izni vermeniz gerekiyor.');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+            try {
+                const compressed = await ImageManipulator.manipulateAsync(
+                    result.assets[0].uri,
+                    [{ resize: { width: 800 } }],
+                    { compress: 0.4, format: ImageManipulator.SaveFormat.JPEG }
+                );
+                setImageUri(compressed.uri);
+            } catch {
+                setImageUri(result.assets[0].uri);
+            }
+        }
     };
 
     const handleSave = async () => {
@@ -97,6 +140,7 @@ export default function AddPlaceModal({
                 longitude: initialCoords.longitude,
                 address: address.trim() || undefined,
                 visited_at: visitedAt ? visitedAt.toISOString() : undefined,
+                imageUri: imageUri || undefined,
             });
         } catch (e: any) {
             Alert.alert('Hata', e?.message ?? 'Yer kaydedilemedi. Lütfen tekrar deneyin.');
@@ -154,7 +198,6 @@ export default function AddPlaceModal({
 
                         {/* Header */}
                         <View className="mb-4 flex-row items-center">
-
                             <View className="flex-1">
                                 <Text className="text-[18px] font-extrabold text-slate-800">
                                     Bu Yeri Kaydet
@@ -172,6 +215,35 @@ export default function AddPlaceModal({
                             contentContainerStyle={{ paddingBottom: 8 }}
                         >
 
+                            {/* Photo Picker */}
+                            <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
+                                FOTOĞRAF EKLE
+                            </Text>
+
+                            <Pressable 
+                                onPress={pickImage}
+                                className="h-64 w-full items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden"
+                            >
+                                {imageUri ? (
+                                    <>
+                                        <Image source={{ uri: imageUri }} className="h-full w-full" />
+                                        <Pressable 
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                setImageUri(null);
+                                            }}
+                                            className="absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full bg-black/50"
+                                        >
+                                            <Ionicons name="close" size={20} color="white" />
+                                        </Pressable>
+                                    </>
+                                ) : (
+                                    <View className="items-center">
+                                        <Ionicons name="camera-outline" size={32} color="#94A3B8" />
+                                        <Text className="mt-2 text-sm text-slate-400 font-medium">Fotoğraf Seç</Text>
+                                    </View>
+                                )}
+                            </Pressable>
 
                             {/* Title */}
                             <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
@@ -273,7 +345,7 @@ export default function AddPlaceModal({
                                         accentColor="#000000"
                                         textColor="#000000"
                                         themeVariant="light"
-                                        onChange={(_event, date) => {
+                                        onChange={(_event: DateTimePickerEvent, date?: Date) => {
                                             if (date) setVisitedAt(date);
                                         }}
                                     />
@@ -332,7 +404,7 @@ export default function AddPlaceModal({
                     mode="date"
                     display="default"
                     maximumDate={new Date()}
-                    onChange={(_event, date) => {
+                    onChange={(_event: DateTimePickerEvent, date?: Date) => {
                         setShowDatePicker(false);
                         if (date) setVisitedAt(date);
                     }}

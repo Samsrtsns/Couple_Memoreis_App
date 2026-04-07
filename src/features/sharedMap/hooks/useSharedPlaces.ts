@@ -18,7 +18,7 @@ export type UseSharedPlacesReturn = {
         latitude: number;
         longitude: number;
         address?: string;
-        photoUrl?: string;
+        imageUri?: string;
         visitedAt?: string;
     }) => Promise<SharedPlace>;
     refetch: () => Promise<void>;
@@ -86,13 +86,20 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
         };
     }, [currentUserId, loadPlaces]);
 
+    /** Partner yokken (unlink sonrası) liste sunucudan yeniden çekilir; silinen kayıtlar böyle anında boşalır */
+    useEffect(() => {
+        if (!currentUserId) return;
+        if (partner?.id) return;
+        loadPlaces(true);
+    }, [currentUserId, partner?.id, loadPlaces]);
+
     const handleAddPlace = async (params: {
         title: string;
         description?: string;
         latitude: number;
         longitude: number;
         address?: string;
-        photoUrl?: string;
+        imageUri?: string;
         visitedAt?: string;
     }) => {
         if (!currentUserId || !partnerId) {

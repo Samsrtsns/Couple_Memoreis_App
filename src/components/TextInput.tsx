@@ -12,6 +12,7 @@ type InputAreaProps = {
 
     right?: React.ReactNode;
     onRightPress?: () => void;
+    editable?: boolean;
 };
 
 export function TextInputArea({
@@ -24,6 +25,7 @@ export function TextInputArea({
     secureTextEntry = false,
     right,
     onRightPress,
+    editable = true,
 }: InputAreaProps) {
     const [focused, setFocused] = useState(false);
 
@@ -49,6 +51,7 @@ export function TextInputArea({
                     secureTextEntry={secureTextEntry}
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
+                    editable={editable}
                     textAlign="left"
                     style={{
                         paddingLeft: 16,

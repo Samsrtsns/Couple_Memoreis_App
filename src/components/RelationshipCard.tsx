@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { calculateDaysTogether } from "../utils/dateUtils";
 import ProfileAvatar from "./ProfileAvatar";
@@ -12,6 +13,45 @@ type Props = {
 export default function RelationshipCard({ relationshipStartDate }: Props) {
     const { state } = useAuth();
     const { profile, partner } = state;
+
+    const hasPartner = !!partner?.id;
+
+    /** Unlink sonrası: profilde tarih kalsa bile çift kartı gösterme */
+    if (!hasPartner) {
+        return (
+            <View className="px-6 bg-bgLight">
+                <View
+                    className="w-full mt-6 p-6 bg-bgLight border border-dashed border-rose-200"
+                    style={{
+                        borderRadius: 24,
+                        shadowColor: "#FF8A8A",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.12,
+                        shadowRadius: 12,
+                        elevation: 3,
+                    }}
+                >
+                    <View className="items-center">
+                        <View className="w-16 h-16 rounded-full bg-rose-50 items-center justify-center mb-3">
+                            <Ionicons name="people-outline" size={32} color="#F43F5E" />
+                        </View>
+                        <Text className="text-slate-900 font-bold text-lg text-center">
+                            Şu an eşleşmiş değilsin
+                        </Text>
+                        <Text className="text-slate-500 text-sm text-center mt-2 leading-5 px-1">
+                            Partnerınla bağlandığında birlikte gün sayacı ve ortak alanlar burada görünür.
+                        </Text>
+                        <Pressable
+                            onPress={() => router.push("/(pairing)/pair")}
+                            className="mt-5 bg-[#ea5385] px-6 py-3 rounded-2xl active:opacity-90"
+                        >
+                            <Text className="text-white font-bold text-[15px]">Partner ile eşleş</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        );
+    }
 
     if (!relationshipStartDate) return null;
 

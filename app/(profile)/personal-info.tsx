@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { useProfile } from '@/src/hooks/useProfile';
 import { updateProfile } from '@/src/services/profileService';
 import { deleteUserAccount } from '@/src/services/accountService';
@@ -87,7 +87,15 @@ export default function PersonalInfoScreen() {
 
     return (
         <View className="flex-1 bg-[#FDF8F7]">
-            <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 12 }}>
+            <KeyboardAvoidingView
+                className="flex-1"
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
+            >
+            <ScrollView
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ padding: 24, paddingTop: 12, paddingBottom: 120 }}
+            >
                 <Text className="text-slate-500 text-sm mb-8">
                     Adınızı, doğum tarihinizi ve e-posta adresinizi buradan yönetebilirsiniz.
                 </Text>
@@ -200,6 +208,7 @@ export default function PersonalInfoScreen() {
                     </Text>
                 </View>
             </ScrollView>
+            </KeyboardAvoidingView>
         </View>
     );
 }

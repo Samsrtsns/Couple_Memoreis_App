@@ -67,7 +67,7 @@ export type CreateSharedPlacePayload = {
     address?: string;
     google_place_id?: string;
     visited_at?: string;
-    photo_url?: string;
+    imageUri?: string;
 };
 
 export type CreateCommentPayload = {

@@ -1,3 +1,4 @@
+import { useAuth } from '@/src/context/AuthContext';
 import { getCurrentProfile } from '@/src/features/memories/services/memoriesService';
 import { getPairUserIds } from '@/src/features/memories/utils/pair.utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -24,6 +25,7 @@ export type UseSpecialDaysResult = {
 };
 
 export function useSpecialDays(): UseSpecialDaysResult {
+    const { state: authState } = useAuth();
     const [specialDays, setSpecialDays] = useState<SpecialDay[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -73,6 +75,16 @@ export function useSpecialDays(): UseSpecialDaysResult {
     useEffect(() => {
         load();
     }, [load]);
+
+    useEffect(() => {
+        if (!authState.isInitialized) return;
+        const pid = authState.profile?.partner_id ?? null;
+        if (pid != null) return;
+        if (!currentUserIdRef.current) return;
+        partnerIdRef.current = null;
+        setPartnerId(null);
+        setSpecialDays([]);
+    }, [authState.isInitialized, authState.profile?.partner_id]);
 
     useEffect(() => {
         if (!currentUserId || !partnerId) return;

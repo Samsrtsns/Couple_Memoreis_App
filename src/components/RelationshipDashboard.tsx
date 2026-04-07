@@ -8,19 +8,22 @@ interface RelationshipDashboardProps {
     memoriesCount: number;
     placesCount: number;
     nearestEvent?: SpecialEvent;
+    /** Partner yokken üçüncü kutu “eşleş” mesajı gösterir */
+    isLinked?: boolean;
 }
 
 export default function RelationshipDashboard({
     memoriesCount,
     placesCount,
     nearestEvent,
+    isLinked = true,
 }: RelationshipDashboardProps) {
     const router = useRouter();
 
     const daysRemaining = useMemo(() => {
-        if (!nearestEvent) return null;
+        if (!isLinked || !nearestEvent) return null;
         return calculateDaysRemaining(nearestEvent.date, nearestEvent.isYearly);
-    }, [nearestEvent]);
+    }, [isLinked, nearestEvent]);
 
     const cardShadowStyle = {
         ...(Platform.OS === "ios"
@@ -83,13 +86,17 @@ export default function RelationshipDashboard({
                     <Ionicons name="calendar" size={20} color="#F43F5E" />
                 </View>
                 <Text className="text-slate-800 font-bold text-lg leading-tight mt-1">
-                    {daysRemaining !== null ? `${daysRemaining}g` : "-"}
+                    {!isLinked ? "—" : daysRemaining !== null ? `${daysRemaining}g` : "-"}
                 </Text>
                 <Text
                     className="text-slate-400 font-medium text-[11px] mt-0.5"
-                    numberOfLines={1}
+                    numberOfLines={2}
                 >
-                    {nearestEvent ? nearestEvent.title : "Etkinlikler"}
+                    {!isLinked
+                        ? "Önce eşleş"
+                        : nearestEvent
+                          ? nearestEvent.title
+                          : "Etkinlikler"}
                 </Text>
             </View>
         </View>

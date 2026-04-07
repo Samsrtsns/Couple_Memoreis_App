@@ -1,9 +1,11 @@
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { supabase } from '@/src/lib/supabase';
+import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
-import { Stack, router } from 'expo-router';
+import { Stack, router, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
-import { LogBox, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Linking, LogBox, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import "./global.css";
@@ -15,8 +17,10 @@ import {
 } from '@expo-google-fonts/inter';
 import { initRevenueCat } from '@/src/services/revenueCatService';
 
-// Prevent auto-hiding the splash screen until our fonts are loaded
-SplashScreen.preventAutoHideAsync();
+const isExpoGo = Constants.appOwnership === 'expo';
+if (!isExpoGo) {
+    void SplashScreen.preventAutoHideAsync().catch(() => {});
+}
 
 LogBox.ignoreLogs([
     "SafeAreaView has been deprecated"
@@ -25,27 +29,97 @@ LogBox.ignoreLogs([
 function NavigationRoot() {
     const { state } = useAuth();
     const { isInitialized, isLoggedIn } = state;
+    const pathname = usePathname();
+    const segments = useSegments();
+    const segmentList = segments as string[];
+    const splashHiddenRef = useRef(false);
+    const pendingRecoveryRef = useRef(false);
+
+    function getUrlParam(url: string, key: string): string | null {
+        const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const match = url.match(new RegExp(`[?#&]${escaped}=([^&#]+)`));
+        return match ? decodeURIComponent(match[1]) : null;
+    }
+
+    useEffect(() => {
+        async function handleIncomingUrl(url: string | null) {
+            if (!url) return;
+
+            const isResetRoute = url.includes('://reset-password');
+            const recoveryType = getUrlParam(url, 'type') === 'recovery';
+            if (!isResetRoute && !recoveryType) return;
+
+            const accessToken = getUrlParam(url, 'access_token');
+            const refreshToken = getUrlParam(url, 'refresh_token');
+
+            if (accessToken && refreshToken) {
+                pendingRecoveryRef.current = true;
+                try {
+                    await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                    });
+                } catch (e) {
+                    console.error('[DeepLink] Failed to set recovery session:', e);
+                    pendingRecoveryRef.current = false;
+                }
+            }
+
+            router.replace('/(auth)/reset-password');
+        }
+
+        void Linking.getInitialURL()
+            .then((url) => handleIncomingUrl(url))
+            .catch((e) => console.error('[DeepLink] getInitialURL failed:', e));
+
+        const sub = Linking.addEventListener('url', (event) => {
+            void handleIncomingUrl(event.url);
+        });
+
+        return () => sub.remove();
+    }, []);
 
     useEffect(() => {
         if (!isInitialized) return;
 
         async function handleNavigation() {
-            try {
-                await SplashScreen.hideAsync();
-            } catch {
-                /* already hidden */
+            // Use a globally managed or more stable hiding logic
+            if (!isExpoGo && !splashHiddenRef.current) {
+                splashHiddenRef.current = true;
+                // Add a very slight delay to ensure the native view is ready on iOS
+                setTimeout(async () => {
+                    try {
+                        await SplashScreen.hideAsync();
+                    } catch (e: any) {
+                        // This error is usually safe to ignore if the splash is already gone
+                        console.warn('SplashScreen hide warning:', e?.message || 'already hidden');
+                    }
+                }, 50);
             }
 
             try {
                 const hasLaunched = await AsyncStorage.getItem('hasLaunched');
                 const isFirstLaunch = hasLaunched !== 'true';
+                const isAuthPath = ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
+                const isOnboardingPath = pathname.startsWith('/onboarding');
+                const isRealRootPath = (pathname === '/' || pathname === '') && segmentList.length === 0;
 
-                // Oturum varsa Supabase token'ı zaten AsyncStorage'da; doğrudan ana ekran
                 if (isLoggedIn) {
-                    router.replace('/(tabs)/home');
+                    if (pendingRecoveryRef.current) {
+                        pendingRecoveryRef.current = false;
+                        router.replace('/(auth)/reset-password');
+                        return;
+                    }
+                    if (pathname === '/reset-password') return;
+                    if (isAuthPath || isOnboardingPath || isRealRootPath) {
+                        router.replace('/(tabs)/home');
+                    }
                     return;
                 }
+
+                if (isAuthPath) return;
                 if (isFirstLaunch) {
+                    if (isOnboardingPath) return;
                     router.replace('/(onboarding)/onboarding');
                     return;
                 }
@@ -56,8 +130,8 @@ function NavigationRoot() {
             }
         }
 
-        handleNavigation();
-    }, [isInitialized, isLoggedIn]);
+        void handleNavigation().catch(() => {});
+    }, [isInitialized, isLoggedIn, pathname, segmentList]);
 
     return (
         <Stack screenOptions={{ headerShown: false }}>
@@ -89,7 +163,6 @@ export default function RootLayout() {
         if (fontsLoaded) {
             initRevenueCat().catch(err => console.error('[initRevenueCat] Failed:', err));
 
-            // Override global Text font family
             const TextRender = Text as any;
             if (!TextRender.defaultProps) {
                 TextRender.defaultProps = {};

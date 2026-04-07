@@ -7,6 +7,7 @@
  * This hook is the single source of truth for the MemoriesScreen.
  */
 
+import { useAuth } from '@/src/context/AuthContext';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     createMemory,
@@ -80,6 +81,7 @@ export type UseMemoriesResult = {
 // ─────────────────────────────────────────────
 
 export function useMemories(): UseMemoriesResult {
+    const { state: authState } = useAuth();
     const [memories, setMemories] = useState<Memory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -135,6 +137,17 @@ export function useMemories(): UseMemoriesResult {
     useEffect(() => {
         load();
     }, [load]);
+
+    /** Partner bağlantısı kalkınca (ör. unlink) listeyi ve abonelik state’ini temizle */
+    useEffect(() => {
+        if (!authState.isInitialized) return;
+        const pid = authState.profile?.partner_id ?? null;
+        if (pid != null) return;
+        if (!currentUserIdRef.current) return;
+        partnerIdRef.current = null;
+        setPartnerId(null);
+        setMemories([]);
+    }, [authState.isInitialized, authState.profile?.partner_id]);
 
     useEffect(() => {
         if (!currentUserId || !partnerId) return;

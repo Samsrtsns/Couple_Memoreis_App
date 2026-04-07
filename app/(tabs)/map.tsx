@@ -18,7 +18,6 @@
 import Screen from '@/src/components/Screen';
 import { useAuth } from '@/src/context/AuthContext';
 import AddPlaceModal from '@/src/features/sharedMap/components/AddPlaceModal';
-import DraggableHeart from '@/src/features/sharedMap/components/DraggableHeart';
 import MapHeader from '@/src/features/sharedMap/components/MapHeader';
 import PlaceBottomSheet from '@/src/features/sharedMap/components/PlaceBottomSheet';
 import PlaceMarker from '@/src/features/sharedMap/components/PlaceMarker';
@@ -68,7 +67,7 @@ export default function SharedMapScreen() {
     } | null>(null);
     const [mapType, setMapType] = useState<MapType>('standard');
     const [searchText, setSearchText] = useState('');
-    const [searchFocused, setSearchFocused] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
     const [userLocation, setUserLocation] = useState<{
         latitude: number;
         longitude: number;
@@ -89,7 +88,7 @@ export default function SharedMapScreen() {
                 latitude: payload.latitude,
                 longitude: payload.longitude,
                 address: payload.address,
-                photoUrl: payload.photo_url,
+                imageUri: payload.imageUri,
                 visitedAt: payload.visited_at,
             });
 
@@ -139,12 +138,30 @@ export default function SharedMapScreen() {
     const filteredPlaces = useMemo(() => {
         const q = searchText.trim().toLowerCase();
         if (!q) return places;
-        return places.filter(
-            (p) =>
-                p.title.toLowerCase().includes(q) ||
-                (p.address?.toLowerCase().includes(q) ?? false)
-        );
+        return places.filter((p) => p.title.toLowerCase().includes(q));
     }, [places, searchText]);
+
+    useEffect(() => {
+        const q = searchText.trim();
+        if (!mapReady || !q || filteredPlaces.length === 0) return;
+
+        if (filteredPlaces.length === 1) {
+            const place = filteredPlaces[0];
+            mapRef.current?.animateToRegion(
+                {
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.005,
+                },
+                500
+            );
+            return;
+        }
+
+        const region = fitRegionToPlaces(filteredPlaces);
+        mapRef.current?.animateToRegion(region, 500);
+    }, [searchText, filteredPlaces, mapReady]);
 
     // ─── Handlers ────────────────────────────────────────────────────────────
 
@@ -262,13 +279,16 @@ export default function SharedMapScreen() {
                 {/* ── Header ── */}
                 <MapHeader
                     placesCount={filteredPlaces.length}
-                    mapStyle={mapType === 'standard' ? 'standard' : 'satellite'}
-                    onToggleMapStyle={handleToggleMapStyle}
-                    onRefresh={refetch}
-                    refreshing={loading}
+                    searchOpen={searchOpen}
+                    searchQuery={searchText}
+                    onToggleSearch={() => {
+                        setSearchOpen((prev) => {
+                            if (prev) setSearchText('');
+                            return !prev;
+                        });
+                    }}
+                    onChangeSearchQuery={setSearchText}
                 />
-
-                <DraggableHeart onDrop={handleHeartDrop} topInset={insets.top} />
 
                 {/* ── Map ── */}
                 <View
