@@ -16,7 +16,6 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
 
     const hasPartner = !!partner?.id;
 
-    /** Unlink sonrası: profilde tarih kalsa bile çift kartı gösterme */
     if (!hasPartner) {
         return (
             <View className="px-6 bg-bgLight">

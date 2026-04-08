@@ -30,9 +30,25 @@ export default function RelationshipScreen() {
     const [toastMsg, setToastMsg] = useState<string | null>(null);
     const unlinkGuardRef = useRef(false);
 
+    const parseProfileDate = (dateStr: string) => {
+        const parts = dateStr.split('-').map(Number);
+        if (parts.length === 3 && parts.every((n) => !Number.isNaN(n))) {
+            const [year, month, day] = parts;
+            return new Date(year, month - 1, day);
+        }
+        return new Date(dateStr);
+    };
+
+    const toLocalDateOnlyString = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     useEffect(() => {
         if (profile?.relationship_start_date) {
-            setStartDate(new Date(profile.relationship_start_date));
+            setStartDate(parseProfileDate(profile.relationship_start_date));
         }
     }, [profile]);
 
@@ -43,7 +59,7 @@ export default function RelationshipScreen() {
         try {
             await updateProfile({
                 userId: state.user.id,
-                relationship_start_date: startDate ? startDate.toISOString() : null,
+                relationship_start_date: startDate ? toLocalDateOnlyString(startDate) : null,
             });
             await refetch();
             Alert.alert('Başarılı', 'İlişki ayarları başarıyla güncellendi.');
@@ -135,13 +151,34 @@ export default function RelationshipScreen() {
                     </Text>
                 </View>
 
-                {showDatePicker && (
+                {showDatePicker && Platform.OS === 'ios' && (
+                    <View className="mt-4 bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                        <View className="px-4 py-3 border-b border-slate-100 items-end">
+                            <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                                <Text className="text-[#ea5385] font-bold">Bitti</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <DateTimePicker
+                            value={startDate || new Date()}
+                            mode="date"
+                            display="spinner"
+                            textColor="#000000"
+                            themeVariant="light"
+                            onChange={(_, date) => {
+                                if (date) setStartDate(date);
+                            }}
+                            maximumDate={new Date()}
+                        />
+                    </View>
+                )}
+
+                {showDatePicker && Platform.OS === 'android' && (
                     <DateTimePicker
                         value={startDate || new Date()}
                         mode="date"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                        onChange={(event, date) => {
-                            setShowDatePicker(Platform.OS === 'ios');
+                        display="default"
+                        onChange={(_, date) => {
+                            setShowDatePicker(false);
                             if (date) setStartDate(date);
                         }}
                         maximumDate={new Date()}

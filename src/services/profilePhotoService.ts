@@ -41,8 +41,8 @@ export async function pickImage(): Promise<string | null> {
 export async function compressImage(uri: string): Promise<ImageManipulator.ImageResult> {
     const manipResult = await ImageManipulator.manipulateAsync(
         uri,
-        [{ resize: { width: 512 } }], // Maksimum genişlik: 512 olacak şekilde yeniden boyutlandır
-        { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true } // Sıkıştır ve JPEG formatına dönüştür
+        [{ resize: { width: 384 } }], // Daha küçük boyut için yeniden boyutlandır
+        { compress: 0.45, format: ImageManipulator.SaveFormat.JPEG, base64: true } // Sıkıştır ve base64 çıktısı üret
     );
 
     return manipResult;

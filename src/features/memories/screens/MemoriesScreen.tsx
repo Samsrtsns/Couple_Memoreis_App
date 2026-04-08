@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -10,16 +10,14 @@ import {
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { usePhotoUploadCountdown } from "@/src/hooks/usePhotoUploadCountdown";
 import { AddMemoryModal } from "../components/AddMemoryModal";
 import { MemoriesEmptyState } from "../components/MemoriesEmptyState";
 import { MemoryCard } from "../components/MemoryCard";
 import { MemoryCardSkeleton } from "../components/MemoryCardSkeleton";
 import { useMemories } from "../hooks/useMemories";
 import type { Memory } from "../types/memory.types";
-import { useUsageStats } from "@/src/hooks/useUsageStats";
-import PremiumUpsellModal from "@/src/components/PremiumUpsellModal";
 
-// Header
 function ScreenHeader({
     title = "Anı Zaman Tüneli",
     subtitle = "Aşk hikayeniz, bölüm bölüm",
@@ -53,22 +51,19 @@ export default function MemoriesScreen() {
         addMemory,
     } = useMemories();
 
-    const { fetchStats, isDailyLimitReached, timeRemaining } = useUsageStats();
+    const { isLocked, remainingText, isPremium } = usePhotoUploadCountdown();
 
     const [modalVisible, setModalVisible] = useState(false);
-    const [showPremiumModal, setShowPremiumModal] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [forceTotalLimitReached, setForceTotalLimitReached] = useState(false);
 
-    useEffect(() => {
-        if (currentUserId) {
-            fetchStats(currentUserId);
-        }
-    }, [currentUserId, fetchStats]);
+    const myMemoryCount = memories.filter((m) => m.created_by === currentUserId).length;
+    const isTotalMemoryLimitReached =
+        forceTotalLimitReached || (!isPremium && myMemoryCount >= 4);
 
     const handleRefresh = async () => {
         setRefreshing(true);
         await refresh();
-        if (currentUserId) await fetchStats(currentUserId);
         setRefreshing(false);
     };
 
@@ -80,13 +75,13 @@ export default function MemoriesScreen() {
     }) => {
         try {
             await addMemory(data);
-            if (currentUserId) fetchStats(currentUserId);
-        } catch (e: any) {
-            if (e.message === 'MEMORY_LIMIT_REACHED') {
-                setShowPremiumModal(true);
-            } else {
-                console.error("Unknown error adding memory:", e);
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : "";
+            if (msg === "MEMORY_TOTAL_LIMIT_REACHED") {
+                setForceTotalLimitReached(true);
+                return;
             }
+            throw e;
         }
     };
 
@@ -98,7 +93,6 @@ export default function MemoriesScreen() {
         />
     );
 
-    // Loading
     if (loading && memories.length === 0) {
         return (
             <SafeAreaView className="flex-1 bg-bgLight" edges={["top"]}>
@@ -112,14 +106,15 @@ export default function MemoriesScreen() {
         );
     }
 
-    // Error
     if (error && memories.length === 0) {
         return (
             <SafeAreaView className="flex-1 bg-bgLight" edges={["top"]}>
                 <ScreenHeader />
                 <View className="flex-1 items-center justify-center px-8 gap-3">
                     <Ionicons name="warning-outline" size={48} color="#f48fb1" />
-                    <Text className="text-[20px] font-bold text-[#2d1020]">Bir şeyler yanlış gitti</Text>
+                    <Text className="text-[20px] font-bold text-[#2d1020]">
+                        Bu ekranda anılarınızı biriktirip bir zaman tüneli oluşturabilirsiniz
+                    </Text>
                     <Text className="text-[14px] text-[#9e6070] text-center">{error}</Text>
                     <TouchableOpacity onPress={refresh} className="mt-2 bg-[#e91e8c] rounded-full px-7 py-3">
                         <Text className="text-white font-bold text-[15px]">Tekrar Dene</Text>
@@ -133,20 +128,19 @@ export default function MemoriesScreen() {
         <View className="flex-1 bg-bgLight">
             <AddMemoryModal
                 visible={modalVisible}
-                onClose={() => setModalVisible(false)}
+                onClose={() => {
+                    setModalVisible(false);
+                    setForceTotalLimitReached(false);
+                }}
                 onSubmit={handleAddMemory}
-                isDailyLimitReached={isDailyLimitReached}
-                timeRemaining={timeRemaining}
+                isDailyLimitReached={isLocked}
+                timeRemaining={remainingText}
+                isTotalMemoryLimitReached={isTotalMemoryLimitReached}
             />
 
-            {/* FIXED ADD BUTTON */}
             {hasPartner && (
                 <TouchableOpacity
-                    onPress={async () => {
-                        // Önce en güncel istatistikleri (ve premium durumunu) çek
-                        if (currentUserId) await fetchStats(currentUserId);
-                        setModalVisible(true);
-                    }}
+                    onPress={() => setModalVisible(true)}
                     activeOpacity={0.85}
                     style={{
                         position: 'absolute',
@@ -190,10 +184,7 @@ export default function MemoriesScreen() {
                         ListEmptyComponent={
                             <MemoriesEmptyState
                                 variant={hasPartner ? "no-memories" : "no-partner"}
-                                onAddMemory={hasPartner ? async () => {
-                                    if (currentUserId) await fetchStats(currentUserId);
-                                    setModalVisible(true);
-                                } : undefined}
+                                onAddMemory={hasPartner ? () => setModalVisible(true) : undefined}
                             />
                         }
                         ListFooterComponent={
@@ -208,13 +199,6 @@ export default function MemoriesScreen() {
                     />
                 </View>
             </SafeAreaView>
-            <PremiumUpsellModal 
-                visible={showPremiumModal} 
-                onClose={() => {
-                    setShowPremiumModal(false);
-                    if (currentUserId) fetchStats(currentUserId);
-                }} 
-            />
         </View>
     );
 }

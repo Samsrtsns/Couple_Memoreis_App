@@ -145,8 +145,24 @@ export const presentPremiumPaywall = async (userId: string): Promise<boolean> =>
         });
     }
 
+    const { PURCHASES_ERROR_CODE } = require('react-native-purchases');
+
+    const configurationHelpMessage =
+        'Ürünler mağazadan yüklenemedi (yapılandırma). Kontrol et: RevenueCat’te ürün kimlikleri App Store Connect / Play Console ile aynı mı; “Current” offering’de paket var mı; App Store’da Ücretli Uygulama Sözleşmesi tamam mı; simülatörde test için Xcode’da StoreKit Configuration gerekir.';
+
     try {
-        const paywallResult = await RevenueCatUI.presentPaywall();
+        const offerings = await Purchases.getOfferings();
+        const current = offerings.current;
+        if (!current?.availablePackages?.length) {
+            console.warn(
+                '[presentPremiumPaywall] No current offering or empty packages. underlying store issue is common.',
+                { all: Object.keys(offerings.all ?? {}) }
+            );
+            Alert.alert('Premium geçici olarak kullanılamıyor', configurationHelpMessage);
+            return false;
+        }
+
+        const paywallResult = await RevenueCatUI.presentPaywall({ offering: current });
 
         if (paywallResult === PAYWALL_RESULT.PURCHASED || paywallResult === PAYWALL_RESULT.RESTORED) {
             const customerInfo = await Purchases.getCustomerInfo();
@@ -154,8 +170,20 @@ export const presentPremiumPaywall = async (userId: string): Promise<boolean> =>
             return true;
         }
         return false;
-    } catch (e) {
-        console.error('[presentPremiumPaywall] Error:', e);
+    } catch (e: any) {
+        const code = e?.code ?? e?.readableErrorCode;
+        const isConfig =
+            code === PURCHASES_ERROR_CODE.CONFIGURATION_ERROR ||
+            code === '23' ||
+            String(code) === '23';
+
+        console.error('[presentPremiumPaywall] Error:', e?.message, e?.underlyingErrorMessage ?? '', e);
+
+        if (isConfig) {
+            Alert.alert('Yapılandırma hatası (23)', configurationHelpMessage);
+        } else {
+            Alert.alert('Satın alma ekranı açılamadı', e?.message ?? 'Beklenmeyen bir hata oluştu.');
+        }
         return false;
     }
 };

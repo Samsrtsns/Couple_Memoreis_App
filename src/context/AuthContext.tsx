@@ -1,10 +1,13 @@
 import { Session, User } from '@supabase/supabase-js';
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, useRef } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { ProfileData } from '../hooks/useProfile';
 import { supabase } from '../lib/supabase';
 import { getCurrentSession } from '../services/authService';
 import { getProfileWithPartner } from '../services/pairService';
 import { identifyUser } from '../services/revenueCatService';
+
+const AUTH_INIT_TIMEOUT_MS = 15_000;
 
 // --- Types ---
 type AuthState = {
@@ -52,6 +55,7 @@ function authReducer(state: AuthState, action: Action): AuthState {
         case 'LOGIN_SUCCESS':
             return {
                 ...state,
+                isInitialized: true,
                 isLoggedIn: true,
                 session: action.payload.session,
                 user: action.payload.user,
@@ -101,72 +105,93 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // --- Provider Component ---
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [state, dispatch] = useReducer(authReducer, initialState);
+    const stateRef = useRef(state);
+    stateRef.current = state;
+
+    // Manage Supabase auto-refresh based on app foreground/background state.
+    useEffect(() => {
+        const sub = AppState.addEventListener('change', (status: AppStateStatus) => {
+            if (status === 'active') {
+                supabase.auth.startAutoRefresh();
+            } else {
+                supabase.auth.stopAutoRefresh();
+            }
+        });
+        return () => sub.remove();
+    }, []);
 
     useEffect(() => {
+        let didInit = false;
+
+        const safeInitialize = (payload: {
+            session: Session | null;
+            user: User | null;
+            profile: ProfileData | null;
+            partner: ProfileData | null;
+        }) => {
+            if (didInit) return;
+            didInit = true;
+            dispatch({ type: 'INITIALIZE', payload });
+        };
+
         const initializeAuth = async () => {
             try {
-                // 1. Check persisted session
                 const session = await getCurrentSession();
+                if (didInit) return;
 
                 if (session) {
-                    // 2. We have a session, fetch profile data
                     try {
                         dispatch({ type: 'FETCH_PROFILE_START' });
                         const { profile, partner } = await getProfileWithPartner();
-                        dispatch({
-                            type: 'INITIALIZE',
-                            payload: {
-                                session,
-                                user: session.user,
-                                profile,
-                                partner,
-                            },
-                        });
+                        safeInitialize({ session, user: session.user, profile, partner });
                     } catch (profileError) {
                         console.error('Error fetching profile during initialization:', profileError);
-                        // If profile fetch fails, still initialize but without profile data
-                        dispatch({
-                            type: 'INITIALIZE',
-                            payload: {
-                                session,
-                                user: session.user,
-                                profile: null,
-                                partner: null,
-                            },
-                        });
+                        safeInitialize({ session, user: session.user, profile: null, partner: null });
                     }
                 } else {
-                    // 3. No session
-                    dispatch({
-                        type: 'INITIALIZE',
-                        payload: { session: null, user: null, profile: null, partner: null },
-                    });
+                    safeInitialize({ session: null, user: null, profile: null, partner: null });
                 }
             } catch (error) {
                 console.error('Auth initialization error:', error);
-                // Even on top-level error (e.g. storage issue), we must mark as initialized so app isn't stuck
-                dispatch({
-                    type: 'INITIALIZE',
-                    payload: { session: null, user: null, profile: null, partner: null },
-                });
+                if (didInit) return;
+                try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
+                safeInitialize({ session: null, user: null, profile: null, partner: null });
             }
         };
 
         initializeAuth();
 
-        // Listen for Auth changes (Token refresh, login, logout natively on Android/iOS storage)
+        const timeoutId = setTimeout(() => {
+            if (!didInit) {
+                console.warn('[Auth] Initialization timed out after', AUTH_INIT_TIMEOUT_MS, 'ms');
+                safeInitialize({ session: null, user: null, profile: null, partner: null });
+            }
+        }, AUTH_INIT_TIMEOUT_MS);
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth event:', event);
 
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || event === 'PASSWORD_RECOVERY') {
+            if (!didInit && (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+                return;
+            }
+
+            if (event === 'USER_UPDATED') {
                 if (session) {
-                    // If it's a password recovery, we don't necessarily want to fetch the full profile 
-                    // and redirect to home yet. The session is valid for updating the user.
+                    const current = stateRef.current;
+                    dispatch({
+                        type: 'LOGIN_SUCCESS',
+                        payload: {
+                            session,
+                            user: session.user,
+                            profile: current.profile,
+                            partner: current.partner,
+                        },
+                    });
+                }
+            } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'PASSWORD_RECOVERY') {
+                if (session) {
                     if (event === 'PASSWORD_RECOVERY') {
                         console.log('Password recovery mode detected');
-                        // We still need to set the session in state so the user is "authenticated" 
-                        // enough to call updateUser, but we might want a different action 
-                        // or just skip the profile fetch to avoid redirects.
                     }
 
                     try {
@@ -189,6 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         return () => {
+            clearTimeout(timeoutId);
             subscription.unsubscribe();
         };
     }, []);
@@ -196,14 +222,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!state.user?.id) return;
 
-        // Identify user in RevenueCat
         identifyUser(state.user.id).then(() => {
-            // After identifying, the profile might have been updated to premium
-            // if they were premium in RevenueCat but base in Supabase
             refreshProfile();
         }).catch(err => console.error('[RevenueCatIdentify] Failed:', err));
-        
-        // Subscribe to profile updates (for automatic match detection)
+
         const profileSubscription = supabase
             .channel(`profile-updates-${state.user.id}`)
             .on(
@@ -211,7 +233,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${state.user.id}` },
                 (payload) => {
                     console.log('Profile updated via realtime:', payload);
-                    // Dynamically refresh profile to catch the new partner_id
                     refreshProfile();
                 }
             )
@@ -220,7 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
             profileSubscription.unsubscribe();
         };
-    }, [state.user?.id]); // Using state.user?.id ensures it reinits when user changes
+    }, [state.user?.id]);
 
     const refreshProfile = async () => {
         const { data: { session } } = await supabase.auth.getSession();

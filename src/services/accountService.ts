@@ -8,8 +8,11 @@ export async function deleteUserAccount(): Promise<void> {
     const { error } = await supabase.rpc('delete_user_account');
     if (error) throw new Error(error.message);
 
-    // After DB deletion, sign out to clear local session
-    await supabase.auth.signOut();
+    try {
+        await supabase.auth.signOut();
+    } catch {
+        try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
+    }
 }
 
 /**

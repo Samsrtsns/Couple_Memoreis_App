@@ -3,7 +3,6 @@ import { useAuth } from '@/src/context/AuthContext';
 import { registerUser } from '@/src/services/authService';
 import { getProfileWithPartner } from '@/src/services/pairService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
@@ -40,7 +39,9 @@ export function useRegister() {
         try {
             setLoading(true);
 
-            // Kayıt servisini çağır
+            // signUp SIGNED_IN tetikleyicisinden ÖNCE yazılmalı; yoksa _layout önce home'a yönlendirir.
+            await AsyncStorage.setItem('redirectToPairAfterRegister', 'true');
+
             const data = await registerUser({
                 firstName,
                 lastName,
@@ -80,14 +81,10 @@ export function useRegister() {
                 await AsyncStorage.setItem('hasLaunched', 'true');
             }
 
-            // Başarı mesajı göster ve eşleşme ekranına yönlendir
-            Alert.alert(
-                "Başarılı",
-                "Hesabınız başarıyla oluşturuldu.",
-                [{ text: "Tamam", onPress: () => router.replace({ pathname: "/(pairing)/pair", params: { from: "register" } }) }]
-            );
+            // Yönlendirme NavigationRoot (redirectToPairAfterRegister) ile yapılır; çift replace olmasın.
+            Alert.alert("Başarılı", "Hesabınız başarıyla oluşturuldu.");
         } catch (error: any) {
-            // Hata durumunda kullanıcıyı bilgilendir
+            await AsyncStorage.removeItem('redirectToPairAfterRegister').catch(() => {});
             Alert.alert("Kayıt Hatası", error.message || "Bir şeyler ters gitti.");
         } finally {
             setLoading(false);

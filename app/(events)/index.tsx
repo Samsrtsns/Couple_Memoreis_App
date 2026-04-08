@@ -8,9 +8,9 @@ import { calculateDaysRemaining, SpecialEvent } from "@/src/utils/dateUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useLayoutEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, TouchableOpacity, View } from "react-native";
 
-import { HEADER_HIT } from "./headerMetrics";
+import { HEADER_HIT } from "./_headerMetrics";
 
 type MergedEvent =
     | (SpecialEvent & { source: "builtin" })
@@ -158,50 +158,27 @@ export default function EventsScreen() {
     useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
-                <Pressable
+                <TouchableOpacity
                     onPress={openAdd}
                     disabled={!hasPartner}
+                    activeOpacity={0.75}
                     accessibilityRole="button"
                     accessibilityLabel="Özel gün ekle"
-                    android_ripple={
-                        hasPartner
-                            ? {
-                                color: 'rgba(244, 63, 94, 0.25)',
-                                borderless: true,
-                                radius: HEADER_HIT / 2,
-                            }
-                            : undefined
-                    }
-                    style={({ pressed }) => ({
-                        marginRight: 8,
+                    style={{
                         width: HEADER_HIT,
                         height: HEADER_HIT,
                         borderRadius: HEADER_HIT / 2,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: hasPartner ? 1 : 0.38,
-                        backgroundColor:
-                            hasPartner && Platform.OS === 'ios' && pressed
-                                ? 'rgba(244, 63, 94, 0.12)'
-                                : hasPartner
-                                    ? 'rgba(244, 63, 94, 0.08)'
-                                    : 'transparent',
-                    })}
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: hasPartner ? 1 : 0.35,
+                    }}
                 >
-                    <Ionicons
-                        name="add"
-                        size={24}
-                        color="#F43F5E"
-                        style={{
-                            includeFontPadding: false,
-                            textAlignVertical: 'center',
-                            lineHeight: 28,
-                            textAlign: 'center',
-                            marginLeft: 6,
-                        }}
-                    />
-                </Pressable>
+                    <Ionicons name="add" size={24} color="#F43F5E" />
+                </TouchableOpacity>
             ),
+            headerRightContainerStyle: {
+                paddingRight: 10,
+            },
         });
     }, [navigation, openAdd, hasPartner]);
 

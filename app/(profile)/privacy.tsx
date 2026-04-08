@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, SafeAreaView, Pressable } from 'react-native';
+import { View, Text, ScrollView, ActivityIndicator, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '@/src/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -65,7 +66,7 @@ export default function PrivacyPolicyScreen() {
     }
 
     return (
-        <SafeAreaView className="flex-1 bg-[#FDF8F7]">
+        <SafeAreaView className="flex-1 bg-[#FDF8F7]" edges={['top']}>
             <ScrollView 
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ padding: 24, paddingBottom: 48 }}

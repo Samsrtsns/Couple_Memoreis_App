@@ -14,8 +14,8 @@ const TAB_ICONS: Record<
     }
 > = {
     home: { active: "home", inactive: "home-outline" },
-    memory: { active: "heart", inactive: "heart-outline" },
-    map: { active: "calendar", inactive: "calendar-outline" },
+    memory: { active: "images", inactive: "images-outline" },
+    map: { active: "map", inactive: "map-outline" },
     profile: { active: "person", inactive: "person-outline" },
 };
 

@@ -12,6 +12,7 @@ type Props = {
     searchQuery: string;
     onToggleSearch: () => void;
     onChangeSearchQuery: (value: string) => void;
+    onFitAllPress: () => void;
 };
 
 export default function MapHeader({
@@ -20,6 +21,7 @@ export default function MapHeader({
     searchQuery,
     onToggleSearch,
     onChangeSearchQuery,
+    onFitAllPress,
 }: Props) {
     return (
         <View className="border-b border-[#F1EEF0] bg-[#FDF8F7] px-5 pt-5 pb-4">
@@ -30,12 +32,20 @@ export default function MapHeader({
                         <Text className="text-[12px] font-bold text-rose-500">{placesCount}</Text>
                     </View>
                 </View>
-                <TouchableOpacity
-                    onPress={onToggleSearch}
-                    className="h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-slate-50"
-                >
-                    <Ionicons name={searchOpen ? 'close' : 'search'} size={20} color="#334155" />
-                </TouchableOpacity>
+                <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                        onPress={onFitAllPress}
+                        className="h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-slate-50"
+                    >
+                        <Ionicons name="expand-outline" size={19} color="#334155" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={onToggleSearch}
+                        className="h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-slate-50"
+                    >
+                        <Ionicons name={searchOpen ? 'close' : 'search'} size={20} color="#334155" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {searchOpen && (
@@ -46,7 +56,7 @@ export default function MapHeader({
                         onChangeText={onChangeSearchQuery}
                         placeholder="Başlığa göre ara..."
                         placeholderTextColor="#94A3B8"
-                        className="ml-2 flex-1 text-[14px] text-slate-800"
+                        className="ml-2 flex-1 text-[14px] text-slate-800 py-2"
                         autoFocus
                         returnKeyType="search"
                     />

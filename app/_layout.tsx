@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
 import { Linking, LogBox, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import "./global.css";
 
@@ -100,11 +101,25 @@ function NavigationRoot() {
             try {
                 const hasLaunched = await AsyncStorage.getItem('hasLaunched');
                 const isFirstLaunch = hasLaunched !== 'true';
+                const shouldRedirectToPairAfterRegister =
+                    (await AsyncStorage.getItem('redirectToPairAfterRegister')) === 'true';
+                const isPairingPath =
+                    segmentList[0] === '(pairing)' ||
+                    pathname.startsWith('/(pairing)') ||
+                    pathname === '/pair';
                 const isAuthPath = ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
                 const isOnboardingPath = pathname.startsWith('/onboarding');
                 const isRealRootPath = (pathname === '/' || pathname === '') && segmentList.length === 0;
 
                 if (isLoggedIn) {
+                    if (shouldRedirectToPairAfterRegister) {
+                        await AsyncStorage.removeItem('redirectToPairAfterRegister');
+                        if (!isPairingPath) {
+                            router.replace('/(pairing)/pair?from=register');
+                        }
+                        return;
+                    }
+
                     if (pendingRecoveryRef.current) {
                         pendingRecoveryRef.current = false;
                         router.replace('/(auth)/reset-password');
@@ -180,9 +195,11 @@ export default function RootLayout() {
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
-            <AuthProvider>
-                <NavigationRoot />
-            </AuthProvider>
+            <SafeAreaProvider>
+                <AuthProvider>
+                    <NavigationRoot />
+                </AuthProvider>
+            </SafeAreaProvider>
         </GestureHandlerRootView>
     );
 }

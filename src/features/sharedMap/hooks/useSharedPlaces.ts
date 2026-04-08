@@ -32,7 +32,7 @@ export type UseSharedPlacesReturn = {
  * cleanup subscription on unmount
  */
 export function useSharedPlaces(): UseSharedPlacesReturn {
-    const { state } = useAuth();
+    const { state, refreshProfile } = useAuth();
     const { profile, partner, isLoggedIn } = state;
 
     const [places, setPlaces] = useState<SharedPlace[]>([]);
@@ -44,7 +44,12 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
     const noPartner = isLoggedIn && !!profile?.id && !partner?.id;
 
     const loadPlaces = useCallback(async (silent = false) => {
-        if (!currentUserId) return;
+        if (!currentUserId) {
+            setPlaces([]);
+            setError(null);
+            if (!silent) setLoading(false);
+            return;
+        }
         if (!silent) setLoading(true);
         setError(null);
         try {
@@ -114,11 +119,20 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
             });
             // Update state immediately for instant feedback
             setPlaces(prev => prev.some(p => p.id === newPlace.id) ? prev : [newPlace, ...prev]);
+
+            if (params.imageUri) {
+                // DB trigger'i daily_photo_count'i dusurur; profile'i hemen tazele
+                refreshProfile().catch(() => {});
+            }
+
             return newPlace;
         } catch (e: any) {
             const errorMessage = e.message || 'Failed to add place.';
             if (errorMessage.includes('Place upload limit reached')) {
                 throw new Error('PLACE_LIMIT_REACHED');
+            }
+            if (errorMessage.includes('at most 4') && errorMessage.toLowerCase().includes('place')) {
+                throw new Error('PLACE_TOTAL_LIMIT_REACHED');
             }
             setError(errorMessage);
             throw e;

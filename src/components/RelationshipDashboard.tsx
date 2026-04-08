@@ -86,7 +86,13 @@ export default function RelationshipDashboard({
                     <Ionicons name="calendar" size={20} color="#F43F5E" />
                 </View>
                 <Text className="text-slate-800 font-bold text-lg leading-tight mt-1">
-                    {!isLinked ? "—" : daysRemaining !== null ? `${daysRemaining}g` : "-"}
+                    {!isLinked
+                        ? "—"
+                        : daysRemaining !== null
+                          ? daysRemaining === 0
+                              ? "Bugün"
+                              : `${daysRemaining}g`
+                          : "-"}
                 </Text>
                 <Text
                     className="text-slate-400 font-medium text-[11px] mt-0.5"

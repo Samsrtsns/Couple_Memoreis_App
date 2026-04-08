@@ -2,7 +2,7 @@ import PrimaryButton from "@/src/components/PrimaryButton";
 import ProfileAvatar from "@/src/components/ProfileAvatar";
 import { useAuth } from "@/src/context/AuthContext";
 import { useProfile } from "@/src/hooks/useProfile";
-import { useUsageStats } from "@/src/hooks/useUsageStats";
+import { isPremiumUser } from "@/src/utils/photoLimitUtils";
 import { logoutUser } from "@/src/services/authService";
 import {
     compressImage,
@@ -12,8 +12,7 @@ import {
 } from "@/src/services/profilePhotoService";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { presentPremiumPaywall } from "@/src/services/revenueCatService";
+import { useMemo, useState } from "react";
 import {
     ActionSheetIOS,
     ActivityIndicator,
@@ -83,13 +82,8 @@ function SettingsRow({
 export default function ProfileScreen() {
     const { profile, partner, loading } = useProfile();
     const { state, dispatch, refreshProfile } = useAuth();
-    const { stats, fetchStats } = useUsageStats();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
-
-    useEffect(() => {
-        if (state.user?.id) fetchStats(state.user.id);
-    }, [state.user?.id, fetchStats]);
 
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return "Ayarlanmadı";
@@ -112,11 +106,11 @@ export default function ProfileScreen() {
         try {
             setIsLoggingOut(true);
             await logoutUser();
+        } catch {
+            // logoutUser handles its own fallback; this is purely defensive
+        } finally {
             dispatch({ type: 'LOGOUT' });
             router.replace("/(auth)/login");
-        } catch (error: any) {
-            Alert.alert("Çıkış Hatası", error.message || "Bir şeyler yanlış gitti.");
-        } finally {
             setIsLoggingOut(false);
         }
     };
@@ -306,10 +300,38 @@ export default function ProfileScreen() {
 
 
 
-                {/* General Settings */}
+                {!isPremiumUser(profile) && (
+                    <View className="px-6 pt-2">
+                        <Pressable
+                            onPress={() => router.push("/(profile)/plan-limits")}
+                            className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 flex-row items-center justify-between"
+                        >
+                            <View className="flex-row items-center gap-x-3">
+                                <View className="w-10 h-10 rounded-xl bg-white items-center justify-center">
+                                    <MaterialIcons
+                                        name="workspace-premium"
+                                        size={20}
+                                        color="#D97706"
+                                    />
+                                </View>
+                                <View>
+                                    <Text className="text-amber-900 font-extrabold text-[14px]">
+                                        Premium Ol
+                                    </Text>
+                                    <Text className="text-amber-700 text-[12px] font-medium">
+                                        Plan ve limitleri incele
+                                    </Text>
+                                </View>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#D97706" />
+                        </Pressable>
+                    </View>
+                )}
+
+                {/* Profile Settings */}
                 <View className="mt-6">
                     <Text className="px-8 pb-3 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
-                        Genel Ayarlar
+                        Profil Ayarları
                     </Text>
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
@@ -322,6 +344,14 @@ export default function ProfileScreen() {
                             onPress={() => router.push("/(profile)/personal-info")}
                         />
                         <SettingsRow
+                            title="Hesap Ayarları"
+                            iconType="ion"
+                            icon="key-outline"
+                            iconBg="#F0FDF4"
+                            iconColor="#16A34A"
+                            onPress={() => router.push("/(profile)/account-settings")}
+                        />
+                        <SettingsRow
                             title="İlişki Ayarları"
                             iconType="ion"
                             icon="heart"
@@ -329,22 +359,31 @@ export default function ProfileScreen() {
                             iconColor="#F43F5E"
                             onPress={() => router.push("/(profile)/relationship")}
                         />
-                        <SettingsRow
-                            title="Plan ve Limitler"
-                            iconType="material"
-                            icon="workspace-premium"
-                            iconBg="#FFF7ED"
-                            iconColor="#F59E0B"
-                            onPress={() => router.push("/(profile)/plan-limits")}
-                        />
+                        
+                    </View>
+
+                    {/* Account Settings */}
+                    <Text className="px-8 pb-3 pt-8 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
+                        Hesap Ayarları
+                    </Text>
+
+                    <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
                         <SettingsRow
                             title="Bildirim Tercihleri"
                             iconType="ion"
                             icon="notifications"
                             iconBg="#FFFBEB"
                             iconColor="#F59E0B"
-                            withBorder={false}
                             onPress={() => router.push("/(profile)/notifications")}
+                        />
+                        <SettingsRow
+                            title="Plan ve Limitler"
+                            iconType="material"
+                            icon="workspace-premium"
+                            iconBg="#FFF7ED"
+                            iconColor="#F59E0B"
+                            withBorder={false}
+                            onPress={() => router.push("/(profile)/plan-limits")}
                         />
                     </View>
 
@@ -354,14 +393,6 @@ export default function ProfileScreen() {
                     </Text>
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
-                        <SettingsRow
-                            title="Veri Yönetimi"
-                            iconType="material"
-                            icon="storage"
-                            iconBg="#EEF2FF"
-                            iconColor="#6366F1"
-                            onPress={() => router.push("/(profile)/data-management")}
-                        />
                         <SettingsRow
                             title="Gizlilik Politikası"
                             iconType="ion"

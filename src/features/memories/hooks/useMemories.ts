@@ -81,7 +81,7 @@ export type UseMemoriesResult = {
 // ─────────────────────────────────────────────
 
 export function useMemories(): UseMemoriesResult {
-    const { state: authState } = useAuth();
+    const { state: authState, refreshProfile } = useAuth();
     const [memories, setMemories] = useState<Memory[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -247,11 +247,17 @@ export function useMemories(): UseMemoriesResult {
                     if (prev.some((m) => m.id === newMemory.id)) return prev;
                     return sortedInsertMemory(prev, newMemory);
                 });
+
+                // 4. Trigger ile DB'de dusen daily_photo_count'i UI'a aninda yansit
+                refreshProfile().catch(() => {});
             } catch (e: any) {
                 console.error('[useMemories] Failed to add memory:', e);
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
                 if (errorMessage.includes('Upload limit reached')) {
                     throw new Error('MEMORY_LIMIT_REACHED');
+                }
+                if (errorMessage.includes('at most 4 memories in total')) {
+                    throw new Error('MEMORY_TOTAL_LIMIT_REACHED');
                 }
                 throw new Error(`Memory creation failed: ${errorMessage}`);
             }

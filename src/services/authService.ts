@@ -1,9 +1,6 @@
 // src/services/authService.ts
 import { supabase } from "@/src/lib/supabase";
 
-/**
- * Kayıt parametreleri tipi
- */
 type RegisterParams = {
     firstName: string;
     lastName: string;
@@ -11,9 +8,6 @@ type RegisterParams = {
     password: string;
 };
 
-/**
- * Giriş parametreleri tipi
- */
 type LoginParams = {
     email: string;
     password: string;
@@ -21,7 +15,6 @@ type LoginParams = {
 
 /**
  * Yeni bir kullanıcı kaydı oluşturur.
- * Supabase Auth ile kullanıcıyı kaydeder ve ardından 'profiles' tablosuna profil bilgilerini ekler.
  */
 export async function registerUser({
     firstName,
@@ -44,13 +37,19 @@ export async function registerUser({
         throw new Error("Kullanıcı oluşturulamadı.");
     }
 
-    // Auth kaydı başarılı olduktan sonra profil tablosuna isim bilgilerini kaydediyoruz
-    const { error: profileError } = await supabase.from("profiles").insert({
-        id: user.id,
-        first_name: firstName,
-        last_name: lastName,
-        email,
-    });
+    const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert(
+            {
+                id: user.id,
+                first_name: firstName,
+                last_name: lastName,
+                email,
+                // Kayit aninda NULL; ilk anı/harita fotosu yuklemesinde DB tetikleyicisi set eder
+                last_photo_reset: null,
+            },
+            { onConflict: "id" }
+        );
 
     if (profileError) {
         throw new Error(profileError.message);
@@ -76,25 +75,59 @@ export async function loginUser({ email, password }: LoginParams) {
 }
 
 /**
- * Kullanıcının oturumunu sonlandırır (çıkış yapar).
+ * Oturum açıkken şifreyi günceller.
+ * Sadece updateUser çağrısı yapar; ek signIn veya session kontrolü yoktur.
  */
-export async function logoutUser() {
-    const { error } = await supabase.auth.signOut();
+export async function changePasswordWithCurrent(params: {
+    email: string;
+    currentPassword: string;
+    newPassword: string;
+}) {
+    const { error } = await supabase.auth.updateUser({
+        password: params.newPassword,
+    });
 
     if (error) {
         throw new Error(error.message);
     }
 }
 
+export async function logoutUser() {
+    try {
+        await supabase.auth.signOut();
+    } catch {
+        try {
+            await supabase.auth.signOut({ scope: 'local' });
+        } catch {}
+    }
+}
+
 /**
- * Mevcut aktif oturum (session) bilgisini getirir.
+ * Mevcut aktif oturum bilgisini getirir ve token'ın geçerliliğini doğrular.
+ *
+ * getSession() yalnızca AsyncStorage'dan okur, sunucuya gitmez.
+ * Bu yüzden refreshSession() ile token'ı sunucu tarafında doğruluyoruz.
+ * Refresh başarısızsa (token süresi dolmuş/iptal edilmiş) yerel veriyi
+ * temizleyip null döndürüyoruz — uygulama login ekranına yönlendirilir.
  */
 export async function getCurrentSession() {
-    const { data, error } = await supabase.auth.getSession();
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
 
-    if (error) {
-        throw new Error(error.message);
+        if (!session) return null;
+
+        const { data, error } = await supabase.auth.refreshSession();
+
+        if (error || !data.session) {
+            console.warn('[Auth] Token refresh failed, clearing local session:', error?.message);
+            try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
+            return null;
+        }
+
+        return data.session;
+    } catch (error) {
+        console.error('[Auth] getCurrentSession error:', error);
+        try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
+        return null;
     }
-
-    return data.session;
 }

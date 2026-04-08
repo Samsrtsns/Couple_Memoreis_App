@@ -1,5 +1,12 @@
 import { supabase } from "@/src/lib/supabase";
 
+const RETRY_DELAY_MS = 400;
+const PROFILE_FETCH_MAX_RETRIES = 8;
+
+function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /**
  * Mevcut kullanıcının profilindeki eşleşme kodunu (match_code) getirir.
  */
@@ -10,15 +17,22 @@ export async function getMyProfile() {
 
     if (!user) throw new Error("Kullanıcı bulunamadı");
 
-    const { data, error } = await supabase
-        .from("profiles")
-        .select("match_code")
-        .eq("id", user.id)
-        .single();
+    for (let attempt = 0; attempt < PROFILE_FETCH_MAX_RETRIES; attempt++) {
+        const { data, error } = await supabase
+            .from("profiles")
+            .select("match_code")
+            .eq("id", user.id)
+            .maybeSingle();
 
-    if (error) throw new Error(error.message);
+        if (error) throw new Error(error.message);
+        if (data?.match_code) return data;
 
-    return data;
+        if (attempt < PROFILE_FETCH_MAX_RETRIES - 1) {
+            await sleep(RETRY_DELAY_MS);
+        }
+    }
+
+    throw new Error("Profil hazırlanıyor, lütfen birkaç saniye sonra tekrar deneyin.");
 }
 
 /**
@@ -35,9 +49,25 @@ export async function getProfileWithPartner() {
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
-    if (profileError) throw new Error(profileError.message);
+    if (profileError) {
+        // Kayıt sonrası ilk saniyelerde profile satırı henüz oluşmadıysa
+        // PostgREST tek kayıt zorlamasında bu mesajı dönebiliyor.
+        if (profileError.message.includes("Cannot coerce the result to a single JSON object")) {
+            return {
+                profile: null,
+                partner: null,
+            };
+        }
+        throw new Error(profileError.message);
+    }
+    if (!profile) {
+        return {
+            profile: null,
+            partner: null,
+        };
+    }
 
     let partner = null;
     if (profile.partner_id) {
@@ -45,7 +75,7 @@ export async function getProfileWithPartner() {
             .from("profiles")
             .select("*")
             .eq("id", profile.partner_id)
-            .single();
+            .maybeSingle();
 
         if (!partnerError && partnerData) {
             partner = partnerData;

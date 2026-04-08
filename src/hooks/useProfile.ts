@@ -17,6 +17,8 @@ export type ProfileData = {
     birth_date?: string;
     relationship_start_date?: string;
     user_type?: 'base' | 'premium';
+    daily_photo_count?: number;
+    last_photo_reset?: string;
 };
 
 /**
@@ -28,7 +30,6 @@ export function useProfile() {
     const { profile, partner, isFetchingProfile } = state;
 
     useEffect(() => {
-        // Eğer profil verisi yoksa ve kullanıcı giriş yapmışsa verileri yükle
         if (!profile && state.isLoggedIn) {
             loadProfileData();
         }
@@ -62,7 +63,6 @@ export function useProfile() {
     return {
         profile,
         partner,
-        // Aktif olarak veri çekiliyorsa ve henüz profil verisi yoksa loading true döner
         loading: isFetchingProfile && !profile,
         // Arka planda güncelleme yapılıyorsa (hali hazırda veri varken) bu durum kullanılır
         isFetchingBackground: isFetchingProfile && !!profile,

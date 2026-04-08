@@ -31,19 +31,19 @@ export function MemoriesEmptyState({ variant, onAddMemory }: Props) {
 
             {/* Text */}
             <Text style={styles.title}>
-                {isNoPartner ? 'Not matched yet 💔' : 'No memories yet 💝'}
+                {isNoPartner ? 'Henüz eşleşmediniz 💔' : 'Henüz anı yok 💝'}
             </Text>
             <Text style={styles.subtitle}>
                 {isNoPartner
-                    ? 'You need to match with your partner before creating shared memories.'
-                    : 'Start building your story. Create your first shared memory together.'}
+                    ? 'Ortak anılar oluşturabilmek için önce partnerinle eşleşmelisin.'
+                    : 'Hikayenizi biriktirmeye başlayın. İlk ortak anınızı şimdi ekleyin.'}
             </Text>
 
             {/* CTA */}
             {!isNoPartner && onAddMemory && (
                 <TouchableOpacity style={styles.btn} onPress={onAddMemory} activeOpacity={0.85}>
                     <Ionicons name="add-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
-                    <Text style={styles.btnText}>Add First Memory</Text>
+                    <Text style={styles.btnText}>İlk Anıyı Ekle</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -84,11 +84,11 @@ const styles = StyleSheet.create({
         marginTop: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#e91e8c',
+        backgroundColor: '#ea5385',
         borderRadius: 28,
         paddingVertical: 14,
         paddingHorizontal: 28,
-        shadowColor: '#e91e8c',
+        shadowColor: '#ea5385',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 10,

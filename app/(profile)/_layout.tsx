@@ -30,6 +30,7 @@ export default function ProfileLayout() {
             }}
         >
             <Stack.Screen name="personal-info" options={{ title: 'Kişisel Bilgiler' }} />
+            <Stack.Screen name="account-settings" options={{ title: 'Hesap Ayarları' }} />
             <Stack.Screen name="relationship" options={{ title: 'İlişki Ayarları' }} />
             <Stack.Screen name="plan-limits" options={{ title: 'Plan ve Limitler' }} />
             <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
