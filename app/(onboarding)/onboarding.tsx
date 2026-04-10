@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Dimensions,
     FlatList,
@@ -26,38 +27,37 @@ import LottieView from "lottie-react-native";
 
 const { width, height } = Dimensions.get("window");
 
-const onboardingData = [
-    {
-        id: "1",
-        title: "İlişkiniz Hakkında",
-        subtitle: "Sevginizin ne zamandır sürdüğünü görün. Özel günlerinizi görün, ekleyin, düzenleyin.",
-        lottie: require("../../assets/lottie/onboarding_couple.json"),
-        color: "#FFF5F4",
-        isLocal: true
-    },
-    {
-        id: "2",
-        title: "Zaman Tüneli",
-        subtitle: "En sevdiğiniz anılarınızı zaman tüneline ekleyin. Her buluşmanız için bir anı oluşturun.",
-        lottie: require("../../assets/lottie/onboarding_couple2.json"),
-        color: "#F4F7FF",
-        isLocal: true
-    },
-    {
-        id: "3",
-        title: "Konumlarımız",
-        subtitle: "Gittiğiniz her yeri haritada görüntüleyin her bir konum için bir anı oluşturun.",
-        lottie: require("../../assets/lottie/onboarding_couple3.json"),
-        color: "#FDF4FF",
-        isLocal: true
-    },
-];
-
-
 export default function OnboardingScreen() {
+    const { t } = useTranslation();
     const flatListRef = useRef<FlatList>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollX = useSharedValue(0);
+    const onboardingData = [
+        {
+            id: "1",
+            title: t("onboarding.slide1Title"),
+            subtitle: t("onboarding.slide1Subtitle"),
+            lottie: require("../../assets/lottie/onboarding_couple.json"),
+            color: "#FFF5F4",
+            isLocal: true
+        },
+        {
+            id: "2",
+            title: t("onboarding.slide2Title"),
+            subtitle: t("onboarding.slide2Subtitle"),
+            lottie: require("../../assets/lottie/onboarding_couple2.json"),
+            color: "#F4F7FF",
+            isLocal: true
+        },
+        {
+            id: "3",
+            title: t("onboarding.slide3Title"),
+            subtitle: t("onboarding.slide3Subtitle"),
+            lottie: require("../../assets/lottie/onboarding_couple3.json"),
+            color: "#FDF4FF",
+            isLocal: true
+        },
+    ];
 
     const onScroll = useAnimatedScrollHandler((event) => {
         scrollX.value = event.contentOffset.x;
@@ -97,7 +97,7 @@ export default function OnboardingScreen() {
             <View className="absolute top-14 left-0 right-0 z-10 px-6 flex-row justify-end items-center">
                 {currentIndex < onboardingData.length - 1 && (
                     <Pressable onPress={handleSkip} className="px-4 py-2 rounded-full bg-slate-100">
-                        <Text className="text-slate-500 text-sm font-semibold">Atla</Text>
+                        <Text className="text-slate-500 text-sm font-semibold">{t("onboarding.skip")}</Text>
                     </Pressable>
                 )}
             </View>
@@ -195,8 +195,8 @@ export default function OnboardingScreen() {
                             }}
                         >
                             {currentIndex === onboardingData.length - 1
-                                ? "Başlayalım"
-                                : "İleri"}
+                                ? t("onboarding.start")
+                                : t("onboarding.next")}
                         </Text>
                         <Text
                             className="text-white text-xl"

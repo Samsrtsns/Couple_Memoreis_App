@@ -3,6 +3,7 @@ import { loginUser } from '@/src/services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Kullanıcı giriş işlemlerini yöneten özel hook.
@@ -14,6 +15,7 @@ import { Alert } from 'react-native';
  * Bu nedenle burada dispatch veya router.replace çağırmıyoruz.
  */
 export function useLogin() {
+    const { t } = useTranslation();
     const [email, setEmail] = useState("");
     const [pass, setPass] = useState("");
     const [showPass, setShowPass] = useState(false);
@@ -21,7 +23,7 @@ export function useLogin() {
 
     const handleLogin = async () => {
         if (!email.trim() || !pass.trim()) {
-            Alert.alert("Eksik Bilgi", "Lütfen e-posta ve şifrenizi giriniz.");
+            Alert.alert(t("auth.missingInfoTitle"), t("auth.loginMissingInfo"));
             return;
         }
 
@@ -35,7 +37,7 @@ export function useLogin() {
 
             await AsyncStorage.setItem('hasLaunched', 'true');
         } catch (error: any) {
-            Alert.alert("Giriş Hatası", error.message || "Bir şeyler ters gitti.");
+            Alert.alert(t("auth.loginErrorTitle"), error.message || t("auth.genericError"));
         } finally {
             setLoading(false);
         }

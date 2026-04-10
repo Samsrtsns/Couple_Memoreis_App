@@ -5,8 +5,10 @@ import { updateProfile } from '@/src/services/profileService';
 import { useAuth } from '@/src/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 export default function PersonalInfoScreen() {
+    const { t, i18n } = useTranslation();
     const { profile, refetch } = useProfile();
     const { state } = useAuth();
     const [firstName, setFirstName] = useState('');
@@ -45,7 +47,7 @@ export default function PersonalInfoScreen() {
     const handleSave = async () => {
         if (!state.user?.id) return;
         if (!firstName.trim() || !lastName.trim()) {
-            Alert.alert("Hata", "Ad ve soyad zorunludur.");
+            Alert.alert(t("common.error"), t("personalInfo.requiredName"));
             return;
         }
 
@@ -58,17 +60,17 @@ export default function PersonalInfoScreen() {
                 birth_date: birthDate ? toLocalDateOnlyString(birthDate) : null,
             });
             await refetch();
-            Alert.alert("Başarılı", "Bilgileriniz güncellendi.");
+            Alert.alert(t("common.success"), t("personalInfo.updated"));
         } catch (error: any) {
-            Alert.alert("Hata", error.message || "Profil güncellenemedi.");
+            Alert.alert(t("common.error"), error.message || t("personalInfo.updateFailed"));
         } finally {
             setSaving(false);
         }
     };
 
     const formatDate = (date: Date | null) => {
-        if (!date) return 'Ayarlanmadı';
-        return date.toLocaleDateString("tr-TR", {
+        if (!date) return t("personalInfo.notSet");
+        return date.toLocaleDateString(i18n.language || "tr-TR", {
             day: "numeric",
             month: "long",
             year: "numeric",
@@ -87,18 +89,18 @@ export default function PersonalInfoScreen() {
                 contentContainerStyle={{ padding: 24, paddingTop: 12, paddingBottom: 120 }}
             >
                 <Text className="text-slate-500 text-sm mb-8">
-                    Adınızı, doğum tarihinizi ve e-posta bilginizi buradan yönetebilirsiniz. Şifre ve hesap silme için Hesap Ayarları ekranına gidin.
+                    {t("personalInfo.helper")}
                 </Text>
 
                 <View className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm gap-y-6">
                     {/* First Name */}
                     <View>
                         <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-2 ml-1">
-                            Adınız
+                            {t("personalInfo.firstName")}
                         </Text>
                         <TextInput
                             className="bg-slate-50 rounded-2xl px-4 py-4 text-slate-800 font-semibold border border-slate-100"
-                            placeholder="Adınız"
+                            placeholder={t("personalInfo.firstNamePlaceholder")}
                             value={firstName}
                             onChangeText={setFirstName}
                         />
@@ -107,11 +109,11 @@ export default function PersonalInfoScreen() {
                     {/* Last Name */}
                     <View>
                         <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-2 ml-1">
-                            Soyadınız
+                            {t("personalInfo.lastName")}
                         </Text>
                         <TextInput
                             className="bg-slate-50 rounded-2xl px-4 py-4 text-slate-800 font-semibold border border-slate-100"
-                            placeholder="Soyadınız"
+                            placeholder={t("personalInfo.lastNamePlaceholder")}
                             value={lastName}
                             onChangeText={setLastName}
                         />
@@ -120,20 +122,20 @@ export default function PersonalInfoScreen() {
                     {/* Email */}
                     <View>
                         <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-2 ml-1">
-                            E-posta Adresiniz
+                            {t("personalInfo.email")}
                         </Text>
                         <View className="bg-slate-50 rounded-2xl px-4 py-4 border border-slate-100 opacity-60">
                             <Text className="text-slate-500 font-medium">{profile?.email || 'N/A'}</Text>
                         </View>
                         <Text className="text-[10px] text-slate-400 mt-2 ml-1 italic">
-                            E-posta adresi değiştirilemez.
+                            {t("personalInfo.emailNotChangeable")}
                         </Text>
                     </View>
 
                     {/* Birth Date */}
                     <View>
                         <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-2 ml-1">
-                            Doğum Tarihiniz
+                            {t("personalInfo.birthDate")}
                         </Text>
                         <TouchableOpacity
                             onPress={() => setShowDatePicker(true)}
@@ -151,7 +153,7 @@ export default function PersonalInfoScreen() {
                     <View className="mt-4 bg-white rounded-2xl border border-slate-100 overflow-hidden">
                         <View className="px-4 py-3 border-b border-slate-100 items-end">
                             <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                                <Text className="text-[#ea5385] font-bold">Bitti</Text>
+                                <Text className="text-[#ea5385] font-bold">{t("personalInfo.done")}</Text>
                             </TouchableOpacity>
                         </View>
                         <DateTimePicker
@@ -191,7 +193,7 @@ export default function PersonalInfoScreen() {
                     {saving ? (
                         <ActivityIndicator color="white" />
                     ) : (
-                        <Text className="text-white font-bold text-lg">Değişiklikleri Kaydet</Text>
+                        <Text className="text-white font-bold text-lg">{t("personalInfo.saveChanges")}</Text>
                     )}
                 </TouchableOpacity>
             </ScrollView>

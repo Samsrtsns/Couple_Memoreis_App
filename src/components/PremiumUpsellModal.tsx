@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, Modal, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, Modal, StyleSheet, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PrimaryButton from './PrimaryButton';
-import { presentPremiumPaywall } from '../services/revenueCatService';
-import { useAuth } from '../context/AuthContext';
 
 interface Props {
   visible: boolean;
@@ -12,26 +10,17 @@ interface Props {
   message?: string;
 }
 
-export default function PremiumUpsellModal({ 
-  visible, 
-  onClose, 
-  title = "Sınırına Ulaştın", 
-  message = "Base plan limitine ulaştın. Sınırsız anı, konum ve fotoğraf eklemek için Premium'a yükselt." 
+export default function PremiumUpsellModal({
+  visible,
+  onClose,
+  title = "Sınırına Ulaştın",
+  message = "Base plan limitine ulaştın. Sınırsız anı, konum ve fotoğraf eklemek için Premium'a yükselt.",
 }: Props) {
-  const { state, refreshProfile } = useAuth();
-  const [loading, setLoading] = useState(false);
-
-  const handleUpgrade = async () => {
-    if (!state.user?.id) return;
-    
-    setLoading(true);
-    const success = await presentPremiumPaywall(state.user.id);
-    setLoading(false);
-
-    if (success) {
-      await refreshProfile();
-      onClose();
-    }
+  const handleUpgrade = () => {
+    Alert.alert(
+      'Premium',
+      'App Store abonelik akışı kaldırıldı. Premium yükseltme şu anda uygulama içinde kapalı.'
+    );
   };
 
   return (
@@ -43,16 +32,12 @@ export default function PremiumUpsellModal({
           </View>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
-          
+
           <View style={{ width: '100%', marginTop: 8 }}>
-            <PrimaryButton 
-              title={loading ? "Yükleniyor..." : "Premium'a Yükselt"} 
-              onPress={handleUpgrade}
-              disabled={loading}
-            />
+            <PrimaryButton title="Premium'a Yükselt" onPress={handleUpgrade} />
           </View>
-          
-          <Pressable onPress={onClose} style={styles.closeButton} disabled={loading}>
+
+          <Pressable onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeText}>Daha Sonra</Text>
           </Pressable>
         </View>
@@ -114,5 +99,5 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontWeight: '700',
     fontSize: 15,
-  }
+  },
 });

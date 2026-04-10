@@ -1,11 +1,7 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Text, View } from "react-native";
 import { calculateDaysRemaining } from "../utils/dateUtils";
-
-const TR_MONTHS = [
-    "OCA", "ŞUB", "MAR", "NİS", "MAY", "HAZ",
-    "TEM", "AĞU", "EYL", "EKİ", "KAS", "ARA",
-];
 
 const DATE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
     gift: { bg: "#FEE2E2", text: "#DC2626" },
@@ -27,13 +23,20 @@ export default function SpecialDayCard({
     isYearly = true,
     iconName = "heart",
 }: Props) {
+    const { t, i18n } = useTranslation();
     const remainingDays = calculateDaysRemaining(date, isYearly);
 
     // Parse date string reliably to avoid timezone issues
     const parts = date.split("-");
     const monthIndex = parseInt(parts[1], 10) - 1;
     const day = parseInt(parts[2], 10);
-    const monthAbbr = TR_MONTHS[monthIndex] || "---";
+    const safeDate = new Date(2000, monthIndex, day);
+    const monthAbbr = new Intl.DateTimeFormat(i18n.language || "tr", {
+        month: "short",
+    })
+        .format(safeDate)
+        .replace(".", "")
+        .toUpperCase();
 
     const colors = DATE_BADGE_COLORS[iconName ?? "heart"] || {
         bg: "#FFE4E6",
@@ -89,8 +92,8 @@ export default function SpecialDayCard({
 
                     <Text className="text-rose-500 font-semibold text-[13px] mt-1">
                         {remainingDays === 0
-                            ? "🎉 Bugün!"
-                            : `${remainingDays} gün kaldı`}
+                            ? t("specialDay.today")
+                            : t("specialDay.daysLeft", { days: remainingDays })}
                     </Text>
                 </View>
             </View>

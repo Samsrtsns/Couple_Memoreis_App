@@ -6,7 +6,7 @@ export default {
   expo: {
     name: 'forLovers',
     slug: 'forLovers',
-    version: '1.0.1',
+    version: '1.0.3',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     scheme: 'couply',
@@ -14,7 +14,7 @@ export default {
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
-      buildNumber: '2',
+      buildNumber: '1',
       config: {
         googleMapsApiKey,
       },

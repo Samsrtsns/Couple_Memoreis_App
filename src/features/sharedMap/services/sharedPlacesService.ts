@@ -154,6 +154,13 @@ export async function addSharedPlace(params: {
             await supabase.storage.from('shared-places').remove([uploadedPath]);
         }
         console.error('DB Error adding shared place:', dbError);
+        const rawMessage = dbError.message || '';
+        if (
+            rawMessage.includes('PLACE_TOTAL_LIMIT_REACHED') ||
+            rawMessage.includes('DAILY_PHOTO_LIMIT_REACHED')
+        ) {
+            throw new Error(rawMessage);
+        }
         throw new Error('Yer kaydedilemedi. Lütfen tekrar deneyin.');
     }
 

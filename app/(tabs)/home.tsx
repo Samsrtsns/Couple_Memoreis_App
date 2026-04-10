@@ -11,9 +11,11 @@ import { calculateDaysRemaining, SpecialEvent } from "@/src/utils/dateUtils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function HomeScreen() {
+  const { t, i18n } = useTranslation();
   const { state } = useAuth();
   const { profile, partner } = state;
   const hasPartner = !!partner?.id;
@@ -23,31 +25,40 @@ export default function HomeScreen() {
   const { specialDays } = useSpecialDays();
 
   const upcomingEvents = useMemo(() => {
+    const translateSpecialTitle = (title: string) => {
+      const normalized = title.trim().toLocaleLowerCase("tr-TR");
+      if (normalized.includes("doğum")) return t("home.birthday");
+      if (normalized.includes("sevgililer")) return t("home.valentines");
+      if (normalized.includes("yılbaşı")) return t("home.newYear");
+      if (normalized.includes("yıldön")) return t("home.anniversary");
+      return title;
+    };
+
     const builtinCouple: SpecialEvent[] = [
       {
         id: "1",
-        title: "Doğum Günü",
+        title: t("home.birthday"),
         date: partner?.birth_date || "2000-01-01",
         isYearly: true,
         iconName: "gift",
       },
       {
         id: "2",
-        title: "Sevgililer Günü",
+        title: t("home.valentines"),
         date: "2026-02-14",
         isYearly: true,
         iconName: "heart",
       },
       {
         id: "3",
-        title: "Yılbaşı",
+        title: t("home.newYear"),
         date: "2026-01-01",
         isYearly: true,
         iconName: "sparkles",
       },
       {
         id: "4",
-        title: "Yıldönümü",
+        title: t("home.anniversary"),
         date: profile?.relationship_start_date || "2000-01-01",
         isYearly: true,
         iconName: "calendar",
@@ -57,14 +68,14 @@ export default function HomeScreen() {
     const builtinSolo: SpecialEvent[] = [
       {
         id: "solo-2",
-        title: "Sevgililer Günü",
+        title: t("home.valentines"),
         date: "2026-02-14",
         isYearly: true,
         iconName: "heart",
       },
       {
         id: "solo-3",
-        title: "Yılbaşı",
+        title: t("home.newYear"),
         date: "2026-01-01",
         isYearly: true,
         iconName: "sparkles",
@@ -75,7 +86,7 @@ export default function HomeScreen() {
 
     const fromDb: SpecialEvent[] = specialDays.map((s) => ({
       id: s.id,
-      title: s.title,
+      title: translateSpecialTitle(s.title),
       date: s.special_date,
       isYearly: true,
       iconName: iconNameForSpecialDayId(s.id),
@@ -92,6 +103,7 @@ export default function HomeScreen() {
     partner?.birth_date,
     profile?.relationship_start_date,
     specialDays,
+    i18n.language,
   ]);
 
   return (
@@ -104,13 +116,13 @@ export default function HomeScreen() {
         <View className="pt-4 px-6 flex-row justify-between items-center">
           <View className="flex-1 mr-4">
             <Text className="text-slate-500 font-medium text-[14px]">
-              Tekrar hoş geldin
+              {t("home.welcomeBack")}
             </Text>
             <Text
               className="text-slate-800 font-extrabold text-[28px] mt-1"
               numberOfLines={1}
             >
-              {profile?.first_name || "Kullanıcı"} 👋🏻
+              {profile?.first_name || t("home.defaultUser")} 👋🏻
             </Text>
           </View>
         </View>
@@ -131,7 +143,7 @@ export default function HomeScreen() {
         <View className="mt-6">
           <View className="px-6 flex-row items-center justify-between mb-4">
             <Text className="text-slate-800 font-bold text-lg">
-              Özel Günler
+              {t("home.specialDays")}
             </Text>
 
             <Pressable
@@ -139,7 +151,7 @@ export default function HomeScreen() {
               className="flex-row items-center"
             >
               <Text className="text-rose-500 font-semibold text-sm mr-1">
-                Hepsini Gör
+                {t("home.seeAll")}
               </Text>
               <Ionicons name="chevron-forward" size={16} color="#F43F5E" />
             </Pressable>

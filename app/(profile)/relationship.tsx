@@ -18,8 +18,10 @@ import {
     View,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 
 export default function RelationshipScreen() {
+    const { t, i18n } = useTranslation();
     const { profile, partner, refetch } = useProfile();
     const { state, refreshProfile } = useAuth();
     const [startDate, setStartDate] = useState<Date | null>(null);
@@ -62,9 +64,9 @@ export default function RelationshipScreen() {
                 relationship_start_date: startDate ? toLocalDateOnlyString(startDate) : null,
             });
             await refetch();
-            Alert.alert('Başarılı', 'İlişki ayarları başarıyla güncellendi.');
+            Alert.alert(t("common.success"), t("relationship.saveSuccess"));
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'İlişki ayarları güncellenemedi.';
+            const msg = error instanceof Error ? error.message : t("relationship.saveFailed");
             showErrorToast(msg, setToastMsg);
         } finally {
             setSaving(false);
@@ -81,7 +83,7 @@ export default function RelationshipScreen() {
             setUnlinkModalVisible(false);
             router.replace('/(pairing)/pair');
         } catch (error: unknown) {
-            const msg = error instanceof Error ? error.message : 'Bağlantı kaldırılamadı.';
+            const msg = error instanceof Error ? error.message : t("relationship.unlinkFailed");
             showErrorToast(msg, setToastMsg);
         } finally {
             setUnlinking(false);
@@ -90,8 +92,8 @@ export default function RelationshipScreen() {
     };
 
     const formatDate = (date: Date | null) => {
-        if (!date) return 'Henüz ayarlanmadı';
-        return date.toLocaleDateString('tr-TR', {
+        if (!date) return t("relationship.dateNotSet");
+        return date.toLocaleDateString(i18n.language || 'tr-TR', {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
@@ -102,12 +104,12 @@ export default function RelationshipScreen() {
         <View className="flex-1 bg-[#FDF8F7]">
             <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 12, paddingBottom: 40 }}>
                 <Text className="text-slate-500 text-sm mb-8">
-                    Partner bağlantınızı ve ilişki yıldönümü tarihinizi buradan yönetin.
+                    {t("relationship.helper")}
                 </Text>
 
                 <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mb-6">
                     <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-4 ml-1">
-                        Bağlı Partner
+                        {t("relationship.connectedPartner")}
                     </Text>
                     {partner ? (
                         <View className="flex-row items-center gap-x-4 bg-rose-50 p-4 rounded-2xl border border-rose-100">
@@ -118,13 +120,13 @@ export default function RelationshipScreen() {
                                 <Text className="text-slate-800 font-bold text-base">
                                     {partner.first_name} {partner.last_name}
                                 </Text>
-                                <Text className="text-rose-500 text-xs font-semibold">Eşleşti ve Bağlandı</Text>
+                                <Text className="text-rose-500 text-xs font-semibold">{t("relationship.matchedConnected")}</Text>
                             </View>
                         </View>
                     ) : (
                         <View className="bg-slate-50 p-4 rounded-2xl border border-slate-100 items-center">
                             <Text className="text-slate-400 font-medium italic text-center">
-                                Henüz bir partnerle bağlantı kurulmadı.
+                                {t("relationship.noPartner")}
                             </Text>
                         </View>
                     )}
@@ -132,7 +134,7 @@ export default function RelationshipScreen() {
 
                 <View className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
                     <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-4 ml-1">
-                        Yıldönümümüz
+                        {t("relationship.anniversary")}
                     </Text>
                     <TouchableOpacity
                         onPress={() => setShowDatePicker(true)}
@@ -147,7 +149,7 @@ export default function RelationshipScreen() {
                         <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
                     </TouchableOpacity>
                     <Text className="text-[11px] text-slate-400 mt-3 ml-1 leading-4">
-                        Bu tarih, ne kadar süredir birlikte olduğunuzu hesaplamak için kullanılır.
+                        {t("relationship.anniversaryHint")}
                     </Text>
                 </View>
 
@@ -155,7 +157,7 @@ export default function RelationshipScreen() {
                     <View className="mt-4 bg-white rounded-2xl border border-slate-100 overflow-hidden">
                         <View className="px-4 py-3 border-b border-slate-100 items-end">
                             <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                                <Text className="text-[#ea5385] font-bold">Bitti</Text>
+                                <Text className="text-[#ea5385] font-bold">{t("relationship.done")}</Text>
                             </TouchableOpacity>
                         </View>
                         <DateTimePicker
@@ -195,14 +197,14 @@ export default function RelationshipScreen() {
                     {saving ? (
                         <ActivityIndicator color="white" />
                     ) : (
-                        <Text className="text-white font-bold text-lg">Değişiklikleri Kaydet</Text>
+                        <Text className="text-white font-bold text-lg">{t("relationship.saveChanges")}</Text>
                     )}
                 </TouchableOpacity>
 
                 {partner ? (
                     <View className="mt-10 pt-8 border-t border-slate-200">
                         <Text className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-3 text-center">
-                            Tehlikeli bölge
+                            {t("relationship.dangerZone")}
                         </Text>
                         <TouchableOpacity
                             onPress={() => !unlinking && setUnlinkModalVisible(true)}
@@ -211,11 +213,10 @@ export default function RelationshipScreen() {
                             className="bg-white border border-rose-200 rounded-2xl px-4 py-4 flex-row items-center justify-center gap-x-2"
                         >
                             <Ionicons name="unlink-outline" size={20} color="#E11D48" />
-                            <Text className="text-rose-600 font-bold text-[15px]">Partner bağlantısını kaldır</Text>
+                            <Text className="text-rose-600 font-bold text-[15px]">{t("relationship.unlinkButton")}</Text>
                         </TouchableOpacity>
                         <Text className="text-slate-400 text-[11px] text-center mt-3 px-2 leading-4">
-                            Ortak verileriniz silinir; yeni bir davet kodu alırsınız. Tekrar eşleşmek için kod
-                            paylaşmanız gerekir.
+                            {t("relationship.unlinkInfo")}
                         </Text>
                     </View>
                 ) : null}

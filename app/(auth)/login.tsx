@@ -6,6 +6,7 @@ import { useLogin } from "@/src/hooks/useLogin";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import {
     Image,
     Keyboard,
@@ -18,6 +19,7 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function LoginScreen() {
+    const { t } = useTranslation();
     const {
         email,
         setEmail,
@@ -68,7 +70,7 @@ export default function LoginScreen() {
                                         forLovers
                                     </Text>
                                     <Text className="mt-1 text-slate-400 text-center text-sm">
-                                        Sevgilinle anılarını biriktir
+                                        {t("auth.appTagline")}
                                     </Text>
                                 </View>
                             </View>
@@ -77,7 +79,7 @@ export default function LoginScreen() {
                             <View className="pt-8">
                                 <View className="gap-y-6 w-full">
                                     <TextInputArea
-                                        label="E-posta"
+                                        label={t("auth.email")}
                                         value={email}
                                         onChangeText={setEmail}
                                         placeholder="merhaba@askimiz.com"
@@ -87,7 +89,7 @@ export default function LoginScreen() {
 
                                     <View className="gap-y-2">
                                         <TextInputArea
-                                            label="Şifre"
+                                        label={t("auth.password")}
                                             value={pass}
                                             onChangeText={setPass}
                                             placeholder="••••••••"
@@ -105,14 +107,14 @@ export default function LoginScreen() {
                                         <View className="items-end px-1">
                                             <Pressable onPress={() => router.push("/(auth)/forgot-password")}>
                                                 <Text className="text-sm font-medium text-primary">
-                                                    Şifremi Unuttum?
+                                                    {t("auth.forgotPassword")}
                                                 </Text>
                                             </Pressable>
                                         </View>
                                     </View>
 
                                     <PrimaryButton
-                                        title="Giriş Yap"
+                                        title={t("auth.login")}
                                         loading={loading}
                                         onPress={handleLogin}
                                     />
@@ -120,7 +122,7 @@ export default function LoginScreen() {
                                     <View className="flex-row items-center gap-x-4 pt-4 px-1">
                                         <View className="h-[1px] flex-1 bg-slate-200" />
                                         <Text className="text-xs font-medium text-slate-400 uppercase tracking-widest">
-                                            Veya şununla devam et
+                                            {t("auth.continueWith")}
                                         </Text>
                                         <View className="h-[1px] flex-1 bg-slate-200" />
                                     </View>
@@ -147,7 +149,7 @@ export default function LoginScreen() {
 
                             {/* Footer */}
                             <View className="pb-12 pt-8 items-center flex-row justify-center">
-                                <Text className="text-slate-400 text-sm font-medium">Hesabın yok mu? </Text>
+                                <Text className="text-slate-400 text-sm font-medium">{t("auth.noAccount")} </Text>
 
                                 <Pressable
                                     onPress={() => router.push("/(auth)/register")}
@@ -158,7 +160,7 @@ export default function LoginScreen() {
                                         },
                                     ]}
                                 >
-                                    <Text className="text-primary font-bold text-sm">Kaydol</Text>
+                                    <Text className="text-primary font-bold text-sm">{t("auth.signup")}</Text>
                                 </Pressable>
                             </View>
 

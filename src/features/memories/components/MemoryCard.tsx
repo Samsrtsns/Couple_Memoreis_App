@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     StyleSheet,
     Text,
@@ -19,6 +20,7 @@ type Props = {
 };
 
 export function MemoryCard({ memory, isLast }: Props) {
+    const { t } = useTranslation();
     const router = useRouter();
 
     const handlePress = () => {
@@ -88,7 +90,9 @@ export function MemoryCard({ memory, isLast }: Props) {
                     {/* FOOTER */}
                     <View style={styles.footer}>
                         <Text style={styles.createdBy}>
-                            ✨ {memory.creator_profile?.first_name ?? 'Partner'} ekledi
+                            {t("memories.addedBy", {
+                                name: memory.creator_profile?.first_name ?? "Partner",
+                            })}
                         </Text>
                     </View>
                 </View>

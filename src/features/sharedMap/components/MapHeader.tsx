@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -23,11 +24,12 @@ export default function MapHeader({
     onChangeSearchQuery,
     onFitAllPress,
 }: Props) {
+    const { t } = useTranslation();
     return (
         <View className="border-b border-[#F1EEF0] bg-[#FDF8F7] px-5 pt-5 pb-4">
             <View className="flex-row items-center justify-between">
                 <View className="flex-row items-center gap-2">
-                    <Text className="text-[26px] font-extrabold text-slate-800">Konumlarımız</Text>
+                    <Text className="text-[26px] font-extrabold text-slate-800">{t("map.title")}</Text>
                     <View className="h-8 w-8 items-center justify-center rounded-full bg-rose-100">
                         <Text className="text-[12px] font-bold text-rose-500">{placesCount}</Text>
                     </View>
@@ -54,7 +56,7 @@ export default function MapHeader({
                     <TextInput
                         value={searchQuery}
                         onChangeText={onChangeSearchQuery}
-                        placeholder="Başlığa göre ara..."
+                        placeholder={t("map.searchPlaceholder")}
                         placeholderTextColor="#94A3B8"
                         className="ml-2 flex-1 text-[14px] text-slate-800 py-2"
                         autoFocus

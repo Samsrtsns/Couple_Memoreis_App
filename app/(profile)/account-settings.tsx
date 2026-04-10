@@ -4,6 +4,7 @@ import { deleteUserAccount } from "@/src/services/accountService";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -20,6 +21,7 @@ const MIN_PASSWORD_LEN = 6;
 
 export default function AccountSettingsScreen() {
     const { state, dispatch } = useAuth();
+    const { t } = useTranslation();
     const email = state.user?.email ?? "";
 
     const [currentPassword, setCurrentPassword] = useState("");
@@ -40,24 +42,25 @@ export default function AccountSettingsScreen() {
         );
     }, [email, currentPassword, newPassword, confirmPassword]);
 
+
     const handleChangePassword = async () => {
         if (!email) {
-            Alert.alert("Hata", "Oturum bilgisi bulunamadı.");
+            Alert.alert(t("common.error"), t("accountSettings.noSession"));
             return;
         }
         if (newPassword.length < MIN_PASSWORD_LEN) {
             Alert.alert(
-                "Hata",
-                `Yeni şifre en az ${MIN_PASSWORD_LEN} karakter olmalıdır.`
+                t("common.error"),
+                t("accountSettings.minPassword", { min: MIN_PASSWORD_LEN })
             );
             return;
         }
         if (newPassword !== confirmPassword) {
-            Alert.alert("Hata", "Yeni şifreler eşleşmiyor.");
+            Alert.alert(t("common.error"), t("accountSettings.notMatch"));
             return;
         }
         if (newPassword === currentPassword) {
-            Alert.alert("Hata", "Yeni şifre mevcut şifre ile aynı olamaz.");
+            Alert.alert(t("common.error"), t("accountSettings.sameAsCurrent"));
             return;
         }
 
@@ -71,10 +74,10 @@ export default function AccountSettingsScreen() {
             setCurrentPassword("");
             setNewPassword("");
             setConfirmPassword("");
-            Alert.alert("Başarılı", "Şifreniz güncellendi.");
+            Alert.alert(t("common.success"), t("accountSettings.updated"));
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : "Şifre güncellenemedi.";
-            Alert.alert("Hata", msg);
+            const msg = e instanceof Error ? e.message : t("accountSettings.updateFailed");
+            Alert.alert(t("common.error"), msg);
         } finally {
             setSavingPassword(false);
         }
@@ -82,12 +85,12 @@ export default function AccountSettingsScreen() {
 
     const handleDeleteAccount = () => {
         Alert.alert(
-            "Hesabı Sil",
-            "Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve tüm anılarınız, paylaştığınız yerler kalıcı olarak silinecektir.",
+            t("accountSettings.deleteTitle"),
+            t("accountSettings.deleteMessage"),
             [
-                { text: "Vazgeç", style: "cancel" },
+                { text: t("common.cancel"), style: "cancel" },
                 {
-                    text: "Evet, Sil",
+                    text: t("accountSettings.deleteConfirm"),
                     style: "destructive",
                     onPress: async () => {
                         setDeleting(true);
@@ -101,8 +104,8 @@ export default function AccountSettingsScreen() {
                             const msg =
                                 error instanceof Error
                                     ? error.message
-                                    : "Hesap silinemedi.";
-                            Alert.alert("Hata", msg);
+                                    : t("accountSettings.deleteFailed");
+                            Alert.alert(t("common.error"), msg);
                             setDeleting(false);
                         }
                     },
@@ -127,22 +130,22 @@ export default function AccountSettingsScreen() {
                     }}
                 >
                     <Text className="text-slate-500 text-sm mb-6">
-                        Şifrenizi ve hesap güvenliğinizi buradan yönetin.
+                        {t("accountSettings.helper")}
                     </Text>
 
                     <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-3 px-1">
-                        Şifre değiştir
+                        {t("accountSettings.sectionPassword")}
                     </Text>
 
                     <View className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm gap-y-5">
                         <View>
                             <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-2 ml-1">
-                                Mevcut şifre
+                                {t("accountSettings.currentPassword")}
                             </Text>
                             <View className="flex-row items-center bg-slate-50 rounded-2xl px-4 border border-slate-100">
                                 <TextInput
                                     className="flex-1 py-4 text-slate-800 font-semibold"
-                                    placeholder="••••••••"
+                                    placeholder={t("accountSettings.placeholderPassword")}
                                     placeholderTextColor="#94A3B8"
                                     secureTextEntry={!showCurrent}
                                     value={currentPassword}
@@ -165,12 +168,12 @@ export default function AccountSettingsScreen() {
 
                         <View>
                             <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-2 ml-1">
-                                Yeni şifre
+                                {t("accountSettings.newPassword")}
                             </Text>
                             <View className="flex-row items-center bg-slate-50 rounded-2xl px-4 border border-slate-100">
                                 <TextInput
                                     className="flex-1 py-4 text-slate-800 font-semibold"
-                                    placeholder="En az 6 karakter"
+                                    placeholder={t("accountSettings.placeholderNewPassword")}
                                     placeholderTextColor="#94A3B8"
                                     secureTextEntry={!showNew}
                                     value={newPassword}
@@ -193,12 +196,12 @@ export default function AccountSettingsScreen() {
 
                         <View>
                             <Text className="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-2 ml-1">
-                                Yeni şifre (tekrar)
+                                {t("accountSettings.newPasswordAgain")}
                             </Text>
                             <View className="flex-row items-center bg-slate-50 rounded-2xl px-4 border border-slate-100">
                                 <TextInput
                                     className="flex-1 py-4 text-slate-800 font-semibold"
-                                    placeholder="Yeni şifreyi tekrarlayın"
+                                    placeholder={t("accountSettings.placeholderRepeatPassword")}
                                     placeholderTextColor="#94A3B8"
                                     secureTextEntry={!showConfirm}
                                     value={confirmPassword}
@@ -233,14 +236,14 @@ export default function AccountSettingsScreen() {
                             <ActivityIndicator color="white" />
                         ) : (
                             <Text className="text-white font-bold text-lg">
-                                Şifreyi Güncelle
+                                {t("accountSettings.updatePassword")}
                             </Text>
                         )}
                     </TouchableOpacity>
 
                     <View className="mt-14 py-6 border-t border-slate-200">
                         <Text className="text-red-400 text-xs font-bold uppercase tracking-[2px] mb-4 text-center">
-                            Tehlikeli bölge
+                            {t("accountSettings.dangerZone")}
                         </Text>
                         <TouchableOpacity
                             onPress={handleDeleteAccount}
@@ -253,13 +256,13 @@ export default function AccountSettingsScreen() {
                                 <>
                                     <Ionicons name="trash-outline" size={18} color="#ef4444" />
                                     <Text className="text-red-500 font-bold">
-                                        Hesabımı kalıcı olarak sil
+                                        {t("accountSettings.deleteAccount")}
                                     </Text>
                                 </>
                             )}
                         </TouchableOpacity>
                         <Text className="text-slate-300 text-[10px] text-center mt-3 px-4">
-                            Bu işlem geri alınamaz. Tüm verileriniz kalıcı olarak temizlenecektir.
+                            {t("accountSettings.deleteInfo")}
                         </Text>
                     </View>
                 </ScrollView>

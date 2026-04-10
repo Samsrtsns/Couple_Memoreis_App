@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable, Text, View } from "react-native";
 import { useAuth } from "../context/AuthContext";
-import { calculateDaysTogether } from "../utils/dateUtils";
+import { calculateDaysTogether, parseDateOnlyString } from "../utils/dateUtils";
 import ProfileAvatar from "./ProfileAvatar";
 
 type Props = {
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export default function RelationshipCard({ relationshipStartDate }: Props) {
+    const { t, i18n } = useTranslation();
     const { state } = useAuth();
     const { profile, partner } = state;
 
@@ -35,16 +37,16 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
                             <Ionicons name="people-outline" size={32} color="#F43F5E" />
                         </View>
                         <Text className="text-slate-900 font-bold text-lg text-center">
-                            Şu an eşleşmiş değilsin
+                            {t("home.notMatched")}
                         </Text>
                         <Text className="text-slate-500 text-sm text-center mt-2 leading-5 px-1">
-                            Partnerınla bağlandığında birlikte gün sayacı ve ortak alanlar burada görünür.
+                            {t("home.connectHint")}
                         </Text>
                         <Pressable
                             onPress={() => router.push("/(pairing)/pair")}
                             className="mt-5 bg-[#ea5385] px-6 py-3 rounded-2xl active:opacity-90"
                         >
-                            <Text className="text-white font-bold text-[15px]">Partner ile eşleş</Text>
+                            <Text className="text-white font-bold text-[15px]">{t("home.matchPartner")}</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -56,8 +58,11 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
 
     const daysTogether = calculateDaysTogether(relationshipStartDate);
 
-    const formattedDate = new Date(relationshipStartDate).toLocaleDateString(
-        "tr-TR",
+    const relationDate = parseDateOnlyString(relationshipStartDate);
+    if (!relationDate) return null;
+
+    const formattedDate = relationDate.toLocaleDateString(
+        i18n.language || "tr-TR",
         {
             year: "numeric",
             month: "long",
@@ -96,14 +101,16 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
 
                 <View className="flex-col items-start w-full mt-6 px-1">
                     <Text className="text-slate-900 font-bold text-[20px] text-left leading-8">
-                        {partner?.first_name ? `${partner.first_name} ile ` : ""}
+                        {t("home.togetherForPrefix", {
+                            name: partner?.first_name ?? "",
+                        })}
                         <Text className="text-primary font-bold text-[22px]">{daysTogether}</Text>
-                        {" gündür birliktesiniz."}
+                        {t("home.togetherForSuffix")}
                     </Text>
 
                     <View className="mt-1">
                         <Text className="text-left text-slate-500 font-semibold text-[16px]">
-                            {formattedDate} tarihinden beri.
+                            {t("home.togetherSinceDate", { date: formattedDate })}
                         </Text>
                     </View>
                 </View>

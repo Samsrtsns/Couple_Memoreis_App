@@ -2,6 +2,7 @@ import { calculateDaysRemaining, SpecialEvent } from "@/src/utils/dateUtils";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Platform, Text, TouchableOpacity, View } from "react-native";
 
 interface RelationshipDashboardProps {
@@ -18,6 +19,7 @@ export default function RelationshipDashboard({
     nearestEvent,
     isLinked = true,
 }: RelationshipDashboardProps) {
+    const { t } = useTranslation();
     const router = useRouter();
 
     const daysRemaining = useMemo(() => {
@@ -55,7 +57,7 @@ export default function RelationshipDashboard({
                     {memoriesCount}
                 </Text>
                 <Text className="text-slate-400 font-medium text-[11px] mt-0.5">
-                    Anılar
+                    {t("home.memories")}
                 </Text>
             </TouchableOpacity>
 
@@ -73,7 +75,7 @@ export default function RelationshipDashboard({
                     {placesCount}
                 </Text>
                 <Text className="text-slate-400 font-medium text-[11px] mt-0.5">
-                    Yerler
+                    {t("home.places")}
                 </Text>
             </TouchableOpacity>
 
@@ -90,7 +92,7 @@ export default function RelationshipDashboard({
                         ? "—"
                         : daysRemaining !== null
                           ? daysRemaining === 0
-                              ? "Bugün"
+                              ? t("home.today")
                               : `${daysRemaining}g`
                           : "-"}
                 </Text>
@@ -99,10 +101,10 @@ export default function RelationshipDashboard({
                     numberOfLines={2}
                 >
                     {!isLinked
-                        ? "Önce eşleş"
+                        ? t("home.matchFirst")
                         : nearestEvent
                           ? nearestEvent.title
-                          : "Etkinlikler"}
+                          : t("home.events")}
                 </Text>
             </View>
         </View>

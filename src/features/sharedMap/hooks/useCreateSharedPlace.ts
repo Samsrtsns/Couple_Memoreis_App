@@ -8,7 +8,7 @@
 
 import { useAuth } from '@/src/context/AuthContext';
 import { useCallback, useState } from 'react';
-import { createSharedPlace } from '../services/sharedPlacesService';
+import { addSharedPlace } from '../services/sharedPlacesService';
 import type { CreateSharedPlacePayload, SharedPlace } from '../types/sharedPlace.types';
 
 export type UseCreateSharedPlaceReturn = {
@@ -42,7 +42,17 @@ export function useCreateSharedPlace(
             setLoading(true);
             setError(null);
             try {
-                const place = await createSharedPlace(payload, profile.id, partner.id);
+                const place = await addSharedPlace({
+                    title: payload.title,
+                    description: payload.description,
+                    latitude: payload.latitude,
+                    longitude: payload.longitude,
+                    address: payload.address,
+                    imageUri: payload.imageUri,
+                    currentUserId: profile.id,
+                    partnerId: partner.id,
+                    visitedAt: payload.visited_at,
+                });
                 onSuccess?.(place);
                 return place;
             } catch (e: any) {

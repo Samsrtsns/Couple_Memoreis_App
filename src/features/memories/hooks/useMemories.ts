@@ -253,10 +253,10 @@ export function useMemories(): UseMemoriesResult {
             } catch (e: any) {
                 console.error('[useMemories] Failed to add memory:', e);
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-                if (errorMessage.includes('Upload limit reached')) {
+                if (errorMessage.includes('DAILY_PHOTO_LIMIT_REACHED')) {
                     throw new Error('MEMORY_LIMIT_REACHED');
                 }
-                if (errorMessage.includes('at most 4 memories in total')) {
+                if (errorMessage.includes('MEMORY_TOTAL_LIMIT_REACHED')) {
                     throw new Error('MEMORY_TOTAL_LIMIT_REACHED');
                 }
                 throw new Error(`Memory creation failed: ${errorMessage}`);

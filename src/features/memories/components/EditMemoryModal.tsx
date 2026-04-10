@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -49,6 +50,7 @@ type Props = {
 // ─────────────────────────────────────────────
 
 export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
+    const { t, i18n } = useTranslation();
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const [photoChanged, setPhotoChanged] = useState(false);
     const [title, setTitle] = useState('');
@@ -82,12 +84,12 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
     // ─── Photo Picker ────────────────────────────────────────────
     const pickPhoto = () => {
         Alert.alert(
-            'Fotoğraf Değiştir',
-            'Fotoğrafı nereden almak istiyorsunuz?',
+            t('editMemory.changePhotoTitle'),
+            t('editMemory.changePhotoMessage'),
             [
-                { text: 'Kamera', onPress: handleCamera },
-                { text: 'Galeriden Seç', onPress: handleGallery },
-                { text: 'İptal', style: 'cancel' }
+                { text: t('editMemory.camera'), onPress: handleCamera },
+                { text: t('editMemory.gallery'), onPress: handleGallery },
+                { text: t('editMemory.cancel'), style: 'cancel' }
             ]
         );
     };
@@ -95,7 +97,7 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
     const handleCamera = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('İzin Gerekli', 'Kameraya erişim izni gereklidir.');
+            Alert.alert(t('addMemory.permissionRequired'), t('editMemory.permissionCamera'));
             return;
         }
 
@@ -113,7 +115,7 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
         if (existingStatus !== 'granted') {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('İzin Gerekli', 'Fotoğraf kitaplığına erişim izni gereklidir.');
+                Alert.alert(t('addMemory.permissionRequired'), t('editMemory.permissionGallery'));
                 return;
             }
         }
@@ -152,7 +154,7 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
 
     // ─── Validation ──────────────────────────────────────────────
     const validate = (): string | null => {
-        if (!title.trim()) return 'Lütfen bir başlık girin.';
+        if (!title.trim()) return t('editMemory.enterTitle');
         return null;
     };
 
@@ -160,7 +162,7 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
     const handleSubmit = async () => {
         const err = validate();
         if (err) {
-            Alert.alert('Eksik Bilgi', err);
+            Alert.alert(t('editMemory.missingInfo'), err);
             return;
         }
 
@@ -181,15 +183,15 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
             await onSubmit(payload);
             onClose();
         } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : 'Bir hata oluştu.';
-            Alert.alert('Güncelleme Başarısız', msg);
+            const msg = e instanceof Error ? e.message : t('editMemory.genericError');
+            Alert.alert(t('editMemory.updateFailed'), msg);
         } finally {
             setLoading(false);
         }
     };
 
     // ─── Date display ────────────────────────────────────────────
-    const displayDate = memoryDate.toLocaleDateString('tr-TR', {
+    const displayDate = memoryDate.toLocaleDateString(i18n.language || 'tr-TR', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -215,10 +217,10 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
                             disabled={loading}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         >
-                            <Text style={styles.cancelText}>İptal</Text>
+                            <Text style={styles.cancelText}>{t('editMemory.cancel')}</Text>
                         </TouchableOpacity>
 
-                        <Text style={styles.headerTitle}>Anıyı Düzenle ✏️</Text>
+                        <Text style={styles.headerTitle}>{t('editMemory.title')}</Text>
 
                         <TouchableOpacity
                             onPress={handleSubmit}
@@ -228,7 +230,7 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
                             {loading ? (
                                 <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                                <Text style={styles.saveText}>Kaydet</Text>
+                                <Text style={styles.saveText}>{t('editMemory.save')}</Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -255,7 +257,7 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
                                     />
                                     <View style={styles.photoOverlay}>
                                         <Ionicons name="camera" size={24} color="#fff" />
-                                        <Text style={styles.photoOverlayText}>Fotoğrafı Değiştir</Text>
+                                        <Text style={styles.photoOverlayText}>{t('editMemory.changePhoto')}</Text>
                                     </View>
                                 </>
                             ) : (
@@ -263,9 +265,9 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
                                     <View style={styles.photoIconWrap}>
                                         <Ionicons name="images-outline" size={36} color="#FF8A8A" />
                                     </View>
-                                    <Text style={styles.photoEmptyTitle}>Fotoğraf Ekle</Text>
+                                    <Text style={styles.photoEmptyTitle}>{t('editMemory.addPhoto')}</Text>
                                     <Text style={styles.photoEmptySubtitle}>
-                                        Her güzel anı bir fotoğrafı hak eder
+                                        {t('editMemory.addPhotoSub')}
                                     </Text>
                                 </View>
                             )}
@@ -273,10 +275,10 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
 
                         {/* Title */}
                         <View style={styles.field}>
-                            <Text style={styles.label}>Başlık *</Text>
+                            <Text style={styles.label}>{t('editMemory.titleLabel')}</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="örn: Sevgililer Günü Yemeği ❤️"
+                                placeholder={t('editMemory.titlePlaceholder')}
                                 placeholderTextColor="#c9a0b2"
                                 value={title}
                                 onChangeText={setTitle}
@@ -288,10 +290,10 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
 
                         {/* Description */}
                         <View style={styles.field}>
-                            <Text style={styles.label}>Açıklama</Text>
+                            <Text style={styles.label}>{t('editMemory.descLabel')}</Text>
                             <TextInput
                                 style={[styles.input, styles.inputMultiline]}
-                                placeholder="Bu anı neyi özel kılıyor?"
+                                placeholder={t('editMemory.descPlaceholder')}
                                 placeholderTextColor="#c9a0b2"
                                 value={description}
                                 onChangeText={setDescription}
@@ -305,7 +307,7 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
 
                         {/* Date */}
                         <View style={styles.field}>
-                            <Text style={styles.label}>Anı Tarihi</Text>
+                            <Text style={styles.label}>{t('editMemory.dateLabel')}</Text>
                             <TouchableOpacity
                                 style={styles.dateTrigger}
                                 onPress={() => {
@@ -337,7 +339,7 @@ export function EditMemoryModal({ visible, memory, onClose, onSubmit }: Props) {
                                         style={styles.iosDoneBtnWrapper}
                                         onPress={() => setShowDatePicker(false)}
                                     >
-                                        <Text style={styles.iosDoneBtn}>Tamam</Text>
+                                        <Text style={styles.iosDoneBtn}>{t('editMemory.done')}</Text>
                                     </TouchableOpacity>
                                 </View>
                             ) : (

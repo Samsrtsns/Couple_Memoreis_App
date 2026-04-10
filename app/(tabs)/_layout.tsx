@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { Tabs, Redirect } from "expo-router";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Platform, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/src/context/AuthContext";
@@ -104,6 +105,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function TabsLayout() {
+    const { t } = useTranslation();
     const { state } = useAuth();
 
     // Oturum kapandıysa veya hesap silindiyse direkt Login ekranına fırlat
@@ -118,10 +120,10 @@ export default function TabsLayout() {
                 headerShown: false,
             }}
         >
-            <Tabs.Screen name="home" options={{ title: "Ana Ekran" }} />
-            <Tabs.Screen name="memory" options={{ title: "Anılar" }} />
-            <Tabs.Screen name="map" options={{ title: "Harita" }} />
-            <Tabs.Screen name="profile" options={{ title: "Profil" }} />
+            <Tabs.Screen name="home" options={{ title: t("tabs.home") }} />
+            <Tabs.Screen name="memory" options={{ title: t("tabs.memory") }} />
+            <Tabs.Screen name="map" options={{ title: t("tabs.map") }} />
+            <Tabs.Screen name="profile" options={{ title: t("tabs.profile") }} />
         </Tabs>
     );
 }

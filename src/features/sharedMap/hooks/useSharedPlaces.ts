@@ -128,10 +128,10 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
             return newPlace;
         } catch (e: any) {
             const errorMessage = e.message || 'Failed to add place.';
-            if (errorMessage.includes('Place upload limit reached')) {
+            if (errorMessage.includes('DAILY_PHOTO_LIMIT_REACHED')) {
                 throw new Error('PLACE_LIMIT_REACHED');
             }
-            if (errorMessage.includes('at most 4') && errorMessage.toLowerCase().includes('place')) {
+            if (errorMessage.includes('PLACE_TOTAL_LIMIT_REACHED')) {
                 throw new Error('PLACE_TOTAL_LIMIT_REACHED');
             }
             setError(errorMessage);

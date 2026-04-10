@@ -5,12 +5,14 @@ import { getProfileWithPartner } from '@/src/services/pairService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Kullanıcı kayıt işlemlerini yöneten özel hook.
  * Form verilerini, doğrulama mantığını ve kayıt sürecini kontrol eder.
  */
 export function useRegister() {
+    const { t } = useTranslation();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
@@ -26,13 +28,13 @@ export function useRegister() {
     const handleRegister = async () => {
         // Form alanlarının doluluğunu kontrol et
         if (!firstName || !lastName || !email || !password) {
-            Alert.alert("Eksik Bilgi", "Lütfen tüm alanları doldurun.");
+            Alert.alert(t("auth.missingInfoTitle"), t("auth.registerMissingInfo"));
             return;
         }
 
         // Koşulların kabul edilip edilmediğini kontrol et
         if (!accepted) {
-            Alert.alert("Koşullar", "Lütfen Şartlar ve Gizlilik Politikasını kabul edin.");
+            Alert.alert(t("auth.termsTitle"), t("auth.termsRequired"));
             return;
         }
 
@@ -82,10 +84,10 @@ export function useRegister() {
             }
 
             // Yönlendirme NavigationRoot (redirectToPairAfterRegister) ile yapılır; çift replace olmasın.
-            Alert.alert("Başarılı", "Hesabınız başarıyla oluşturuldu.");
+            Alert.alert(t("common.success"), t("auth.registerSuccess"));
         } catch (error: any) {
             await AsyncStorage.removeItem('redirectToPairAfterRegister').catch(() => {});
-            Alert.alert("Kayıt Hatası", error.message || "Bir şeyler ters gitti.");
+            Alert.alert(t("auth.registerErrorTitle"), error.message || t("auth.genericError"));
         } finally {
             setLoading(false);
         }

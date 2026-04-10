@@ -3,6 +3,7 @@ import ProfileAvatar from "@/src/components/ProfileAvatar";
 import { useAuth } from "@/src/context/AuthContext";
 import { useProfile } from "@/src/hooks/useProfile";
 import { isPremiumUser } from "@/src/utils/photoLimitUtils";
+import { parseDateOnlyString } from "@/src/utils/dateUtils";
 import { logoutUser } from "@/src/services/authService";
 import {
     compressImage,
@@ -13,6 +14,7 @@ import {
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActionSheetIOS,
     ActivityIndicator,
@@ -80,17 +82,19 @@ function SettingsRow({
 }
 
 export default function ProfileScreen() {
+    const { t, i18n } = useTranslation();
     const { profile, partner, loading } = useProfile();
     const { state, dispatch, refreshProfile } = useAuth();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
 
     const formatDate = (dateString?: string | null) => {
-        if (!dateString) return "Ayarlanmadı";
+        if (!dateString) return t("profile.notSet");
 
-        const date = new Date(dateString);
+        const date = parseDateOnlyString(dateString);
+        if (!date) return t("profile.notSet");
 
-        return date.toLocaleDateString("en-US", {
+        return date.toLocaleDateString(i18n.language || "en-US", {
             day: "numeric",
             month: "long",
             year: "numeric",
@@ -99,8 +103,8 @@ export default function ProfileScreen() {
 
     const relationshipText = useMemo(() => {
         if (!partner || !profile?.relationship_start_date) return null;
-        return `Together since ${formatDate(profile.relationship_start_date)}`;
-    }, [partner, profile?.relationship_start_date]);
+        return t("profile.togetherSince", { date: formatDate(profile.relationship_start_date) });
+    }, [partner, profile?.relationship_start_date, i18n.language, t]);
 
     const handleLogout = async () => {
         try {
@@ -117,10 +121,10 @@ export default function ProfileScreen() {
 
     const handlePhotoOptions = () => {
         if (!state.session?.user) return;
-        const options = ['Cancel', 'Change Photo'];
+        const options = [t("common.cancel"), t("profile.photoChange")];
         const destructiveButtonIndex = profile?.avatar_url ? 2 : undefined;
         if (profile?.avatar_url) {
-            options.push('Remove Photo');
+            options.push(t("profile.photoRemove"));
         }
 
         if (Platform.OS === 'ios') {
@@ -140,12 +144,12 @@ export default function ProfileScreen() {
             );
         } else {
             Alert.alert(
-                'Profil Fotoğrafı',
-                'Bir seçenek belirleyin',
+                t("profile.photoTitle"),
+                t("profile.photoChooseOption"),
                 [
-                    { text: 'Fotoğrafı Değiştir', onPress: handleUploadPhoto },
-                    ...(profile?.avatar_url ? [{ text: 'Fotoğrafı Kaldır', onPress: handleRemovePhoto, style: 'destructive' as const }] : []),
-                    { text: 'İptal', style: 'cancel' }
+                    { text: t("profile.photoChange"), onPress: handleUploadPhoto },
+                    ...(profile?.avatar_url ? [{ text: t("profile.photoRemove"), onPress: handleRemovePhoto, style: 'destructive' as const }] : []),
+                    { text: t("common.cancel"), style: 'cancel' }
                 ]
             );
         }
@@ -163,7 +167,7 @@ export default function ProfileScreen() {
 
             await refreshProfile();
         } catch (error: any) {
-            Alert.alert("Yükleme Başarısız", error.message || "Fotoğraf yüklenemedi");
+            Alert.alert(t("profile.uploadFailed"), error.message || t("profile.uploadFailedMessage"));
         } finally {
             setIsUpdatingPhoto(false);
         }
@@ -174,12 +178,12 @@ export default function ProfileScreen() {
         if (!userId || !profile?.avatar_path) return;
 
         Alert.alert(
-            "Fotoğrafı Kaldır",
-            "Profil fotoğrafını kaldırmak istediğinden emin misin?",
+            t("profile.removePhotoTitle"),
+            t("profile.removePhotoConfirm"),
             [
-                { text: "İptal", style: "cancel" },
+                { text: t("common.cancel"), style: "cancel" },
                 {
-                    text: "Kaldır",
+                    text: t("profile.remove"),
                     style: "destructive",
                     onPress: async () => {
                         try {
@@ -187,7 +191,7 @@ export default function ProfileScreen() {
                             await deleteProfilePhoto(userId, profile.avatar_path!);
                             await refreshProfile();
                         } catch (error: any) {
-                            Alert.alert("Hata", error.message || "Fotoğraf kaldırılamadı");
+                            Alert.alert(t("common.error"), error.message || t("profile.removeFailedMessage"));
                         } finally {
                             setIsUpdatingPhoto(false);
                         }
@@ -250,7 +254,7 @@ export default function ProfileScreen() {
                                     <View className="mt-3 flex-row items-center gap-x-1.5 bg-rose-50 px-4 py-2 rounded-full border border-rose-100">
                                         <Ionicons name="heart" size={14} color="#F43F5E" />
                                         <Text className="text-rose-500 text-[11px] font-bold uppercase tracking-[1px]">
-                                            {partner.first_name} {partner.last_name} ile bağlı
+                                            {t("profile.connectedWith", { name: `${partner.first_name} ${partner.last_name}` })}
                                         </Text>
                                     </View>
                                 )}
@@ -259,7 +263,7 @@ export default function ProfileScreen() {
                                     <View className="mt-4 flex-row items-center gap-x-1.5">
                                         <MaterialIcons name="calendar-today" size={15} color="#94A3B8" />
                                         <Text className="text-slate-500 text-sm font-medium">
-                                            {formatDate(profile.relationship_start_date)} tarihinden beri beraber
+                                            {relationshipText}
                                         </Text>
                                     </View>
                                 )}
@@ -274,16 +278,16 @@ export default function ProfileScreen() {
                         <View className="rounded-[24px] bg-rose-50 border border-rose-100 px-6 py-6 items-center">
                             <View className="items-center">
                                 <Text className="text-rose-900 text-base font-bold">
-                                    Partner Bağlantısı
+                                    {t("profile.pairingTitle")}
                                 </Text>
                                 <Text className="text-rose-700/70 text-sm font-medium text-center leading-5 mt-1 max-w-[240px]">
-                                    Partnerinle bağlanmak için sana özel eşleşme kodunu paylaş.
+                                    {t("profile.pairingSubtitle")}
                                 </Text>
                             </View>
 
                             <View className="w-full mt-5">
                                 <PrimaryButton
-                                    title="Eşleşme Kodunu Gör"
+                                    title={t("profile.showPairCode")}
                                     onPress={() =>
                                         router.push({
                                             pathname: "/(pairing)/pair",
@@ -316,10 +320,10 @@ export default function ProfileScreen() {
                                 </View>
                                 <View>
                                     <Text className="text-amber-900 font-extrabold text-[14px]">
-                                        Premium Ol
+                                        {t("profile.becomePremium")}
                                     </Text>
                                     <Text className="text-amber-700 text-[12px] font-medium">
-                                        Plan ve limitleri incele
+                                        {t("profile.checkPlans")}
                                     </Text>
                                 </View>
                             </View>
@@ -331,12 +335,12 @@ export default function ProfileScreen() {
                 {/* Profile Settings */}
                 <View className="mt-6">
                     <Text className="px-8 pb-3 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
-                        Profil Ayarları
+                        {t("profile.profileSettings")}
                     </Text>
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
                         <SettingsRow
-                            title="Kişisel Bilgiler"
+                            title={t("profile.personalInfo")}
                             iconType="ion"
                             icon="person-outline"
                             iconBg="#EFF6FF"
@@ -344,7 +348,7 @@ export default function ProfileScreen() {
                             onPress={() => router.push("/(profile)/personal-info")}
                         />
                         <SettingsRow
-                            title="Hesap Ayarları"
+                            title={t("profile.accountSettings")}
                             iconType="ion"
                             icon="key-outline"
                             iconBg="#F0FDF4"
@@ -352,7 +356,15 @@ export default function ProfileScreen() {
                             onPress={() => router.push("/(profile)/account-settings")}
                         />
                         <SettingsRow
-                            title="İlişki Ayarları"
+                            title={t("profile.appSettings")}
+                            iconType="ion"
+                            icon="settings-outline"
+                            iconBg="#EEF2FF"
+                            iconColor="#6366F1"
+                            onPress={() => router.push("/(profile)/app-settings")}
+                        />
+                        <SettingsRow
+                            title={t("profile.relationshipSettings")}
                             iconType="ion"
                             icon="heart"
                             iconBg="#FFF1F2"
@@ -364,12 +376,12 @@ export default function ProfileScreen() {
 
                     {/* Account Settings */}
                     <Text className="px-8 pb-3 pt-8 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
-                        Hesap Ayarları
+                        {t("profile.accountSection")}
                     </Text>
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
                         <SettingsRow
-                            title="Bildirim Tercihleri"
+                            title={t("profile.notifications")}
                             iconType="ion"
                             icon="notifications"
                             iconBg="#FFFBEB"
@@ -377,7 +389,7 @@ export default function ProfileScreen() {
                             onPress={() => router.push("/(profile)/notifications")}
                         />
                         <SettingsRow
-                            title="Plan ve Limitler"
+                            title={t("profile.planLimits")}
                             iconType="material"
                             icon="workspace-premium"
                             iconBg="#FFF7ED"
@@ -389,12 +401,12 @@ export default function ProfileScreen() {
 
                     {/* Security */}
                     <Text className="px-8 pb-3 pt-8 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
-                        Güvenlik ve Gizlilik
+                        {t("profile.securityPrivacy")}
                     </Text>
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
                         <SettingsRow
-                            title="Gizlilik Politikası"
+                            title={t("profile.privacyPolicy")}
                             iconType="ion"
                             icon="shield-checkmark-outline"
                             iconBg="#F8FAFC"
@@ -413,7 +425,7 @@ export default function ProfileScreen() {
                         <View className="mt-2 flex-row items-center gap-x-1.5 opacity-30">
                             <Ionicons name="heart" size={12} color="#64748B" />
                             <Text className="text-[10px] font-medium text-slate-500">
-                                Çiftler için sevgiyle yapıldı
+                                {t("profile.madeForCouples")}
                             </Text>
                         </View>
                     </View>
@@ -421,7 +433,7 @@ export default function ProfileScreen() {
                     {/* Logout */}
                     <View className="px-6">
                         <PrimaryButton
-                            title="Çıkış Yap"
+                            title={t("profile.logout")}
                             loading={isLoggingOut}
                             variant="secondary"
                             onPress={handleLogout}

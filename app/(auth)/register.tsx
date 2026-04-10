@@ -7,6 +7,7 @@ import { useRegister } from "@/src/hooks/useRegister";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Image,
     Platform,
@@ -17,6 +18,7 @@ import {
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function RegisterScreen() {
+    const { t } = useTranslation();
     const {
         firstName,
         setFirstName,
@@ -71,37 +73,37 @@ export default function RegisterScreen() {
                     {/* Title */}
                     <View className="px-6 pt-1 pb-8">
                         <Text className="text-[36px] font-extrabold leading-tight text-bgDark" style={{ fontFamily: 'InterBlack' }}>
-                            Anılarınızı{"\n"}
-                            <Text className="text-primary">biriktirin.</Text>
+                            {t("auth.registerTitle1")}{"\n"}
+                            <Text className="text-primary">{t("auth.registerTitle2")}</Text>
                         </Text>
 
                         <Text className="text-slate-500 text-base font-medium leading-relaxed pt-2">
-                            Birlikte her anınızı ortak dijital sığınağınızda saklayın.
+                            {t("auth.registerSubtitle")}
                         </Text>
                     </View>
 
                     {/* Form */}
                     <View className="px-6 gap-y-6">
                         <TextInputArea
-                            label="Ad"
+                            label={t("auth.firstName")}
                             value={firstName}
                             onChangeText={setFirstName}
-                            placeholder="örn: Can"
+                            placeholder={t("auth.firstNamePlaceholder")}
                             keyboardType="default"
                             autoCapitalize="words"
                         />
 
                         <TextInputArea
-                            label="Soyad"
+                            label={t("auth.lastName")}
                             value={lastName}
                             onChangeText={setLastName}
-                            placeholder="örn: Yılmaz"
+                            placeholder={t("auth.lastNamePlaceholder")}
                             keyboardType="default"
                             autoCapitalize="words"
                         />
 
                         <TextInputArea
-                            label="E-posta"
+                            label={t("auth.email")}
                             value={email}
                             onChangeText={setEmail}
                             placeholder="merhaba@askimiz.com"
@@ -110,7 +112,7 @@ export default function RegisterScreen() {
                         />
 
                         <TextInputArea
-                            label="Şifre"
+                            label={t("auth.password")}
                             value={password}
                             onChangeText={setPass}
                             placeholder="••••••••"
@@ -142,18 +144,19 @@ export default function RegisterScreen() {
                             </Pressable>
 
                             <Text className="text-[13px] text-slate-500 font-medium flex-1">
+                                {t("auth.acceptTermsPrefix")}
                                 <Text
                                     onPress={() => setShowPrivacyModal(true)}
                                     className="text-slate-900 font-bold underline"
                                 >
-                                    Kullanım Şartları ve Gizlilik Politikası
+                                    {t("auth.termsAndPrivacy")}
                                 </Text>
-                                'nı kabul ediyorum.
+                                {t("auth.acceptTermsSuffix")}
                             </Text>
                         </View>
 
                         <PrimaryButton
-                            title="Hesap Oluştur"
+                            title={t("auth.createAccount")}
                             loading={loading}
                             onPress={handleRegister}
                         />
@@ -162,7 +165,7 @@ export default function RegisterScreen() {
                         <View className="flex-row items-center gap-x-4 pt-2 px-1">
                             <View className="h-[1px] flex-1 bg-slate-200" />
                             <Text className="text-xs font-medium text-slate-400 uppercase tracking-widest">
-                                Veya şununla devam et
+                                {t("auth.continueWith")}
                             </Text>
                             <View className="h-[1px] flex-1 bg-slate-200" />
                         </View>
@@ -190,7 +193,7 @@ export default function RegisterScreen() {
                     {/* Footer */}
                     <View className="pt-10 pb-6 items-center px-6 flex-row justify-center">
                         <Text className="text-slate-400 text-sm font-medium">
-                            Zaten hesabın var mı?{" "}
+                            {t("auth.alreadyHaveAccount")}{" "}
                         </Text>
 
                         <Pressable
@@ -202,7 +205,7 @@ export default function RegisterScreen() {
                                 },
                             ]}
                         >
-                            <Text className="text-primary font-bold text-sm">Giriş Yap →</Text>
+                            <Text className="text-primary font-bold text-sm">{t("auth.backToLoginCta")}</Text>
                         </Pressable>
                     </View>
 

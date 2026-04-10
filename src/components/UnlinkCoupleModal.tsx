@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Modal,
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export function UnlinkCoupleModal({ visible, onClose, onConfirm, loading }: Props) {
+    const { t } = useTranslation();
     return (
         <Modal
             visible={visible}
@@ -36,20 +38,19 @@ export function UnlinkCoupleModal({ visible, onClose, onConfirm, loading }: Prop
                             <Ionicons name="unlink-outline" size={28} color="#E11D48" />
                         </View>
                         <Text className="text-slate-900 font-extrabold text-lg text-center">
-                            Partner bağlantısını kaldır
+                            {t("unlinkModal.title")}
                         </Text>
                     </View>
 
                     <Text className="text-slate-600 text-[15px] leading-6 mb-2">
-                        Bu işlem <Text className="font-bold text-rose-600">geri alınamaz</Text>.
-                        Onaylarsanız:
+                        {t("unlinkModal.irreversible")}
                     </Text>
                     <View className="gap-y-2 mb-6">
                         <Text className="text-slate-600 text-sm leading-5">
-                            • İkinizin de eşleşmesi sona erer ve yeni davet kodları alırsınız.
+                            • {t("unlinkModal.item1")}
                         </Text>
                         <Text className="text-slate-600 text-sm leading-5">
-                            • Ortak anılar, paylaşılan yerler ve özel günler kalıcı olarak silinir.
+                            • {t("unlinkModal.item2")}
                         </Text>
                     </View>
 
@@ -59,7 +60,7 @@ export function UnlinkCoupleModal({ visible, onClose, onConfirm, loading }: Prop
                             disabled={loading}
                             className="flex-1 h-12 rounded-2xl border border-slate-200 items-center justify-center bg-slate-50"
                         >
-                            <Text className="text-slate-700 font-bold">Vazgeç</Text>
+                            <Text className="text-slate-700 font-bold">{t("unlinkModal.cancel")}</Text>
                         </Pressable>
                         <Pressable
                             onPress={onConfirm}
@@ -69,7 +70,7 @@ export function UnlinkCoupleModal({ visible, onClose, onConfirm, loading }: Prop
                             {loading ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text className="text-white font-bold">Bağlantıyı kaldır</Text>
+                                <Text className="text-white font-bold">{t("unlinkModal.confirm")}</Text>
                             )}
                         </Pressable>
                     </View>

@@ -46,6 +46,18 @@ $$;
 -- 3. TRIGGER FONKSİYONLARI (MEMORIES & SHARED_PLACES LİMİT KONTROLÜ)
 -- ==============================================================================
 
+-- Günlük fotoğraf hakkını "yükleme olayı" üzerinden takip eder.
+-- Böylece kullanıcı aynı gün fotoğrafı silse bile günlük hak geri gelmez.
+CREATE TABLE IF NOT EXISTS public.photo_upload_events (
+  id bigserial PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  source text NOT NULL CHECK (source IN ('memory', 'place')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_photo_upload_events_user_created_at
+  ON public.photo_upload_events(user_id, created_at DESC);
+
 -- Memories (Anılar) limit kontrolü
 CREATE OR REPLACE FUNCTION public.check_memory_limits()
 RETURNS trigger
@@ -55,8 +67,7 @@ AS $$
 DECLARE
   v_user_type text;
   v_total_photo_memories int;
-  v_today_memory_photos int;
-  v_today_place_photos int;
+  v_today_photo_uploads int;
   v_limit_start timestamptz;
 BEGIN
   v_user_type := public.get_user_type(NEW.created_by);
@@ -80,22 +91,18 @@ BEGIN
 
     -- 2. Günlük Fotoğraf Ekleme Limiti (Max 1) - Hem memory hem place için ortak kontrol
     v_limit_start := public.get_daily_limit_start();
-    
-    SELECT count(*) INTO v_today_memory_photos 
-    FROM public.memories 
-    WHERE created_by = NEW.created_by 
-      AND photo_url IS NOT NULL 
+
+    SELECT count(*) INTO v_today_photo_uploads
+    FROM public.photo_upload_events
+    WHERE user_id = NEW.created_by
       AND created_at >= v_limit_start;
-      
-    SELECT count(*) INTO v_today_place_photos 
-    FROM public.shared_places 
-    WHERE created_by = NEW.created_by 
-      AND photo_url IS NOT NULL 
-      AND created_at >= v_limit_start;
-      
-    IF (v_today_memory_photos + v_today_place_photos) >= 1 THEN
+
+    IF v_today_photo_uploads >= 1 THEN
       RAISE EXCEPTION 'Upload limit reached';
     END IF;
+
+    INSERT INTO public.photo_upload_events(user_id, source)
+    VALUES (NEW.created_by, 'memory');
   END IF;
 
   -- Fotoğrafsız anıysa direkt kaydet
@@ -112,8 +119,7 @@ AS $$
 DECLARE
   v_user_type text;
   v_total_places int;
-  v_today_memory_photos int;
-  v_today_place_photos int;
+  v_today_photo_uploads int;
   v_limit_start timestamptz;
 BEGIN
   v_user_type := public.get_user_type(NEW.created_by);
@@ -137,22 +143,18 @@ BEGIN
   -- 2. Günlük Fotoğraf Ekleme Limiti (Max 1) - Eğer konuma fotoğraf ekleniyorsa kontrol et
   IF NEW.photo_url IS NOT NULL THEN
     v_limit_start := public.get_daily_limit_start();
-    
-    SELECT count(*) INTO v_today_memory_photos 
-    FROM public.memories 
-    WHERE created_by = NEW.created_by 
-      AND photo_url IS NOT NULL 
+
+    SELECT count(*) INTO v_today_photo_uploads
+    FROM public.photo_upload_events
+    WHERE user_id = NEW.created_by
       AND created_at >= v_limit_start;
-      
-    SELECT count(*) INTO v_today_place_photos 
-    FROM public.shared_places 
-    WHERE created_by = NEW.created_by 
-      AND photo_url IS NOT NULL 
-      AND created_at >= v_limit_start;
-      
-    IF (v_today_memory_photos + v_today_place_photos) >= 1 THEN
+
+    IF v_today_photo_uploads >= 1 THEN
       RAISE EXCEPTION 'Place upload limit reached';
     END IF;
+
+    INSERT INTO public.photo_upload_events(user_id, source)
+    VALUES (NEW.created_by, 'place');
   END IF;
 
   RETURN NEW;
@@ -171,8 +173,7 @@ DECLARE
   v_user_type text;
   v_total_photo_memories int;
   v_total_places int;
-  v_today_memory_photos int;
-  v_today_place_photos int;
+  v_today_photo_uploads int;
   v_limit_start timestamptz;
 BEGIN
   v_user_type := public.get_user_type(p_user_id);
@@ -182,15 +183,17 @@ BEGIN
   SELECT count(*) INTO v_total_photo_memories FROM public.memories WHERE created_by = p_user_id AND photo_url IS NOT NULL;
   SELECT count(*) INTO v_total_places FROM public.shared_places WHERE created_by = p_user_id;
   
-  -- Günlük fotoğraf sayımı hesaplanır
-  SELECT count(*) INTO v_today_memory_photos FROM public.memories WHERE created_by = p_user_id AND photo_url IS NOT NULL AND created_at >= v_limit_start;
-  SELECT count(*) INTO v_today_place_photos FROM public.shared_places WHERE created_by = p_user_id AND photo_url IS NOT NULL AND created_at >= v_limit_start;
+  -- Günlük fotoğraf hakkı, upload event kaydından hesaplanır
+  SELECT count(*) INTO v_today_photo_uploads
+  FROM public.photo_upload_events
+  WHERE user_id = p_user_id
+    AND created_at >= v_limit_start;
 
   RETURN json_build_object(
     'user_type', v_user_type,
     'total_photo_memories', v_total_photo_memories,
     'total_places', v_total_places,
-    'today_photos', (v_today_memory_photos + v_today_place_photos),
+    'today_photos', v_today_photo_uploads,
     'max_photo_memories', 8,
     'max_places', 8,
     'max_daily_photos', 1

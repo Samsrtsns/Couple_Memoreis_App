@@ -2,9 +2,11 @@ import { Stack, router, Redirect } from 'expo-router';
 import { Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 export default function ProfileLayout() {
     const { state } = useAuth();
+    const { t } = useTranslation();
 
     // Oturum kapandıysa veya hesap silindiyse direkt Login ekranına fırlat
     if (state.isInitialized && !state.isLoggedIn) {
@@ -29,13 +31,14 @@ export default function ProfileLayout() {
                 )
             }}
         >
-            <Stack.Screen name="personal-info" options={{ title: 'Kişisel Bilgiler' }} />
-            <Stack.Screen name="account-settings" options={{ title: 'Hesap Ayarları' }} />
-            <Stack.Screen name="relationship" options={{ title: 'İlişki Ayarları' }} />
-            <Stack.Screen name="plan-limits" options={{ title: 'Plan ve Limitler' }} />
-            <Stack.Screen name="notifications" options={{ title: 'Bildirimler' }} />
-            <Stack.Screen name="data-management" options={{ title: 'Veri Yönetimi' }} />
-            <Stack.Screen name="privacy" options={{ title: 'Gizlilik Politikası' }} />
+            <Stack.Screen name="personal-info" options={{ title: t('profile.personalInfo') }} />
+            <Stack.Screen name="account-settings" options={{ title: t('profile.accountSettings') }} />
+            <Stack.Screen name="app-settings" options={{ title: t('profile.appSettings') }} />
+            <Stack.Screen name="relationship" options={{ title: t('profile.relationshipSettings') }} />
+            <Stack.Screen name="plan-limits" options={{ title: t('profile.planLimits') }} />
+            <Stack.Screen name="notifications" options={{ title: t('profile.notifications') }} />
+            <Stack.Screen name="data-management" options={{ title: 'Data Management' }} />
+            <Stack.Screen name="privacy" options={{ title: t('profile.privacyPolicy') }} />
         </Stack>
     );
 }

@@ -1,11 +1,12 @@
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { supabase } from '@/src/lib/supabase';
+import '@/src/i18n';
 import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { Stack, router, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
-import { Linking, LogBox, Text, View } from 'react-native';
+import { Linking, LogBox, Text } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -16,7 +17,6 @@ import {
     Inter_700Bold,
     Inter_900Black
 } from '@expo-google-fonts/inter';
-import { initRevenueCat } from '@/src/services/revenueCatService';
 
 const isExpoGo = Constants.appOwnership === 'expo';
 if (!isExpoGo) {
@@ -176,8 +176,6 @@ export default function RootLayout() {
 
     useEffect(() => {
         if (fontsLoaded) {
-            initRevenueCat().catch(err => console.error('[initRevenueCat] Failed:', err));
-
             const TextRender = Text as any;
             if (!TextRender.defaultProps) {
                 TextRender.defaultProps = {};

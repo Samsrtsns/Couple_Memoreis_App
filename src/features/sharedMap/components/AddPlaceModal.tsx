@@ -12,6 +12,7 @@ import DateTimePicker, {
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -60,6 +61,7 @@ export default function AddPlaceModal({
   timeRemaining,
   isTotalPlaceLimitReached = false,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const sheetMaxHeight = Dimensions.get("window").height * 0.92;
 
@@ -94,8 +96,8 @@ export default function AddPlaceModal({
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
       Alert.alert(
-        "İzin Gerekli",
-        "Fotoğraf seçmek için galeriye erişim izni vermeniz gerekiyor.",
+        t("addPlace.permissionRequired"),
+        t("addPlace.galleryPermission"),
       );
       return;
     }
@@ -127,33 +129,33 @@ export default function AddPlaceModal({
 
     if (isTotalPlaceLimitReached) {
       Alert.alert(
-        "Limit doldu",
-        "4 konum ekleme hakkınızı kullandınız. Devam etmek için premium almalısınız.",
+        t("addPlace.limitFilled"),
+        t("addPlace.totalLimitText"),
       );
       return;
     }
 
     if (!imageUri) {
-      Alert.alert("Eksik Bilgi", "Lütfen bu anıya bir fotoğraf ekleyin.");
+      Alert.alert(t("addPlace.missingInfo"), t("addPlace.addPhotoValidation"));
       return;
     }
 
     const trimmedTitle = title.trim();
 
     if (!trimmedTitle || trimmedTitle.length < 2) {
-      setTitleError("Yer adı en az 2 karakter olmalıdır.");
+      setTitleError(t("addPlace.titleMin"));
       return;
     }
 
     if (trimmedTitle.length > 80) {
-      setTitleError("Yer adı 80 karakterden az olmalıdır.");
+      setTitleError(t("addPlace.titleMax"));
       return;
     }
 
     if (!initialCoords) {
       Alert.alert(
-        "Konum mevcut değil",
-        "Konumunuz alınamadı. Haritaya uzun basarak manuel yer eklemeyi deneyin.",
+        t("addPlace.noLocationTitle"),
+        t("addPlace.noLocationMessage"),
       );
       return;
     }
@@ -170,8 +172,8 @@ export default function AddPlaceModal({
       });
     } catch (e: any) {
       Alert.alert(
-        "Hata",
-        e?.message ?? "Yer kaydedilemedi. Lütfen tekrar deneyin.",
+        t("common.error"),
+        e?.message ?? t("addPlace.saveError"),
       );
     }
   };
@@ -181,12 +183,12 @@ export default function AddPlaceModal({
   }, [title, loading]);
 
   const formattedDate = visitedAt
-    ? visitedAt.toLocaleDateString("tr-TR", {
+    ? visitedAt.toLocaleDateString(i18n.language || "tr-TR", {
         month: "long",
         day: "numeric",
         year: "numeric",
       })
-    : "Tarih seçin (isteğe bağlı)";
+    : t("addPlace.pickDate");
 
   return (
     <>
@@ -225,10 +227,10 @@ export default function AddPlaceModal({
           <View className="mb-4 flex-row items-center">
             <View className="flex-1">
               <Text className="text-[18px] font-extrabold text-slate-800">
-                Bu Yeri Kaydet
+                {t("addPlace.saveThisPlace")}
               </Text>
               <Text className="mt-0.5 text-[12px] text-slate-400">
-                Ortak anı haritanıza ekleyin 💕
+                {t("addPlace.saveThisPlaceSub")}
               </Text>
             </View>
           </View>
@@ -249,7 +251,7 @@ export default function AddPlaceModal({
             >
               {/* Photo Picker */}
               <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
-                FOTOĞRAF EKLE
+                {t("addPlace.addPhoto")}
               </Text>
 
               <Pressable
@@ -283,14 +285,14 @@ export default function AddPlaceModal({
                       <Ionicons name="diamond-outline" size={30} color="#FF8A8A" />
                     </View>
                     <Text className="mt-3 text-center text-[13px] font-extrabold text-slate-800">
-                      TOPLAM KONUM LİMİTİ DOLDU
+                      {t("addPlace.totalPlaceLimit")}
                     </Text>
                     <Text className="mt-1 text-center text-[11px] font-semibold text-slate-500">
-                      4 KONUM EKLEME HAKKINIZI KULLANDINIZ
+                      {t("addPlace.totalPlaceLimitDesc")}
                     </Text>
                     <View className="mt-3 rounded-xl bg-rose-100 px-4 py-2">
                       <Text className="text-center text-[10px] font-extrabold text-rose-500">
-                        DEVAM ETMEK İÇİN PREMİUM ALMALISINIZ.
+                        {t("addPlace.needPremium")}
                       </Text>
                     </View>
                   </View>
@@ -300,17 +302,17 @@ export default function AddPlaceModal({
                       <Ionicons name="time-outline" size={30} color="#FF8A8A" />
                     </View>
                     <Text className="mt-3 text-center text-[13px] font-extrabold text-slate-800">
-                      GÜNLÜK LİMİTE ULAŞILDI
+                      {t("addPlace.dailyLimit")}
                     </Text>
                     <Text className="mt-1 text-center text-[11px] font-semibold text-slate-500">
-                      BİR SONRAKİ FOTOĞRAF HAKKINA KALAN SÜRE:
+                      {t("addPlace.dailyLimitDesc")}
                     </Text>
                     <Text className="mt-1 text-center text-2xl font-black text-rose-400">
-                      {timeRemaining || "Hesaplanıyor..."}
+                      {timeRemaining || t("addPlace.calculating")}
                     </Text>
                     <View className="mt-3 rounded-xl bg-rose-100 px-4 py-2">
                       <Text className="text-center text-[10px] font-extrabold text-rose-500">
-                        SINIRSIZ FOTOĞRAF İÇİN PREMİUM ALABİLİRSİN.
+                        {t("addPlace.premiumUnlimited")}
                       </Text>
                     </View>
                   </View>
@@ -318,7 +320,7 @@ export default function AddPlaceModal({
                   <View className="items-center">
                     <Ionicons name="camera-outline" size={32} color="#94A3B8" />
                     <Text className="mt-2 text-sm text-slate-400 font-medium">
-                      Fotoğraf Seç
+                      {t("addPlace.pickPhoto")}
                     </Text>
                   </View>
                 )}
@@ -326,7 +328,7 @@ export default function AddPlaceModal({
 
               {/* Title */}
               <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
-                YER ADI *
+                {t("addPlace.placeName")}
               </Text>
 
               <TextInput
@@ -335,7 +337,7 @@ export default function AddPlaceModal({
                   setTitle(t);
                   setTitleError("");
                 }}
-                placeholder="Örn: İlk Kahve Randevumuz ☕"
+                placeholder={t("addPlace.placeNamePlaceholder")}
                 placeholderTextColor="#CBD5E1"
                 className={`rounded-2xl border px-4 text-[15px] text-slate-800 ${
                   title ? "border-rose-500" : "border-slate-200"
@@ -356,13 +358,13 @@ export default function AddPlaceModal({
 
               {/* Description */}
               <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
-                ANI NOTU
+                {t("addPlace.memoryNote")}
               </Text>
 
               <TextInput
                 value={description}
                 onChangeText={setDescription}
-                placeholder="Bu yeri özel kılan neydi?"
+                placeholder={t("addPlace.memoryNotePlaceholder")}
                 placeholderTextColor="#CBD5E1"
                 multiline
                 textAlignVertical="top"
@@ -375,7 +377,7 @@ export default function AddPlaceModal({
 
               {/* Date */}
               <Text className="mb-1.5 mt-3 text-[11px] font-bold tracking-[0.6px] text-slate-500">
-                ZİYARET TARİHİ
+                {t("addPlace.visitDate")}
               </Text>
 
               <Pressable
@@ -438,7 +440,7 @@ export default function AddPlaceModal({
                     className="items-end bg-rose-50 px-4 py-3"
                   >
                     <Text className="text-[15px] font-bold text-black">
-                      Bitti
+                      {t("addPlace.done")}
                     </Text>
                   </Pressable>
                 </View>
@@ -452,7 +454,7 @@ export default function AddPlaceModal({
                   className="mr-3 flex-1 items-center justify-center rounded-2xl bg-slate-100 py-4"
                 >
                   <Text className="text-[15px] font-bold text-slate-500">
-                    Vazgeç
+                    {t("addPlace.dismiss")}
                   </Text>
                 </Pressable>
 
@@ -470,7 +472,7 @@ export default function AddPlaceModal({
                     <>
                       <Ionicons name="heart" size={16} color="#fff" />
                       <Text className="ml-2 text-[15px] font-bold text-white">
-                        Anıyı Kaydet
+                        {t("addPlace.saveMemory")}
                       </Text>
                     </>
                   )}

@@ -5,7 +5,6 @@ import { ProfileData } from '../hooks/useProfile';
 import { supabase } from '../lib/supabase';
 import { getCurrentSession } from '../services/authService';
 import { getProfileWithPartner } from '../services/pairService';
-import { identifyUser } from '../services/revenueCatService';
 
 const AUTH_INIT_TIMEOUT_MS = 15_000;
 
@@ -201,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             type: 'LOGIN_SUCCESS',
                             payload: { session, user: session.user, profile, partner },
                         });
-                    } catch (error) {
+                    } catch {
                         dispatch({
                             type: 'LOGIN_SUCCESS',
                             payload: { session, user: session.user, profile: null, partner: null },
@@ -221,10 +220,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (!state.user?.id) return;
-
-        identifyUser(state.user.id).then(() => {
-            refreshProfile();
-        }).catch(err => console.error('[RevenueCatIdentify] Failed:', err));
 
         const profileSubscription = supabase
             .channel(`profile-updates-${state.user.id}`)

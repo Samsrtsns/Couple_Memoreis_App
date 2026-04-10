@@ -26,6 +26,7 @@ import {
     fitRegionToPlaces,
     getInitialMapRegion,
 } from "@/src/features/sharedMap/utils/map.utils";
+import { isPremiumUser } from "@/src/utils/photoLimitUtils";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import React, {
@@ -35,6 +36,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import {
     ActivityIndicator,
     Alert,
@@ -56,6 +58,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePhotoUploadCountdown } from "@/src/hooks/usePhotoUploadCountdown";
 
 export default function SharedMapScreen() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
   const { state } = useAuth();
@@ -86,7 +89,13 @@ export default function SharedMapScreen() {
   const { isLocked, remainingText } = usePhotoUploadCountdown();
   const [creating, setCreating] = useState(false);
   const [forceTotalPlaceLimitReached, setForceTotalPlaceLimitReached] = useState(false);
-  const isTotalPlaceLimitReached = forceTotalPlaceLimitReached || places.length >= 4;
+  const premium = isPremiumUser(state.profile);
+  const myPlacesCount = useMemo(
+    () => places.filter((p) => p.created_by === currentUserId).length,
+    [places, currentUserId],
+  );
+  const isTotalPlaceLimitReached =
+    !premium && (forceTotalPlaceLimitReached || myPlacesCount >= 4);
 
   const handleCreatePlace = async (payload: any) => {
     setCreating(true);
@@ -357,14 +366,14 @@ export default function SharedMapScreen() {
               <View style={styles.pickingHintInner}>
                 <Ionicons name="hand-left-outline" size={18} color="#F43F5E" />
                 <Text style={styles.pickingHintText}>
-                  Konumu seçmek için haritaya dokunun
+                  {t("map.pickLocationHint")}
                 </Text>
                 <Pressable
                   onPress={cancelPickingLocation}
                   hitSlop={8}
                   style={styles.pickingHintCancel}
                 >
-                  <Text style={styles.pickingHintCancelText}>Vazgeç</Text>
+                  <Text style={styles.pickingHintCancelText}>{t("common.cancel")}</Text>
                 </Pressable>
               </View>
             </View>
@@ -396,7 +405,7 @@ export default function SharedMapScreen() {
                 color="#fff"
               />
               <Text style={styles.addFabText}>
-                {awaitingMapTap ? "İptal" : "Anı Ekle"}
+                {awaitingMapTap ? t("common.cancel") : t("map.addMemory")}
               </Text>
             </Pressable>
           )}

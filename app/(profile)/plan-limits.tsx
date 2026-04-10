@@ -2,12 +2,12 @@ import PrimaryButton from "@/src/components/PrimaryButton";
 import { useAuth } from "@/src/context/AuthContext";
 import { usePhotoUploadCountdown } from "@/src/hooks/usePhotoUploadCountdown";
 import { supabase } from "@/src/lib/supabase";
-import { presentPremiumPaywall } from "@/src/services/revenueCatService";
 import { isPremiumUser } from "@/src/utils/photoLimitUtils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     ScrollView,
     Text,
     View,
@@ -19,7 +19,7 @@ type UsageCounts = {
 };
 
 export default function PlanLimitsScreen() {
-    const { state, refreshProfile } = useAuth();
+    const { state } = useAuth();
     const profile = state.profile;
     const premium = isPremiumUser(profile);
     const { isLocked, remainingText } = usePhotoUploadCountdown();
@@ -33,14 +33,14 @@ export default function PlanLimitsScreen() {
 
         const [memoriesRes, placesRes] = await Promise.all([
             supabase
-                .from('memories')
-                .select('id', { count: 'exact', head: true })
-                .eq('created_by', userId)
-                .not('photo_url', 'is', null),
+                .from("memories")
+                .select("id", { count: "exact", head: true })
+                .eq("created_by", userId)
+                .not("photo_url", "is", null),
             supabase
-                .from('shared_places')
-                .select('id', { count: 'exact', head: true })
-                .eq('created_by', userId),
+                .from("shared_places")
+                .select("id", { count: "exact", head: true })
+                .eq("created_by", userId),
         ]);
 
         setCounts({
@@ -93,12 +93,11 @@ export default function PlanLimitsScreen() {
                     <Text className="text-slate-800 font-bold text-lg mb-6">Kullanım Durumu</Text>
 
                     <View className="space-y-6">
-                        {/* Photos */}
                         <View>
                             <View className="flex-row justify-between items-center mb-2">
                                 <Text className="text-slate-600 font-semibold">Fotoğraflı Anılar</Text>
                                 <Text className="text-slate-900 font-extrabold">
-                                    {counts?.totalPhotoMemories ?? 0} / {premium ? '∞' : 4}
+                                    {counts?.totalPhotoMemories ?? 0} / {premium ? "∞" : 4}
                                 </Text>
                             </View>
                             <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -106,19 +105,18 @@ export default function PlanLimitsScreen() {
                                     className="h-full bg-rose-500 rounded-full"
                                     style={{
                                         width: premium
-                                            ? '100%'
-                                            : `${Math.min(((counts?.totalPhotoMemories ?? 0) / 4) * 100, 100)}%`
+                                            ? "100%"
+                                            : `${Math.min(((counts?.totalPhotoMemories ?? 0) / 4) * 100, 100)}%`,
                                     }}
                                 />
                             </View>
                         </View>
 
-                        {/* Places */}
                         <View className="mt-6">
                             <View className="flex-row justify-between items-center mb-2">
                                 <Text className="text-slate-600 font-semibold">Paylaşılan Yerler</Text>
                                 <Text className="text-slate-900 font-extrabold">
-                                    {counts?.totalPlaces ?? 0} / {premium ? '∞' : 4}
+                                    {counts?.totalPlaces ?? 0} / {premium ? "∞" : 4}
                                 </Text>
                             </View>
                             <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -126,26 +124,27 @@ export default function PlanLimitsScreen() {
                                     className="h-full bg-blue-500 rounded-full"
                                     style={{
                                         width: premium
-                                            ? '100%'
-                                            : `${Math.min(((counts?.totalPlaces ?? 0) / 4) * 100, 100)}%`
+                                            ? "100%"
+                                            : `${Math.min(((counts?.totalPlaces ?? 0) / 4) * 100, 100)}%`,
                                     }}
                                 />
                             </View>
                         </View>
 
-                        {/* Daily Limit */}
                         <View className="mt-6">
                             <View className="flex-row justify-between items-center mb-2">
                                 <Text className="text-slate-600 font-semibold">Günlük Fotoğraf Hakkı (Kalan)</Text>
                                 <Text className="text-slate-900 font-extrabold">
-                                    {premium ? '∞' : `${dailyRemaining} / 1`}
+                                    {premium ? "∞" : `${dailyRemaining} / 1`}
                                 </Text>
                             </View>
                             <View className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                 <View
                                     className="h-full bg-amber-500 rounded-full"
                                     style={{
-                                        width: premium ? '100%' : `${Math.min(Math.max(dailyRemaining, 0) * 100, 100)}%`
+                                        width: premium
+                                            ? "100%"
+                                            : `${Math.min(Math.max(dailyRemaining, 0) * 100, 100)}%`,
                                     }}
                                 />
                             </View>
@@ -163,22 +162,19 @@ export default function PlanLimitsScreen() {
                         <View className="w-12 h-12 rounded-full bg-amber-100 items-center justify-center mb-4">
                             <MaterialIcons name="workspace-premium" size={24} color="#D97706" />
                         </View>
-                        <Text className="text-amber-900 font-bold text-lg text-center">Premium'a Geç</Text>
+                        <Text className="text-amber-900 font-bold text-lg text-center">Premium planına geç</Text>
                         <Text className="text-amber-800/70 text-sm text-center leading-5 mt-2 mb-6">
-                            Sınırsız anı, konum ve daha fazlası için Premium planı tercih et.
+                            App Store abonelik akışı kaldırıldı. Premium yükseltme şu anda kapalı.
                         </Text>
                         <View className="w-full">
                             <PrimaryButton
-                                title="Şimdi Yükselt"
-                                onPress={async () => {
-                                    if (state.user?.id) {
-                                        const success = await presentPremiumPaywall(state.user.id);
-                                        if (success) {
-                                            await refreshProfile();
-                                            fetchCounts();
-                                        }
-                                    }
-                                }}
+                                title="Premium şu an kapalı"
+                                onPress={() =>
+                                    Alert.alert(
+                                        "Premium",
+                                        "App Store abonelik akışı kaldırıldı. Premium yükseltme şu anda uygulama içinde kullanılamıyor.",
+                                    )
+                                }
                             />
                         </View>
                     </View>
