@@ -30,10 +30,10 @@ export function useProfile() {
     const { profile, partner, isFetchingProfile } = state;
 
     useEffect(() => {
-        if (!profile && state.isLoggedIn) {
+        if (!profile && state.isLoggedIn && !state.isGuest) {
             loadProfileData();
         }
-    }, [profile, state.isLoggedIn]);
+    }, [profile, state.isLoggedIn, state.isGuest]);
 
     /**
      * Profil ve partner verilerini servisten çeken fonksiyon.

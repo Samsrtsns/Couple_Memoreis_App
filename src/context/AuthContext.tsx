@@ -12,6 +12,7 @@ const AUTH_INIT_TIMEOUT_MS = 15_000;
 type AuthState = {
     isInitialized: boolean;
     isLoggedIn: boolean;
+    isGuest: boolean;
     session: Session | null;
     user: User | null;
     profile: ProfileData | null;
@@ -23,6 +24,8 @@ type Action =
     | { type: 'INITIALIZE'; payload: { session: Session | null; user: User | null; profile: ProfileData | null; partner: ProfileData | null } }
     | { type: 'LOGIN_SUCCESS'; payload: { session: Session; user: User; profile: ProfileData | null; partner: ProfileData | null } }
     | { type: 'LOGOUT' }
+    | { type: 'GUEST_LOGIN' }
+    | { type: 'GUEST_EXIT' }
     | { type: 'FETCH_PROFILE_START' }
     | { type: 'FETCH_PROFILE_SUCCESS'; payload: { profile: ProfileData | null; partner: ProfileData | null } }
     | { type: 'FETCH_PROFILE_ERROR' };
@@ -31,6 +34,7 @@ type Action =
 const initialState: AuthState = {
     isInitialized: false,
     isLoggedIn: false,
+    isGuest: false,
     session: null,
     user: null,
     profile: null,
@@ -46,6 +50,7 @@ function authReducer(state: AuthState, action: Action): AuthState {
                 ...state,
                 isInitialized: true,
                 isLoggedIn: !!action.payload.session,
+                isGuest: false,
                 session: action.payload.session,
                 user: action.payload.user,
                 profile: action.payload.profile,
@@ -56,6 +61,7 @@ function authReducer(state: AuthState, action: Action): AuthState {
                 ...state,
                 isInitialized: true,
                 isLoggedIn: true,
+                isGuest: false,
                 session: action.payload.session,
                 user: action.payload.user,
                 profile: action.payload.profile,
@@ -65,10 +71,27 @@ function authReducer(state: AuthState, action: Action): AuthState {
             return {
                 ...state,
                 isLoggedIn: false,
+                isGuest: false,
                 session: null,
                 user: null,
                 profile: null,
                 partner: null,
+            };
+        case 'GUEST_LOGIN':
+            return {
+                ...state,
+                isInitialized: true,
+                isLoggedIn: false,
+                isGuest: true,
+                session: null,
+                user: null,
+                profile: null,
+                partner: null,
+            };
+        case 'GUEST_EXIT':
+            return {
+                ...state,
+                isGuest: false,
             };
         case 'FETCH_PROFILE_START':
             return {
@@ -97,6 +120,8 @@ type AuthContextType = {
     state: AuthState;
     dispatch: React.Dispatch<Action>;
     refreshProfile: () => Promise<void>;
+    enterGuestMode: () => void;
+    exitGuestMode: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -254,8 +279,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const enterGuestMode = () => {
+        dispatch({ type: 'GUEST_LOGIN' });
+    };
+
+    const exitGuestMode = () => {
+        dispatch({ type: 'GUEST_EXIT' });
+    };
+
     return (
-        <AuthContext.Provider value={{ state, dispatch, refreshProfile }}>
+        <AuthContext.Provider value={{ state, dispatch, refreshProfile, enterGuestMode, exitGuestMode }}>
             {children}
         </AuthContext.Provider>
     );

@@ -42,9 +42,10 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
     const currentUserId = profile?.id;
     const partnerId = partner?.id;
     const noPartner = isLoggedIn && !!profile?.id && !partner?.id;
+    const isGuest = state.isGuest;
 
     const loadPlaces = useCallback(async (silent = false) => {
-        if (!currentUserId) {
+        if (isGuest || !currentUserId) {
             setPlaces([]);
             setError(null);
             if (!silent) setLoading(false);
@@ -60,10 +61,19 @@ export function useSharedPlaces(): UseSharedPlacesReturn {
         } finally {
             if (!silent) setLoading(false);
         }
-    }, [currentUserId]);
+    }, [currentUserId, isGuest]);
+
+    // Guest mode: skip everything and set loading to false
+    useEffect(() => {
+        if (isGuest) {
+            setLoading(false);
+            setPlaces([]);
+            setError(null);
+        }
+    }, [isGuest]);
 
     useEffect(() => {
-        if (!currentUserId) return;
+        if (isGuest || !currentUserId) return;
 
         loadPlaces();
 

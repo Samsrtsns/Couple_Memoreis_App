@@ -95,8 +95,15 @@ export function useMemories(): UseMemoriesResult {
     // IDs that were inserted optimistically — realtime onInsert should skip these
     const pendingOptimisticIds = useRef<Set<string>>(new Set());
 
+    // ─── Guest mode guard ───────────────────────────────────────
+    const isGuest = authState.isGuest;
+
     // ─── Initial load ───────────────────────────────────────────
     const load = useCallback(async () => {
+        if (isGuest) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setError(null);
         try {
@@ -118,7 +125,7 @@ export function useMemories(): UseMemoriesResult {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [isGuest]);
 
     // ─── Refresh (pull-to-refresh) ───────────────────────────────
     const refresh = useCallback(async () => {

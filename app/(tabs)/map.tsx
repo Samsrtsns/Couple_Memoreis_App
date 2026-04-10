@@ -209,6 +209,14 @@ export default function SharedMapScreen() {
   };
 
   const handleAddButtonPress = () => {
+    if (state.isGuest) {
+      Alert.alert(
+        t("guest.featurePlaces"),
+        t("guest.featurePlacesDesc") + "\n\n" + t("guest.ctaSubtitle")
+      );
+      return;
+    }
+
     if (awaitingMapTap) {
       setAwaitingMapTap(false);
       return;

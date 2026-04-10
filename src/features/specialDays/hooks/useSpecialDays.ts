@@ -36,7 +36,14 @@ export function useSpecialDays(): UseSpecialDaysResult {
     const partnerIdRef = useRef<string | null>(null);
     const pendingOptimisticIds = useRef<Set<string>>(new Set());
 
+    // Guest mode guard
+    const isGuest = authState.isGuest;
+
     const load = useCallback(async () => {
+        if (isGuest) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         setError(null);
         try {
@@ -58,7 +65,7 @@ export function useSpecialDays(): UseSpecialDaysResult {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [isGuest]);
 
     const refresh = useCallback(async () => {
         const uid = currentUserIdRef.current;

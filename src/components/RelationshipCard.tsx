@@ -18,6 +18,42 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
 
     const hasPartner = !!partner?.id;
 
+    if (state.isGuest) {
+        return (
+            <View className="px-6 bg-bgLight">
+                <View
+                    className="w-full mt-6 p-6 bg-bgLight border border-dashed border-slate-300"
+                    style={{
+                        borderRadius: 24,
+                        shadowColor: "#94A3B8",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.12,
+                        shadowRadius: 12,
+                        elevation: 3,
+                    }}
+                >
+                    <View className="items-center">
+                        <View className="w-16 h-16 rounded-full bg-slate-100 items-center justify-center mb-3">
+                            <Ionicons name="glasses-outline" size={32} color="#64748B" />
+                        </View>
+                        <Text className="text-slate-900 font-bold text-lg text-center">
+                            Misafir Modu
+                        </Text>
+                        <Text className="text-slate-500 text-sm text-center mt-2 leading-5 px-1">
+                            Misafir modu uygulamanın içeriğini görmeniz için var. Tam erişim için lütfen hesap oluşturunuz.
+                        </Text>
+                        <Pressable
+                            onPress={() => router.push("/(tabs)/profile")}
+                            className="mt-5 bg-[#ea5385] px-6 py-3 rounded-2xl active:opacity-90"
+                        >
+                            <Text className="text-white font-bold text-[15px]">Hesap Oluştur</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
     if (!hasPartner) {
         return (
             <View className="px-6 bg-bgLight">

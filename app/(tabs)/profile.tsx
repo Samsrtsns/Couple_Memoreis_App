@@ -81,10 +81,155 @@ function SettingsRow({
     );
 }
 
+/* ─── Guest Profile View ──────────────────────────────────────────────── */
+function GuestProfileView() {
+    const { t } = useTranslation();
+
+    const handleGoToLogin = () => {
+        router.push("/(auth)/login");
+    };
+
+    const handleGoToRegister = () => {
+        router.push("/(auth)/register");
+    };
+
+    return (
+        <View className="flex-col justify-center bg-bgLight flex-1">
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 120 }}
+            >
+                {/* Guest Avatar & Info */}
+                <View className="px-6 pt-8 pb-4 mt-12">
+                    <View className="items-center">
+                        <View className="items-center gap-y-4">
+                            {/* Avatar Placeholder */}
+                            <View className="w-[128px] h-[128px] rounded-full bg-slate-100 items-center justify-center border-2 border-dashed border-slate-300">
+                                <Ionicons name="person-outline" size={48} color="#94A3B8" />
+                            </View>
+
+                            <View className="items-center">
+                                <Text className="text-slate-900 text-2xl font-extrabold text-center">
+                                    {t("guest.title")}
+                                </Text>
+                                <Text className="text-slate-400 text-sm font-medium text-center mt-1 max-w-[260px]">
+                                    {t("guest.subtitle")}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {/* CTA Card */}
+                <View className="px-6 py-4">
+                    <View className="rounded-[24px] bg-gradient-to-b from-rose-50 to-white border border-rose-100 px-6 py-8 items-center">
+                        <View className="w-16 h-16 rounded-full bg-rose-100 items-center justify-center mb-4">
+                            <Ionicons name="heart" size={28} color="#F43F5E" />
+                        </View>
+
+                        <Text className="text-rose-900 text-lg font-bold text-center">
+                            {t("guest.ctaTitle")}
+                        </Text>
+                        <Text className="text-rose-700/70 text-sm font-medium text-center leading-5 mt-2 max-w-[280px]">
+                            {t("guest.ctaSubtitle")}
+                        </Text>
+
+                        <View className="w-full mt-6 gap-y-3">
+                            <PrimaryButton
+                                title={t("guest.createAccount")}
+                                onPress={handleGoToRegister}
+                            />
+
+                            <Pressable
+                                onPress={handleGoToLogin}
+                                className="h-14 border border-slate-200 bg-white rounded-2xl flex-row items-center justify-center gap-x-2"
+                                style={({ pressed }) => [
+                                    { opacity: pressed && Platform.OS === "ios" ? 0.7 : 1 },
+                                ]}
+                            >
+                                <Ionicons name="log-in-outline" size={20} color="#F43F5E" />
+                                <Text className="font-bold text-rose-500 text-[15px]">
+                                    {t("guest.loginExisting")}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Feature Highlights */}
+                <View className="mt-4">
+                    <Text className="px-8 pb-3 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
+                        {t("guest.whatYouGet")}
+                    </Text>
+
+                    <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
+                        <View className="flex-row items-center px-4 py-4 border-b border-slate-100">
+                            <View className="w-11 h-11 rounded-2xl items-center justify-center bg-emerald-50">
+                                <Ionicons name="images" size={20} color="#10B981" />
+                            </View>
+                            <View className="ml-4 flex-1">
+                                <Text className="text-slate-700 font-semibold text-[14px]">
+                                    {t("guest.featureMemories")}
+                                </Text>
+                                <Text className="text-slate-400 text-[12px] font-medium mt-0.5">
+                                    {t("guest.featureMemoriesDesc")}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View className="flex-row items-center px-4 py-4 border-b border-slate-100">
+                            <View className="w-11 h-11 rounded-2xl items-center justify-center bg-blue-50">
+                                <Ionicons name="map" size={20} color="#3B82F6" />
+                            </View>
+                            <View className="ml-4 flex-1">
+                                <Text className="text-slate-700 font-semibold text-[14px]">
+                                    {t("guest.featurePlaces")}
+                                </Text>
+                                <Text className="text-slate-400 text-[12px] font-medium mt-0.5">
+                                    {t("guest.featurePlacesDesc")}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View className="flex-row items-center px-4 py-4">
+                            <View className="w-11 h-11 rounded-2xl items-center justify-center bg-rose-50">
+                                <Ionicons name="people" size={20} color="#F43F5E" />
+                            </View>
+                            <View className="ml-4 flex-1">
+                                <Text className="text-slate-700 font-semibold text-[14px]">
+                                    {t("guest.featurePartner")}
+                                </Text>
+                                <Text className="text-slate-400 text-[12px] font-medium mt-0.5">
+                                    {t("guest.featurePartnerDesc")}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Footer */}
+                <View className="px-12 py-12 items-center justify-center">
+                    <Text className="text-[11px] font-bold text-slate-300 uppercase tracking-[2px]">
+                        Anı Arşivi v2.4.0
+                    </Text>
+
+                    <View className="mt-2 flex-row items-center gap-x-1.5 opacity-30">
+                        <Ionicons name="heart" size={12} color="#64748B" />
+                        <Text className="text-[10px] font-medium text-slate-500">
+                            {t("profile.madeForCouples")}
+                        </Text>
+                    </View>
+                </View>
+            </ScrollView>
+        </View>
+    );
+}
+
+/* ─── Authenticated Profile View ──────────────────────────────────────── */
 export default function ProfileScreen() {
     const { t, i18n } = useTranslation();
-    const { profile, partner, loading } = useProfile();
     const { state, dispatch, refreshProfile } = useAuth();
+    const { profile, partner, loading } = useProfile();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isUpdatingPhoto, setIsUpdatingPhoto] = useState(false);
 
@@ -105,6 +250,11 @@ export default function ProfileScreen() {
         if (!partner || !profile?.relationship_start_date) return null;
         return t("profile.togetherSince", { date: formatDate(profile.relationship_start_date) });
     }, [partner, profile?.relationship_start_date, i18n.language, t]);
+
+    // Guest mode: show guest profile view (after all hooks to satisfy Rules of Hooks)
+    if (state.isGuest) {
+        return <GuestProfileView />;
+    }
 
     const handleLogout = async () => {
         try {
@@ -299,7 +449,6 @@ export default function ProfileScreen() {
                         </View>
                     </View>
                 )}
-
 
 
 

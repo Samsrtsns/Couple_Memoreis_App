@@ -29,7 +29,7 @@ LogBox.ignoreLogs([
 
 function NavigationRoot() {
     const { state } = useAuth();
-    const { isInitialized, isLoggedIn } = state;
+    const { isInitialized, isLoggedIn, isGuest } = state;
     const pathname = usePathname();
     const segments = useSegments();
     const segmentList = segments as string[];
@@ -110,6 +110,7 @@ function NavigationRoot() {
                 const isAuthPath = ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
                 const isOnboardingPath = pathname.startsWith('/onboarding');
                 const isRealRootPath = (pathname === '/' || pathname === '') && segmentList.length === 0;
+                const isTabsPath = segmentList[0] === '(tabs)';
 
                 if (isLoggedIn) {
                     if (shouldRedirectToPairAfterRegister) {
@@ -132,6 +133,19 @@ function NavigationRoot() {
                     return;
                 }
 
+                // Guest mode: allow browsing tabs without authentication
+                if (isGuest) {
+                    // If guest is on auth path (navigated to login/register intentionally), let them stay
+                    if (isAuthPath) return;
+                    // If guest is already on tabs, let them stay
+                    if (isTabsPath) return;
+                    // Otherwise redirect to tabs
+                    if (isRealRootPath || isOnboardingPath) {
+                        router.replace('/(tabs)/home');
+                    }
+                    return;
+                }
+
                 if (isAuthPath) return;
                 if (isFirstLaunch) {
                     if (isOnboardingPath) return;
@@ -146,7 +160,7 @@ function NavigationRoot() {
         }
 
         void handleNavigation().catch(() => {});
-    }, [isInitialized, isLoggedIn, pathname, segmentList]);
+    }, [isInitialized, isLoggedIn, isGuest, pathname, segmentList]);
 
     return (
         <Stack screenOptions={{ headerShown: false }}>

@@ -109,7 +109,8 @@ export default function TabsLayout() {
     const { state } = useAuth();
 
     // Oturum kapandıysa veya hesap silindiyse direkt Login ekranına fırlat
-    if (state.isInitialized && !state.isLoggedIn) {
+    // Misafir modundaki kullanıcılar geçebilsin
+    if (state.isInitialized && !state.isLoggedIn && !state.isGuest) {
         return <Redirect href="/(auth)/login" />;
     }
 
