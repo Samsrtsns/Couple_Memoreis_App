@@ -6,11 +6,16 @@ export function parseDateOnlyString(dateStr?: string | null): Date | null {
     const parts = dateStr.split("-").map(Number);
     if (parts.length === 3 && parts.every((n) => !Number.isNaN(n))) {
         const [year, month, day] = parts;
-        return new Date(year, month - 1, day);
+        return new Date(year, month - 1, day, 12, 0, 0, 0);
     }
 
     const parsed = new Date(dateStr);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 12, 0, 0, 0);
+}
+
+export function normalizeDateToNoon(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
 }
 
 /**

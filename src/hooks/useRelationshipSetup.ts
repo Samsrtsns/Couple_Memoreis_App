@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Alert, Platform } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { completeRelationshipSetup } from "../services/pairService";
+import { normalizeDateToNoon } from "../utils/dateUtils";
 
 /**
  * İlişki kurulum sürecini (doğum tarihleri, başlangıç tarihi) yöneten özel hook.
@@ -53,12 +54,13 @@ export function useRelationshipSetup() {
         }
 
         if (selectedDate) {
+            const normalized = normalizeDateToNoon(selectedDate);
             if (activeDatePicker === "myBirth") {
-                setMyBirthDate(selectedDate);
+                setMyBirthDate(normalized);
             } else if (activeDatePicker === "partnerBirth") {
-                setPartnerBirthDate(selectedDate);
+                setPartnerBirthDate(normalized);
             } else if (activeDatePicker === "relationStart") {
-                setRelationshipStartDate(selectedDate);
+                setRelationshipStartDate(normalized);
             }
         }
     };

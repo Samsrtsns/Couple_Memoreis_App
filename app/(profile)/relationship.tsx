@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
+import { normalizeDateToNoon } from '@/src/utils/dateUtils';
 
 export default function RelationshipScreen() {
     const { t, i18n } = useTranslation();
@@ -36,9 +37,10 @@ export default function RelationshipScreen() {
         const parts = dateStr.split('-').map(Number);
         if (parts.length === 3 && parts.every((n) => !Number.isNaN(n))) {
             const [year, month, day] = parts;
-            return new Date(year, month - 1, day);
+            return new Date(year, month - 1, day, 12, 0, 0, 0);
         }
-        return new Date(dateStr);
+        const d = new Date(dateStr);
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
     };
 
     const toLocalDateOnlyString = (date: Date) => {
@@ -167,7 +169,7 @@ export default function RelationshipScreen() {
                             textColor="#000000"
                             themeVariant="light"
                             onChange={(_, date) => {
-                                if (date) setStartDate(date);
+                                if (date) setStartDate(normalizeDateToNoon(date));
                             }}
                             maximumDate={new Date()}
                         />
@@ -181,7 +183,7 @@ export default function RelationshipScreen() {
                         display="default"
                         onChange={(_, date) => {
                             setShowDatePicker(false);
-                            if (date) setStartDate(date);
+                            if (date) setStartDate(normalizeDateToNoon(date));
                         }}
                         maximumDate={new Date()}
                     />
