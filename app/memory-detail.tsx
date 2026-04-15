@@ -30,6 +30,7 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 // ─────────────────────────────────────────────
 // Turkish date formatting
@@ -54,6 +55,7 @@ function formatDateTurkish(dateStr: string): string {
 export default function MemoryDetailScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { t } = useTranslation();
     const { data } = useLocalSearchParams<{ id: string; data: string }>();
     const { state } = useAuth();
 
@@ -204,7 +206,9 @@ export default function MemoryDetailScreen() {
                         <View style={styles.metaRow}>
                             <Ionicons name="person-outline" size={14} color="#F43F5E" />
                             <Text style={styles.metaText}>
-                                {memory.creator_profile.first_name} tarafından eklendi
+                                {t("memories.detailAddedBy", {
+                                    name: memory.creator_profile.first_name,
+                                })}
                             </Text>
                         </View>
                     )}

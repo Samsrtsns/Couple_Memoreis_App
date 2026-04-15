@@ -8,6 +8,12 @@ import { getProfileWithPartner } from '../services/pairService';
 
 const AUTH_INIT_TIMEOUT_MS = 15_000;
 
+let googleAuthInProgress = false;
+
+export function setGoogleAuthInProgress(value: boolean) {
+    googleAuthInProgress = value;
+}
+
 // --- Types ---
 type AuthState = {
     isInitialized: boolean;
@@ -49,6 +55,7 @@ function authReducer(state: AuthState, action: Action): AuthState {
             return {
                 ...state,
                 isInitialized: true,
+                isFetchingProfile: false,
                 isLoggedIn: !!action.payload.session,
                 isGuest: false,
                 session: action.payload.session,
@@ -60,6 +67,7 @@ function authReducer(state: AuthState, action: Action): AuthState {
             return {
                 ...state,
                 isInitialized: true,
+                isFetchingProfile: false,
                 isLoggedIn: true,
                 isGuest: false,
                 session: action.payload.session,
@@ -70,6 +78,8 @@ function authReducer(state: AuthState, action: Action): AuthState {
         case 'LOGOUT':
             return {
                 ...state,
+                isInitialized: true,
+                isFetchingProfile: false,
                 isLoggedIn: false,
                 isGuest: false,
                 session: null,
@@ -166,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (session) {
                     try {
                         dispatch({ type: 'FETCH_PROFILE_START' });
-                        const { profile, partner } = await getProfileWithPartner();
+                        const { profile, partner } = await getProfileWithPartner(session.user.id);
                         safeInitialize({ session, user: session.user, profile, partner });
                     } catch (profileError) {
                         console.error('Error fetching profile during initialization:', profileError);
@@ -195,13 +205,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth event:', event);
 
-            if (!didInit && (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
+            // During startup we can still receive auth events before initialization resolves.
+            // Ignore only empty startup events, but process events that carry a valid session.
+            if (!didInit && !session && (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
                 return;
             }
 
             if (event === 'USER_UPDATED') {
                 if (session) {
                     const current = stateRef.current;
+                    if (!didInit) {
+                        safeInitialize({
+                            session,
+                            user: session.user,
+                            profile: current.profile,
+                            partner: current.partner,
+                        });
+                    }
                     dispatch({
                         type: 'LOGIN_SUCCESS',
                         payload: {
@@ -213,26 +233,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     });
                 }
             } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'PASSWORD_RECOVERY') {
-                if (session) {
+                if (event === 'SIGNED_IN' && googleAuthInProgress) {
+                    console.log('[Auth] Google auth in progress, skipping SIGNED_IN handler');
+                    return;
+                }
+
+                const activeSession = session ?? (await supabase.auth.getSession()).data.session;
+                if (activeSession) {
                     if (event === 'PASSWORD_RECOVERY') {
                         console.log('Password recovery mode detected');
                     }
 
+                    const current = stateRef.current;
+                    if (!didInit) {
+                        safeInitialize({
+                            session: activeSession,
+                            user: activeSession.user,
+                            profile: current.profile,
+                            partner: current.partner,
+                        });
+                    }
+                    // Session state should be updated immediately so navigation can proceed
+                    // even if profile fetch is still in-flight.
+                    dispatch({
+                        type: 'LOGIN_SUCCESS',
+                        payload: {
+                            session: activeSession,
+                            user: activeSession.user,
+                            profile: current.profile,
+                            partner: current.partner,
+                        },
+                    });
+
                     try {
                         dispatch({ type: 'FETCH_PROFILE_START' });
-                        const { profile, partner } = await getProfileWithPartner();
+                        const { profile, partner } = await getProfileWithPartner(activeSession.user.id);
                         dispatch({
-                            type: 'LOGIN_SUCCESS',
-                            payload: { session, user: session.user, profile, partner },
+                            type: 'FETCH_PROFILE_SUCCESS',
+                            payload: { profile, partner },
                         });
-                    } catch {
-                        dispatch({
-                            type: 'LOGIN_SUCCESS',
-                            payload: { session, user: session.user, profile: null, partner: null },
-                        });
+                    } catch (profileError) {
+                        console.error('Error fetching profile after sign in:', profileError);
+                        dispatch({ type: 'FETCH_PROFILE_ERROR' });
                     }
                 }
             } else if (event === 'SIGNED_OUT') {
+                if (!didInit) {
+                    safeInitialize({ session: null, user: null, profile: null, partner: null });
+                }
                 dispatch({ type: 'LOGOUT' });
             }
         });
@@ -268,7 +316,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!session?.user) return;
         try {
             dispatch({ type: 'FETCH_PROFILE_START' });
-            const { profile, partner } = await getProfileWithPartner();
+            const { profile, partner } = await getProfileWithPartner(session.user.id);
             dispatch({
                 type: 'FETCH_PROFILE_SUCCESS',
                 payload: { profile, partner },

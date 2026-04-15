@@ -105,26 +105,16 @@ export async function logoutUser() {
 /**
  * Mevcut aktif oturum bilgisini getirir ve token'ın geçerliliğini doğrular.
  *
- * getSession() yalnızca AsyncStorage'dan okur, sunucuya gitmez.
- * Bu yüzden refreshSession() ile token'ı sunucu tarafında doğruluyoruz.
- * Refresh başarısızsa (token süresi dolmuş/iptal edilmiş) yerel veriyi
- * temizleyip null döndürüyoruz — uygulama login ekranına yönlendirilir.
+ * Uygulama açılışında öncelik, mevcut local session'ı güvenle geri yüklemektir.
+ * refreshSession() çağrısını burada zorunlu yapmak, geçici ağ problemlerinde
+ * valid oturumu gereksiz yere düşürebilir. Token yenileme Supabase tarafından
+ * auto-refresh mekanizmasıyla yönetilir.
  */
 export async function getCurrentSession() {
     try {
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (!session) return null;
-
-        const { data, error } = await supabase.auth.refreshSession();
-
-        if (error || !data.session) {
-            console.warn('[Auth] Token refresh failed, clearing local session:', error?.message);
-            try { await supabase.auth.signOut({ scope: 'local' }); } catch {}
-            return null;
-        }
-
-        return data.session;
+        return session ?? null;
     } catch (error) {
         console.error('[Auth] getCurrentSession error:', error);
         try { await supabase.auth.signOut({ scope: 'local' }); } catch {}

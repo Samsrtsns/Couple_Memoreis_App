@@ -33,7 +33,7 @@ export default function ForgotPasswordScreen() {
         setLoading(true);
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                // app.json -> scheme: "forlovers"; route group isimleri URL'de görünmez
+                // app.config scheme: "forlovers"; route group isimleri URL'de görünmez
                 redirectTo: 'couply://reset-password',
             });
 
@@ -104,7 +104,7 @@ export default function ForgotPasswordScreen() {
                                 label={t("auth.email")}
                                 value={email}
                                 onChangeText={setEmail}
-                                placeholder="merhaba@askimiz.com"
+                                placeholder={t("auth.emailPlaceholder")}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 editable={!sent}

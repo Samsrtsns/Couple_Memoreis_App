@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Modal, StyleSheet, Pressable, ScrollView, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { EXTERNAL_LINKS } from '@/src/constants/externalLinks';
 import { supabase } from '@/src/lib/supabase';
+import { openExternalLink } from '@/src/utils/openExternalLink';
 import PrimaryButton from './PrimaryButton';
 
 interface Props {
@@ -13,6 +16,7 @@ interface Props {
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function PrivacyPolicyModal({ visible, onClose, onAccept }: Props) {
+  const { t } = useTranslation();
   const [policy, setPolicy] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -46,6 +50,13 @@ export default function PrivacyPolicyModal({ visible, onClose, onAccept }: Props
     }
   }, [visible]);
 
+  const openPrivacyWebsite = () => {
+    void openExternalLink(EXTERNAL_LINKS.privacyPolicy, {
+      cannotOpen: t('common.linkCannotOpen'),
+      failed: t('common.linkOpenFailed'),
+    });
+  };
+
   return (
     <Modal 
       visible={visible} 
@@ -65,7 +76,7 @@ export default function PrivacyPolicyModal({ visible, onClose, onAccept }: Props
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Gizlilik Politikası</Text>
+            <Text style={styles.title}>{t('privacyModal.title')}</Text>
             <Pressable onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={24} color="#64748B" />
             </Pressable>
@@ -76,14 +87,18 @@ export default function PrivacyPolicyModal({ visible, onClose, onAccept }: Props
             {loading ? (
               <View style={styles.centerContainer}>
                 <ActivityIndicator size="large" color="#ea5385" />
-                <Text style={styles.loadingText}>Yükleniyor...</Text>
+                <Text style={styles.loadingText}>{t('privacyModal.loading')}</Text>
               </View>
             ) : error ? (
               <View style={styles.centerContainer}>
                 <Ionicons name="warning-outline" size={32} color="#F43F5E" />
-                <Text style={styles.errorText}>Veri yüklenirken hata oluştu.</Text>
+                <Text style={styles.errorText}>{t('privacyModal.error')}</Text>
                 <Pressable onPress={fetchPolicy} style={styles.retryBtn}>
-                  <Text style={styles.retryText}>Tekrar Dene</Text>
+                  <Text style={styles.retryText}>{t('privacyModal.retry')}</Text>
+                </Pressable>
+                <Pressable onPress={openPrivacyWebsite} style={styles.webLinkRow}>
+                  <Ionicons name="open-outline" size={18} color="#2563EB" />
+                  <Text style={styles.webLinkText}>{t('privacyModal.viewOnWebsite')}</Text>
                 </Pressable>
               </View>
             ) : (
@@ -93,7 +108,7 @@ export default function PrivacyPolicyModal({ visible, onClose, onAccept }: Props
                 contentContainerStyle={styles.scrollPadding}
               >
                 <Text style={styles.policyText}>
-                  {policy || 'İçerik bulunamadı.'}
+                  {policy || t('privacyModal.empty')}
                 </Text>
               </ScrollView>
             )}
@@ -101,8 +116,12 @@ export default function PrivacyPolicyModal({ visible, onClose, onAccept }: Props
 
           {/* Footer Action */}
           <View style={styles.footer}>
+            <Pressable onPress={openPrivacyWebsite} style={styles.webLinkRow}>
+              <Ionicons name="open-outline" size={18} color="#2563EB" />
+              <Text style={styles.webLinkText}>{t('privacyModal.viewOnWebsite')}</Text>
+            </Pressable>
             <PrimaryButton 
-              title="Okudum, Onaylıyorum" 
+              title={t('privacyModal.accept')} 
               onPress={onAccept}
               disabled={loading || error}
             />
@@ -149,14 +168,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    minHeight: 44,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   title: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#0F172A',
   },
   closeBtn: {
@@ -214,5 +234,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     backgroundColor: 'white',
-  }
+    gap: 12,
+  },
+  webLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  webLinkText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
 });

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
 import { TouchableOpacity } from "react-native";
+import { useTranslation } from "react-i18next";
 
 import { HEADER_HIT, HEADER_ICON_SM } from "./_headerMetrics";
 
@@ -10,6 +11,7 @@ import { HEADER_HIT, HEADER_ICON_SM } from "./_headerMetrics";
  */
 export default function EventsLayout() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <Stack
@@ -44,7 +46,7 @@ export default function EventsLayout() {
         ),
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Özel Günler" }} />
+      <Stack.Screen name="index" options={{ title: t("home.specialDays") }} />
     </Stack>
   );
 }

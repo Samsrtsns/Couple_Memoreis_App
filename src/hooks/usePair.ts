@@ -1,6 +1,7 @@
 import * as Clipboard from "expo-clipboard";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, Share } from "react-native";
 import { getMyProfile, matchPartner } from "../services/pairService";
 
@@ -9,6 +10,7 @@ import { getMyProfile, matchPartner } from "../services/pairService";
  * Davet kodu oluşturma, kopyalama, paylaşma ve partnerle eşleşme işlemlerini sağlar.
  */
 export function usePair() {
+    const { t } = useTranslation();
     const [myCode, setMyCode] = useState("");
     const [partnerCode, setPartnerCode] = useState("");
     const [loading, setLoading] = useState(false);
@@ -26,7 +28,7 @@ export function usePair() {
             const profile = await getMyProfile();
             setMyCode(profile.match_code);
         } catch (e: any) {
-            Alert.alert("Hata", e.message);
+            Alert.alert(t("pairing.error"), e.message);
         }
     };
 
@@ -35,7 +37,7 @@ export function usePair() {
      */
     const copyCode = async () => {
         await Clipboard.setStringAsync(myCode);
-        Alert.alert("Kopyalandı", "Davet kodu panoya kopyalandı.");
+        Alert.alert(t("pairing.copySuccessTitle"), t("pairing.copySuccessBody"));
     };
 
     /**
@@ -43,7 +45,7 @@ export function usePair() {
      */
     const shareCode = async () => {
         await Share.share({
-            message: `Uygulamada bana katıl. Davet kodum: ${myCode}`,
+            message: t("pairing.shareMessage", { code: myCode }),
         });
     };
 
@@ -52,7 +54,7 @@ export function usePair() {
      */
     const connectPartner = async () => {
         if (!partnerCode.trim()) {
-            Alert.alert("Hata", "Lütfen partner kodunu girin.");
+            Alert.alert(t("pairing.error"), t("pairing.enterPartnerCode"));
             return;
         }
 
@@ -62,10 +64,10 @@ export function usePair() {
             // Eşleşme servisini çağır
             await matchPartner(partnerCode.trim());
 
-            // Başarılı ise ilişki kurulum sayfasına yönlendir
-            router.push("/(pairing)/relationship-setup");
+            // Kısa başarı ekranı, ardından ilişki kurulum
+            router.replace("/(pairing)/pair-success");
         } catch (e: any) {
-            Alert.alert("Eşleşme Hatası", e.message);
+            Alert.alert(t("pairing.matchErrorTitle"), e.message);
         } finally {
             setLoading(false);
         }

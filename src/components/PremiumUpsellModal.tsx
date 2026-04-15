@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, Modal, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, Modal, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PrimaryButton from './PrimaryButton';
+import { openRevenueCatPaywall } from '@/src/services/revenuecat';
 
 interface Props {
   visible: boolean;
@@ -16,11 +17,14 @@ export default function PremiumUpsellModal({
   title = "Sınırına Ulaştın",
   message = "Base plan limitine ulaştın. Sınırsız anı, konum ve fotoğraf eklemek için Premium'a yükselt.",
 }: Props) {
-  const handleUpgrade = () => {
-    Alert.alert(
-      'Premium',
-      'App Store abonelik akışı kaldırıldı. Premium yükseltme şu anda uygulama içinde kapalı.'
-    );
+  const handleUpgrade = async () => {
+    console.log('[RC PAYWALL] PremiumUpsellModal — upgrade tapped, opening paywall...');
+    const result = await openRevenueCatPaywall();
+    console.log('[RC PAYWALL] PremiumUpsellModal — paywall result:', result);
+
+    if (result.includes("PURCHASED") || result.includes("RESTORED")) {
+      onClose();
+    }
   };
 
   return (

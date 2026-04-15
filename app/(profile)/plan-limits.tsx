@@ -1,17 +1,12 @@
-import PrimaryButton from "@/src/components/PrimaryButton";
 import { useAuth } from "@/src/context/AuthContext";
+import { openRevenueCatPaywall } from "@/src/services/revenuecat";
 import { usePhotoUploadCountdown } from "@/src/hooks/usePhotoUploadCountdown";
 import { supabase } from "@/src/lib/supabase";
 import { isPremiumUser } from "@/src/utils/photoLimitUtils";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    Text,
-    View,
-} from "react-native";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
 
 type UsageCounts = {
     totalPhotoMemories: number;
@@ -19,6 +14,7 @@ type UsageCounts = {
 };
 
 export default function PlanLimitsScreen() {
+    const { t } = useTranslation();
     const { state } = useAuth();
     const profile = state.profile;
     const premium = isPremiumUser(profile);
@@ -75,27 +71,33 @@ export default function PlanLimitsScreen() {
                         <Ionicons name="sparkles" size={40} color="#F43F5E" />
                     </View>
                     <Text className="text-slate-900 text-2xl font-extrabold text-center">
-                        {premium ? "Planın: Premium" : "Planın: Ücretsiz"}
+                        {premium
+                            ? t("profile.planLimitsScreen.planPremium")
+                            : t("profile.planLimitsScreen.planFree")}
                     </Text>
                     <Text className="text-slate-500 text-sm font-medium mt-1 text-center">
                         {premium
-                            ? "Tüm özelliklere sınırsız erişimin var!"
-                            : "Temel özellikleri kullanıyorsun."}
+                            ? t("profile.planLimitsScreen.subtitlePremium")
+                            : t("profile.planLimitsScreen.subtitleFree")}
                     </Text>
                     {!premium && (
                         <Text className="text-amber-700 text-xs font-semibold mt-3 text-center">
-                            Ücretsiz planda günde 1 fotoğraf, toplam 4 anı ve 4 paylaşılan yer ekleyebilirsin.
+                            {t("profile.planLimitsScreen.freePlanHint")}
                         </Text>
                     )}
                 </View>
 
                 <View className="bg-white rounded-[24px] border border-slate-100 p-6 shadow-sm mb-6">
-                    <Text className="text-slate-800 font-bold text-lg mb-6">Kullanım Durumu</Text>
+                    <Text className="text-slate-800 font-bold text-lg mb-6">
+                        {t("profile.planLimitsScreen.usageTitle")}
+                    </Text>
 
                     <View className="space-y-6">
                         <View>
                             <View className="flex-row justify-between items-center mb-2">
-                                <Text className="text-slate-600 font-semibold">Fotoğraflı Anılar</Text>
+                                <Text className="text-slate-600 font-semibold">
+                                    {t("profile.planLimitsScreen.photoMemories")}
+                                </Text>
                                 <Text className="text-slate-900 font-extrabold">
                                     {counts?.totalPhotoMemories ?? 0} / {premium ? "∞" : 4}
                                 </Text>
@@ -114,7 +116,9 @@ export default function PlanLimitsScreen() {
 
                         <View className="mt-6">
                             <View className="flex-row justify-between items-center mb-2">
-                                <Text className="text-slate-600 font-semibold">Paylaşılan Yerler</Text>
+                                <Text className="text-slate-600 font-semibold">
+                                    {t("profile.planLimitsScreen.sharedPlaces")}
+                                </Text>
                                 <Text className="text-slate-900 font-extrabold">
                                     {counts?.totalPlaces ?? 0} / {premium ? "∞" : 4}
                                 </Text>
@@ -133,7 +137,9 @@ export default function PlanLimitsScreen() {
 
                         <View className="mt-6">
                             <View className="flex-row justify-between items-center mb-2">
-                                <Text className="text-slate-600 font-semibold">Günlük Fotoğraf Hakkı (Kalan)</Text>
+                                <Text className="text-slate-600 font-semibold">
+                                    {t("profile.planLimitsScreen.dailyPhotoRemaining")}
+                                </Text>
                                 <Text className="text-slate-900 font-extrabold">
                                     {premium ? "∞" : `${dailyRemaining} / 1`}
                                 </Text>
@@ -150,7 +156,9 @@ export default function PlanLimitsScreen() {
                             </View>
                             {isLocked && (
                                 <Text className="text-amber-600 text-xs font-semibold mt-2">
-                                    Yeni hak {remainingText} sonra yenilenecek
+                                    {t("profile.planLimitsScreen.dailyRefreshIn", {
+                                        time: remainingText,
+                                    })}
                                 </Text>
                             )}
                         </View>
@@ -162,28 +170,36 @@ export default function PlanLimitsScreen() {
                         <View className="w-12 h-12 rounded-full bg-amber-100 items-center justify-center mb-4">
                             <MaterialIcons name="workspace-premium" size={24} color="#D97706" />
                         </View>
-                        <Text className="text-amber-900 font-bold text-lg text-center">Premium planına geç</Text>
-                        <Text className="text-amber-800/70 text-sm text-center leading-5 mt-2 mb-6">
-                            App Store abonelik akışı kaldırıldı. Premium yükseltme şu anda kapalı.
+                        <Text className="text-amber-900 font-bold text-lg text-center">
+                            {t("profile.planLimitsScreen.upgradeTitle")}
                         </Text>
-                        <View className="w-full">
-                            <PrimaryButton
-                                title="Premium şu an kapalı"
-                                onPress={() =>
-                                    Alert.alert(
-                                        "Premium",
-                                        "App Store abonelik akışı kaldırıldı. Premium yükseltme şu anda uygulama içinde kullanılamıyor.",
-                                    )
+                        <Text className="text-amber-800/70 text-sm text-center leading-5 mt-2">
+                            {t("profile.planLimitsScreen.upgradeDesc")}
+                        </Text>
+                        <Pressable
+                            className="bg-amber-500 rounded-2xl px-8 py-4 mt-5"
+                            onPress={async () => {
+                                console.log('[RC PAYWALL] User tapped upgrade in plan-limits');
+                                const result = await openRevenueCatPaywall();
+                                console.log('[RC PAYWALL] Paywall closed, result:', result);
+                                if (result.includes("PURCHASED") || result.includes("RESTORED")) {
+                                    Alert.alert("Tebrikler", "Premium üyeliğin aktif edildi!");
                                 }
-                            />
-                        </View>
+                            }}
+                        >
+                            <Text className="text-white font-extrabold text-base text-center">
+                                {t("profile.planLimitsScreen.upgradeButton", { defaultValue: "Premium'a Yükselt" })}
+                            </Text>
+                        </Pressable>
                     </View>
                 ) : (
                     <View className="bg-green-50 rounded-[28px] border border-green-100 p-6 items-center">
                         <Ionicons name="checkmark-circle" size={48} color="#059669" />
-                        <Text className="text-green-900 font-bold text-lg mt-2">Premium Aktif</Text>
+                        <Text className="text-green-900 font-bold text-lg mt-2">
+                            {t("profile.planLimitsScreen.premiumActive")}
+                        </Text>
                         <Text className="text-green-800/70 text-sm text-center mt-2">
-                            Harika bir deneyim için sınırsız haklarını kullanıyorsun!
+                            {t("profile.planLimitsScreen.premiumActiveDesc")}
                         </Text>
                     </View>
                 )}

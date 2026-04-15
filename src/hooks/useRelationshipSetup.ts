@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, Platform } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { completeRelationshipSetup } from "../services/pairService";
@@ -10,6 +11,7 @@ import { normalizeDateToNoon } from "../utils/dateUtils";
  * Tarih seçicileri (DatePicker), tarih formatlama ve veritabanına kaydetme işlemlerini yönetir.
  */
 export function useRelationshipSetup() {
+    const { t, i18n } = useTranslation();
     const { refreshProfile } = useAuth();
     const [myBirthDate, setMyBirthDate] = useState(new Date());
     const [partnerBirthDate, setPartnerBirthDate] = useState(new Date());
@@ -26,7 +28,8 @@ export function useRelationshipSetup() {
      * Tarih nesnesini "gün.ay.yıl" formatında string'e dönüştürür.
      */
     const formatDate = (date: Date) => {
-        return date.toLocaleDateString("tr-TR", {
+        const locale = i18n.language?.startsWith("en") ? "en-US" : "tr-TR";
+        return date.toLocaleDateString(locale, {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
@@ -91,14 +94,14 @@ export function useRelationshipSetup() {
                 await refreshProfile();
             }
 
-            Alert.alert("Başarılı", "İlişki detaylarınız kaydedildi.", [
+            Alert.alert(t("common.success"), t("relationshipSetup.successMessage"), [
                 {
-                    text: "Tamam",
+                    text: t("relationshipSetup.ok"),
                     onPress: () => router.replace("/(tabs)/home"),
                 },
             ]);
         } catch (e: any) {
-            Alert.alert("Hata", e.message || "İlişki detayları kaydedilemedi.");
+            Alert.alert(t("common.error"), e.message || t("relationshipSetup.errorGeneric"));
         } finally {
             setLoading(false);
         }

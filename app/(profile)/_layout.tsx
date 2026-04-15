@@ -36,9 +36,16 @@ export default function ProfileLayout() {
             <Stack.Screen name="app-settings" options={{ title: t('profile.appSettings') }} />
             <Stack.Screen name="relationship" options={{ title: t('profile.relationshipSettings') }} />
             <Stack.Screen name="plan-limits" options={{ title: t('profile.planLimits') }} />
-            <Stack.Screen name="notifications" options={{ title: t('profile.notifications') }} />
             <Stack.Screen name="data-management" options={{ title: 'Data Management' }} />
-            <Stack.Screen name="privacy" options={{ title: t('profile.privacyPolicy') }} />
+            <Stack.Screen
+                name="privacy"
+                options={{
+                    title: t('profile.privacyPolicy'),
+                    headerLargeTitle: false,
+                    headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+                }}
+            />
+            <Stack.Screen name="rc-debug" options={{ title: 'RC Debug' }} />
         </Stack>
     );
 }

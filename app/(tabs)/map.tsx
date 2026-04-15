@@ -321,7 +321,7 @@ export default function SharedMapScreen() {
               <Ionicons name="warning-outline" size={16} color="#fff" />
               <Text style={styles.errorBannerText}>{error}</Text>
               <Pressable onPress={refetch} style={styles.retryBtn}>
-                <Text style={styles.retryBtnText}>Tekrar Dene</Text>
+                <Text style={styles.retryBtnText}>{t("memories.retry")}</Text>
               </Pressable>
             </View>
           )}
@@ -364,7 +364,7 @@ export default function SharedMapScreen() {
             <View style={styles.noPartnerBanner}>
               <Ionicons name="people-outline" size={16} color="#64748B" />
               <Text style={styles.noPartnerText}>
-                Yerleri paylaşmak için partnerinle bağlan 💕
+                {t("map.noPartnerBanner")}
               </Text>
             </View>
           )}

@@ -18,6 +18,7 @@ import {
     View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { useDeleteSharedPlace } from "../hooks/useDeleteSharedPlace";
 import type { SharedPlace } from "../types/sharedPlace.types";
 import { formatVisitedDate } from "../utils/map.utils";
@@ -41,6 +42,7 @@ export default function PlaceBottomSheet({
   onPlaceDeleted,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { state } = useAuth();
   const currentUserId = state.user?.id ?? "";
 
@@ -272,10 +274,10 @@ export default function PlaceBottomSheet({
                 />
                 <Text className="text-xs text-slate-400 italic">
                   {place.created_by === currentUserId
-                    ? "Senin eklediğin"
+                    ? t("map.placeAddedByYou")
                     : partnerName
-                      ? `${partnerName} tarafından eklendi`
-                      : "Partnerinin eklediği"}
+                      ? t("map.placeAddedByName", { name: partnerName })
+                      : t("map.placeAddedByPartner")}
                 </Text>
               </View>
             </View>

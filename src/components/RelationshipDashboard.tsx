@@ -93,7 +93,7 @@ export default function RelationshipDashboard({
                         : daysRemaining !== null
                           ? daysRemaining === 0
                               ? t("home.today")
-                              : `${daysRemaining}g`
+                              : t("home.nearestDaysCount", { count: daysRemaining })
                           : "-"}
                 </Text>
                 <Text

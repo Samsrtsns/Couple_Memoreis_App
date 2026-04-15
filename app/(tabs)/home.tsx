@@ -36,13 +36,6 @@ export default function HomeScreen() {
 
     const builtinCouple: SpecialEvent[] = [
       {
-        id: "1",
-        title: t("home.birthday"),
-        date: partner?.birth_date || "2000-01-01",
-        isYearly: true,
-        iconName: "gift",
-      },
-      {
         id: "2",
         title: t("home.valentines"),
         date: "2026-02-14",
@@ -56,14 +49,28 @@ export default function HomeScreen() {
         isYearly: true,
         iconName: "sparkles",
       },
-      {
-        id: "4",
+    ];
+
+    /** Profilde/partnerde girilen tarihlere göre (kurulum sonrası) otomatik gösterilir */
+    const profileDerivedEvents: SpecialEvent[] = [];
+    if (hasPartner && partner?.birth_date) {
+      profileDerivedEvents.push({
+        id: "derived-partner-birth",
+        title: t("home.birthday"),
+        date: partner.birth_date,
+        isYearly: true,
+        iconName: "gift",
+      });
+    }
+    if (hasPartner && profile?.relationship_start_date) {
+      profileDerivedEvents.push({
+        id: "derived-anniversary",
         title: t("home.anniversary"),
-        date: profile?.relationship_start_date || "2000-01-01",
+        date: profile.relationship_start_date,
         isYearly: true,
         iconName: "calendar",
-      },
-    ];
+      });
+    }
 
     const builtinSolo: SpecialEvent[] = [
       {
@@ -92,7 +99,7 @@ export default function HomeScreen() {
       iconName: iconNameForSpecialDayId(s.id),
     }));
 
-    const events = [...builtin, ...fromDb];
+    const events = [...builtin, ...profileDerivedEvents, ...fromDb];
     return events.sort(
       (a, b) =>
         calculateDaysRemaining(a.date, a.isYearly) -

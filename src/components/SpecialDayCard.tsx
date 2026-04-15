@@ -1,7 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Text, View } from "react-native";
-import { calculateDaysRemaining } from "../utils/dateUtils";
+import { calculateDaysRemaining, parseDateOnlyString } from "../utils/dateUtils";
 
 const DATE_BADGE_COLORS: Record<string, { bg: string; text: string }> = {
     gift: { bg: "#FEE2E2", text: "#DC2626" },
@@ -23,20 +23,26 @@ export default function SpecialDayCard({
     isYearly = true,
     iconName = "heart",
 }: Props) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const remainingDays = calculateDaysRemaining(date, isYearly);
 
-    // Parse date string reliably to avoid timezone issues
-    const parts = date.split("-");
-    const monthIndex = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    const safeDate = new Date(2000, monthIndex, day);
-    const monthAbbr = new Intl.DateTimeFormat(i18n.language || "tr", {
-        month: "short",
-    })
-        .format(safeDate)
-        .replace(".", "")
-        .toUpperCase();
+    const parsedDate = parseDateOnlyString(date) ?? new Date(2000, 0, 1);
+    const day = parsedDate.getDate();
+    const monthIndex = parsedDate.getMonth();
+    const monthAbbr = [
+        "JAN",
+        "FEB",
+        "MAR",
+        "APR",
+        "MAY",
+        "JUN",
+        "JUL",
+        "AUG",
+        "SEP",
+        "OCT",
+        "NOV",
+        "DEC",
+    ][monthIndex] ?? "JAN";
 
     const colors = DATE_BADGE_COLORS[iconName ?? "heart"] || {
         bg: "#FFE4E6",

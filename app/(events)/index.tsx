@@ -8,7 +8,8 @@ import { calculateDaysRemaining, SpecialEvent } from "@/src/utils/dateUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useLayoutEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from "react-native";
 
 import { HEADER_HIT } from "./_headerMetrics";
 
@@ -26,8 +27,14 @@ type MergedEvent =
 
 export default function EventsScreen() {
     const navigation = useNavigation();
+    const { t, i18n } = useTranslation();
     const { state } = useAuth();
     const { profile, partner } = state;
+    const hasPartnerUser = !!partner?.id;
+    const showSpecialDaysAutoHint =
+        !hasPartnerUser ||
+        !partner?.birth_date ||
+        !profile?.relationship_start_date;
 
     const {
         specialDays,
@@ -44,41 +51,50 @@ export default function EventsScreen() {
     const modalVisible = addModalOpen || editing != null;
 
     const builtinEvents = useMemo((): (SpecialEvent & { source: "builtin" })[] => {
-        return [
+        const year = new Date().getFullYear();
+        const fixed: (SpecialEvent & { source: "builtin" })[] = [
             {
-                id: "builtin-1",
+                id: "builtin-valentines",
                 source: "builtin",
-                title: "Partnerin Doğum Günü",
-                date: partner?.birth_date || "2000-01-01",
-                isYearly: true,
-                iconName: "gift",
-            },
-            {
-                id: "builtin-2",
-                source: "builtin",
-                title: "Yıldönümü",
-                date: profile?.relationship_start_date || "2000-01-01",
-                isYearly: true,
-                iconName: "calendar",
-            },
-            {
-                id: "builtin-3",
-                source: "builtin",
-                title: "Sevgililer Günü",
-                date: "2026-02-14",
+                title: t("home.valentines"),
+                date: `${year}-02-14`,
                 isYearly: true,
                 iconName: "heart",
             },
             {
-                id: "builtin-4",
+                id: "builtin-newyear",
                 source: "builtin",
-                title: "Yılbaşı",
-                date: "2026-01-01",
+                title: t("home.newYear"),
+                date: `${year}-01-01`,
                 isYearly: true,
                 iconName: "sparkles",
             },
         ];
-    }, [partner?.birth_date, profile?.relationship_start_date]);
+
+        const fromProfile: (SpecialEvent & { source: "builtin" })[] = [];
+        if (partner?.birth_date) {
+            fromProfile.push({
+                id: "derived-partner-birth",
+                source: "builtin",
+                title: t("home.birthday"),
+                date: partner.birth_date,
+                isYearly: true,
+                iconName: "gift",
+            });
+        }
+        if (profile?.relationship_start_date) {
+            fromProfile.push({
+                id: "derived-anniversary",
+                source: "builtin",
+                title: t("home.anniversary"),
+                date: profile.relationship_start_date,
+                isYearly: true,
+                iconName: "calendar",
+            });
+        }
+
+        return [...fromProfile, ...fixed];
+    }, [partner?.birth_date, profile?.relationship_start_date, t, i18n.language]);
 
     const customEvents = useMemo((): MergedEvent[] => {
         return specialDays.map((s) => ({
@@ -158,23 +174,35 @@ export default function EventsScreen() {
     useLayoutEffect(() => {
         navigation.setOptions({
             headerRight: () => (
-                <TouchableOpacity
-                    onPress={openAdd}
-                    disabled={!hasPartner}
-                    activeOpacity={0.75}
-                    accessibilityRole="button"
-                    accessibilityLabel="Özel gün ekle"
+                <View
                     style={{
                         width: HEADER_HIT,
                         height: HEADER_HIT,
-                        borderRadius: HEADER_HIT / 2,
                         alignItems: "center",
                         justifyContent: "center",
-                        opacity: hasPartner ? 1 : 0.35,
                     }}
                 >
-                    <Ionicons name="add" size={24} color="#F43F5E" />
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        onPress={openAdd}
+                        disabled={!hasPartner}
+                        activeOpacity={0.75}
+                        accessibilityRole="button"
+                        accessibilityLabel="Add special day"
+                        style={{
+                            width: HEADER_HIT,
+                            height: HEADER_HIT,
+                            minHeight: HEADER_HIT,
+                            maxHeight: HEADER_HIT,
+                            borderRadius: HEADER_HIT / 2,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            alignSelf: "center",
+                            opacity: hasPartner ? 1 : 0.35,
+                        }}
+                    >
+                        <Ionicons name="add" size={24} color="#F43F5E" />
+                    </TouchableOpacity>
+                </View>
             ),
             headerRightContainerStyle: {
                 paddingRight: 10,
@@ -193,6 +221,21 @@ export default function EventsScreen() {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 24, paddingBottom: 48 }}
                 >
+                    {showSpecialDaysAutoHint && (
+                        <View className="mb-4">
+                            <View className="flex-row items-start gap-3 rounded-2xl border border-rose-100 bg-rose-50/80 px-4 py-3">
+                                <Ionicons
+                                    name="information-circle-outline"
+                                    size={22}
+                                    color="#F43F5E"
+                                    style={{ marginTop: 1 }}
+                                />
+                                <Text className="flex-1 text-slate-600 text-[13px] leading-5">
+                                    {t("home.specialDaysUnmatchedHint")}
+                                </Text>
+                            </View>
+                        </View>
+                    )}
                     <View className="gap-3">
                         {mergedSorted.map((event) => (
                             <Pressable

@@ -51,11 +51,11 @@ VALUES (
   'privacy_policy',
   'Gizlilik Politikasi',
   $policy$
-ForLovers Gizlilik Politikasi
+forLovers Gizlilik Politikasi
 
 Yururluk Tarihi: 08.04.2026
 
-ForLovers uygulamasi olarak, kullanicilarimizin gizliligine onem veriyoruz. Bu politika; hangi verileri topladigimizi, neden kullandigimizi ve nasil korudugumuzu aciklar.
+forLovers uygulamasi olarak, kullanicilarimizin gizliligine onem veriyoruz. Bu politika; hangi verileri topladigimizi, neden kullandigimizi ve nasil korudugumuzu aciklar.
 
 1) Toplanan Veriler
 - Hesap bilgileri: ad, soyad, e-posta adresi.

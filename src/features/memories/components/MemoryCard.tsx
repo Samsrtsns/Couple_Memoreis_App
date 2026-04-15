@@ -1,8 +1,9 @@
+import { useAuth } from '@/src/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     StyleSheet,
@@ -19,9 +20,32 @@ type Props = {
     isLast: boolean;
 };
 
-export function MemoryCard({ memory, isLast }: Props) {
+function firstNameOnly(first?: string | null): string | null {
+    const f = first?.trim() ?? '';
+    return f.length > 0 ? f : null;
+}
+
+export function MemoryCard({ memory, currentUserId, isLast }: Props) {
     const { t } = useTranslation();
     const router = useRouter();
+    const { state } = useAuth();
+    const profile = state.profile;
+    const partner = state.partner;
+
+    const creatorDisplayName = useMemo(() => {
+        const fromCreator = firstNameOnly(memory.creator_profile?.first_name);
+        if (fromCreator) return fromCreator;
+
+        if (memory.created_by === currentUserId) {
+            return firstNameOnly(profile?.first_name) ?? '';
+        }
+        return firstNameOnly(partner?.first_name) ?? '';
+    }, [memory, currentUserId, profile, partner]);
+
+    const addedByLabel =
+        creatorDisplayName.trim().length > 0
+            ? creatorDisplayName
+            : t('memories.addedByFallbackName');
 
     const handlePress = () => {
         router.push({
@@ -90,9 +114,7 @@ export function MemoryCard({ memory, isLast }: Props) {
                     {/* FOOTER */}
                     <View style={styles.footer}>
                         <Text style={styles.createdBy}>
-                            {t("memories.addedBy", {
-                                name: memory.creator_profile?.first_name ?? "Partner",
-                            })}
+                            {t('memories.addedBy', { name: addedByLabel })}
                         </Text>
                     </View>
                 </View>

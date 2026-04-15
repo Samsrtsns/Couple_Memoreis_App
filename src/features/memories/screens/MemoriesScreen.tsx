@@ -128,7 +128,7 @@ export default function MemoriesScreen() {
           subtitle={t("memories.timelineSubtitle")}
         />
         <View className="flex-1 items-center justify-center px-8 gap-3">
-          <Ionicons name="warning-outline" size={48} color="#f48fb1" />
+          <Ionicons name="warning-outline" size={48} color="#FF8A8A" />
           <Text className="text-[20px] font-bold text-[#2d1020]">
             {t("memories.emptyInfo")}
           </Text>
@@ -137,7 +137,7 @@ export default function MemoriesScreen() {
           </Text>
           <TouchableOpacity
             onPress={refresh}
-            className="mt-2 bg-[#e91e8c] rounded-full px-7 py-3"
+            className="mt-2 bg-[#FF8A8A] rounded-full px-7 py-3"
           >
             <Text className="text-white font-bold text-[15px]">
               {t("memories.retry")}
@@ -204,8 +204,8 @@ export default function MemoriesScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor="#e91e8c"
-                colors={["#e91e8c"]}
+                tintColor="#FF8A8A"
+                colors={["#FF8A8A"]}
               />
             }
             ListEmptyComponent={
@@ -219,7 +219,7 @@ export default function MemoriesScreen() {
             ListFooterComponent={
               loading && memories.length > 0 ? (
                 <ActivityIndicator
-                  color="#e91e8c"
+                  color="#FF8A8A"
                   style={{ paddingVertical: 20 }}
                 />
               ) : null

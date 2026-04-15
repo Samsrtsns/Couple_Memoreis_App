@@ -25,15 +25,12 @@ async function getInitialLanguage(): Promise<AppLanguage> {
     if (stored && SUPPORTED_LANGUAGES.includes(stored as AppLanguage)) {
       return stored as AppLanguage;
     }
-    const deviceLanguage = getDeviceLanguage();
-    // First launch (or invalid old value): lock app language to device language once.
-    await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, deviceLanguage);
-    if (stored && !SUPPORTED_LANGUAGES.includes(stored as AppLanguage)) {
-      return deviceLanguage;
-    }
-    return deviceLanguage;
+    // If no language is explicitly set by the user, follow the device language
+    // Do NOT save it to AsyncStorage so that it automatically updates if the user
+    // changes their device language later.
+    return getDeviceLanguage();
   } catch {
-    // fallback to device language
+    // fallback to device language on error
   }
   return getDeviceLanguage();
 }

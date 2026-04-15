@@ -4,7 +4,9 @@ import { useAuth } from "@/src/context/AuthContext";
 import { useProfile } from "@/src/hooks/useProfile";
 import { isPremiumUser } from "@/src/utils/photoLimitUtils";
 import { parseDateOnlyString } from "@/src/utils/dateUtils";
+import { EXTERNAL_LINKS } from "@/src/constants/externalLinks";
 import { logoutUser } from "@/src/services/authService";
+import { openExternalLink } from "@/src/utils/openExternalLink";
 import {
     compressImage,
     deleteProfilePhoto,
@@ -209,8 +211,8 @@ function GuestProfileView() {
 
                 {/* Footer */}
                 <View className="px-12 py-12 items-center justify-center">
-                    <Text className="text-[11px] font-bold text-slate-300 uppercase tracking-[2px]">
-                        Anı Arşivi v2.4.0
+                    <Text className="text-[11px] font-bold text-slate-300 tracking-[2px]">
+                        Loveline v1.0.0
                     </Text>
 
                     <View className="mt-2 flex-row items-center gap-x-1.5 opacity-30">
@@ -358,6 +360,15 @@ export default function ProfileScreen() {
             </View>
         );
     }
+
+    const linkErrorMessages = {
+        cannotOpen: t("common.linkCannotOpen"),
+        failed: t("common.linkOpenFailed"),
+    };
+
+    const openSupportWeb = () => {
+        void openExternalLink(EXTERNAL_LINKS.support, linkErrorMessages);
+    };
 
     return (
         <View className="flex-col justify-center bg-bgLight flex-1">
@@ -530,14 +541,6 @@ export default function ProfileScreen() {
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
                         <SettingsRow
-                            title={t("profile.notifications")}
-                            iconType="ion"
-                            icon="notifications"
-                            iconBg="#FFFBEB"
-                            iconColor="#F59E0B"
-                            onPress={() => router.push("/(profile)/notifications")}
-                        />
-                        <SettingsRow
                             title={t("profile.planLimits")}
                             iconType="material"
                             icon="workspace-premium"
@@ -555,6 +558,14 @@ export default function ProfileScreen() {
 
                     <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
                         <SettingsRow
+                            title={t("profile.support")}
+                            iconType="ion"
+                            icon="help-circle-outline"
+                            iconBg="#EFF6FF"
+                            iconColor="#2563EB"
+                            onPress={openSupportWeb}
+                        />
+                        <SettingsRow
                             title={t("profile.privacyPolicy")}
                             iconType="ion"
                             icon="shield-checkmark-outline"
@@ -565,10 +576,31 @@ export default function ProfileScreen() {
                         />
                     </View>
 
+                    {/* Developer — sadece __DEV__ modda görünür */}
+                    {__DEV__ && (
+                        <>
+                            <Text className="px-8 pb-3 pt-8 text-slate-400 text-[11px] font-bold uppercase tracking-[1.5px]">
+                                Developer
+                            </Text>
+
+                            <View className="mx-6 bg-white rounded-[24px] overflow-hidden border border-slate-100">
+                                <SettingsRow
+                                    title="RC Debug (Test Store)"
+                                    iconType="ion"
+                                    icon="bug-outline"
+                                    iconBg="#EDE9FE"
+                                    iconColor="#7C3AED"
+                                    withBorder={false}
+                                    onPress={() => router.push("/(profile)/rc-debug")}
+                                />
+                            </View>
+                        </>
+                    )}
+
                     {/* Footer */}
                     <View className="px-12 py-12 items-center justify-center">
-                        <Text className="text-[11px] font-bold text-slate-300 uppercase tracking-[2px]">
-                            Anı Arşivi v2.4.0
+                        <Text className="text-[11px] font-bold text-slate-300 tracking-[2px]">
+                            Loveline v1.0.0
                         </Text>
 
                         <View className="mt-2 flex-row items-center gap-x-1.5 opacity-30">

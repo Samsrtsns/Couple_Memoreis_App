@@ -38,30 +38,41 @@ export async function getMyProfile() {
 /**
  * Mevcut kullanıcının profilini ve eğer varsa eşleştiği partnerin profil bilgilerini getirir.
  */
-export async function getProfileWithPartner() {
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) throw new Error("Kullanıcı bulunamadı");
-
-    const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-
-    if (profileError) {
-        // Kayıt sonrası ilk saniyelerde profile satırı henüz oluşmadıysa
-        // PostgREST tek kayıt zorlamasında bu mesajı dönebiliyor.
-        if (profileError.message.includes("Cannot coerce the result to a single JSON object")) {
-            return {
-                profile: null,
-                partner: null,
-            };
-        }
-        throw new Error(profileError.message);
+export async function getProfileWithPartner(userId?: string) {
+    let currentUserId = userId;
+    if (!currentUserId) {
+        const {
+            data: { user },
+        } = await supabase.auth.getUser();
+        currentUserId = user?.id;
     }
+
+    if (!currentUserId) throw new Error("Kullanıcı bulunamadı");
+
+    let profile: any = null;
+    for (let attempt = 0; attempt < PROFILE_FETCH_MAX_RETRIES; attempt++) {
+        const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", currentUserId)
+            .maybeSingle();
+
+        if (error) {
+            // Kayıt sonrası ilk saniyelerde profile satırı henüz oluşmadıysa
+            // PostgREST tek kayıt zorlamasında bu mesajı dönebiliyor.
+            if (!error.message.includes("Cannot coerce the result to a single JSON object")) {
+                throw new Error(error.message);
+            }
+        } else if (data) {
+            profile = data;
+            break;
+        }
+
+        if (attempt < PROFILE_FETCH_MAX_RETRIES - 1) {
+            await sleep(RETRY_DELAY_MS);
+        }
+    }
+
     if (!profile) {
         return {
             profile: null,

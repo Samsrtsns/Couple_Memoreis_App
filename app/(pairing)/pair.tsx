@@ -3,13 +3,26 @@ import { TextInputArea } from "@/src/components/TextInput";
 import { usePair } from "@/src/hooks/usePair";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Keyboard, Modal, Pressable, Text, TouchableWithoutFeedback, View } from "react-native";
+import {
+    ActivityIndicator,
+    Keyboard,
+    Modal,
+    Platform,
+    Pressable,
+    Text,
+    TouchableWithoutFeedback,
+    View,
+} from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/context/AuthContext";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function PairScreen() {
+    const { t } = useTranslation();
+    const insets = useSafeAreaInsets();
     const { state: { profile, partner } } = useAuth();
     const { from } = useLocalSearchParams<{ from?: string }>();
     
@@ -39,15 +52,18 @@ export default function PairScreen() {
             <View className="flex-1 items-center bg-bgLight">
                 <KeyboardAwareScrollView
                     enableOnAndroid
-                    extraScrollHeight={-80}
-                    extraHeight={0}
-                    keyboardOpeningTime={0}
+                    enableAutomaticScroll
+                    enableResetScrollToCoords={false}
+                    extraScrollHeight={Platform.OS === "ios" ? 96 : 88}
+                    extraHeight={32}
+                    keyboardOpeningTime={250}
                     keyboardShouldPersistTaps="handled"
-                    showsVerticalScrollIndicator={false}
+                    keyboardDismissMode="on-drag"
+                    showsVerticalScrollIndicator
+                    style={{ flex: 1, width: "100%" }}
                     contentContainerStyle={{
-
                         paddingTop: 0,
-                        paddingBottom: 0,
+                        paddingBottom: Math.max(insets.bottom, 16) + 100,
                     }}
                 >
                     {/* Back Button */}
@@ -69,23 +85,23 @@ export default function PairScreen() {
                     {/* Header and subhead text */}
                     <View className="flex-col justify-center items-center w-full mt-4 gap-y-2 px-6">
                         <Text className="text-center text-[26px] font-bold">
-                            Birlikte Daha Güzel
+                            {t("pairing.title")}
                         </Text>
                         <Text className="text-center text-[14px] font-normal text-slate-500">
-                            Ortak yolculuğunuza başlamak için davet kodunu paylaş veya partnerinin kodunu gir.
+                            {t("pairing.subtitle")}
                         </Text>
                     </View>
 
                     {/* Code Card */}
                     <View className="w-full items-center mt-8 px-6">
-                        <View className="w-full h-[90%] max-h-[300px] bg-bgLight rounded-3xl shadow-lg justify-center items-center">
+                        <View className="w-full max-h-[300px] bg-bgLight rounded-3xl shadow-lg justify-center items-center">
                             <View className="flex-col items-center p-6 w-full h-full rounded-3xl">
                                 <View className="w-20 h-20 rounded-full bg-[#E65D4F]/20 items-center justify-center">
                                     <Ionicons name="heart" size={30} color="#FF7F6E" />
                                 </View>
 
                                 <Text className="mt-6 text-[#E65D4F] uppercase text-xs font-bold tracking-[2px]">
-                                    Davet Kodun
+                                    {t("pairing.inviteCodeLabel")}
                                 </Text>
 
                                 <Text className="mt-6 font-bold text-[42px] text-slate-900 tracking-[6px]">
@@ -100,7 +116,7 @@ export default function PairScreen() {
                                     >
                                         <Ionicons name="copy-outline" size={18} color="#ffffff" />
                                         <Text className="ml-2 text-white font-semibold">
-                                            Kopyala
+                                            {t("pairing.copy")}
                                         </Text>
                                     </Pressable>
 
@@ -110,7 +126,7 @@ export default function PairScreen() {
                                     >
                                         <Ionicons name="share-social-outline" size={18} color="#ffffff" />
                                         <Text className="ml-2 text-white font-semibold">
-                                            Paylaş
+                                            {t("pairing.share")}
                                         </Text>
                                     </Pressable>
                                 </View>
@@ -120,7 +136,7 @@ export default function PairScreen() {
                         <View className="flex-row items-center w-full gap-4 py-4 mt-8">
                             <View className="flex-1 h-[1px] bg-slate-200" />
                             <Text className="text-xs font-bold text-slate-400 uppercase tracking-[3px]">
-                                Veya Katıl
+                                {t("pairing.orJoin")}
                             </Text>
                             <View className="flex-1 h-[1px] bg-slate-200" />
                         </View>
@@ -128,9 +144,9 @@ export default function PairScreen() {
                         {/* Input Field Section */}
                         <View className="w-full gap-y-4">
 
-                            <TextInputArea label={""} keyboardType="numeric" value={partnerCode} onChangeText={setPartnerCode} placeholder="Partnerinin Kodunu Gir" autoCapitalize="characters" ></TextInputArea>
+                            <TextInputArea label={""} value={partnerCode} onChangeText={setPartnerCode} placeholder={t("pairing.partnerCodePlaceholder")} autoCapitalize="characters" ></TextInputArea>
 
-                            <PrimaryButton title={"Şimdi Bağlan"} onPress={connectPartner}></PrimaryButton>
+                            <PrimaryButton title={t("pairing.connectNow")} onPress={connectPartner}></PrimaryButton>
                         </View>
 
                         {loading && (
@@ -140,14 +156,6 @@ export default function PairScreen() {
                                 </View>
                             </Modal>
                         )}
-
-                        {/* Footer Help */}
-                        <View className="w-full mt-24 mb-6 items-center">
-                            <Text className="text-sm text-slate-500 text-center">
-                                Yardıma mı ihtiyacın var?{" "}
-                                <Text className="text-[#FF7F6E] font-bold">Kılavuzumuzu incele</Text>
-                            </Text>
-                        </View>
 
                     </View>
 

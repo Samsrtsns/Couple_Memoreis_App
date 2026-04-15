@@ -6,15 +6,20 @@ export default {
   expo: {
     name: 'forLovers',
     slug: 'forLovers',
-    version: '1.0.3',
+    version: '1.0.4',
     orientation: 'portrait',
-    icon: './assets/images/icon.png',
-    scheme: 'couply',
+    icon: './assets/images/app_icon_expo.png',
+    scheme: 'forlovers',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
+    splash: {
+      image: './assets/images/app_icon_png.png',
+      resizeMode: 'contain',
+      backgroundColor: '#ffffff',
+    },
     ios: {
       supportsTablet: true,
-      buildNumber: '1',
+      buildNumber: '4',
       config: {
         googleMapsApiKey,
       },
@@ -22,13 +27,14 @@ export default {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
-      appleTeamId: 'Y65KYRF4RY',
+      appleTeamId: 'U278U8U2L4',
     },
     android: {
-      softwareKeyboardLayoutMode: 'pan',
+      softwareKeyboardLayoutMode: 'resize',
+      versionCode: 2,
       adaptiveIcon: {
-        backgroundColor: '#E6F4FE',
-        foregroundImage: './assets/images/android-icon-foreground.png',
+        backgroundColor: '#ffffff',
+        foregroundImage: './assets/images/app_icon_expo.png',
         backgroundImage: './assets/images/android-icon-background.png',
         monochromeImage: './assets/images/android-icon-monochrome.png',
       },
@@ -43,7 +49,7 @@ export default {
         'android.permission.ACCESS_COARSE_LOCATION',
         'android.permission.ACCESS_FINE_LOCATION',
       ],
-      package: 'com.sametkati.forLovers',
+      package: 'com.sametkatidev.forlovers',
     },
     web: {
       output: 'static',
@@ -54,6 +60,8 @@ export default {
       [
         'expo-splash-screen',
         {
+          image: './assets/images/app_icon_png.png',
+          resizeMode: 'contain',
           backgroundColor: '#ffffff',
         },
       ],
@@ -66,6 +74,7 @@ export default {
         },
       ],
       'expo-font',
+      '@react-native-google-signin/google-signin',
     ],
     experiments: {
       typedRoutes: true,

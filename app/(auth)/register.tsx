@@ -3,12 +3,17 @@ import PrivacyPolicyModal from "@/src/components/PrivacyPolicyModal";
 import PrimaryButton from "@/src/components/PrimaryButton";
 import Screen from "@/src/components/Screen";
 import { TextInputArea } from "@/src/components/TextInput";
+import { useAuth } from "@/src/context/AuthContext";
 import { useRegister } from "@/src/hooks/useRegister";
+import { signInWithGoogle } from "@/src/services/auth/googleAuth";
+import { getProfileWithPartner } from "@/src/services/pairService";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+    Alert,
     Image,
     Platform,
     Pressable,
@@ -19,6 +24,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 export default function RegisterScreen() {
     const { t } = useTranslation();
+    const { dispatch } = useAuth();
     const {
         firstName,
         setFirstName,
@@ -37,6 +43,33 @@ export default function RegisterScreen() {
     } = useRegister();
 
     const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
+
+    const handleGoogleSignIn = async () => {
+        try {
+            const result = await signInWithGoogle({
+                setLoading: setGoogleLoading,
+            });
+            if (!result) return;
+
+            const { profile, partner } = await getProfileWithPartner(result.user.id);
+            dispatch({
+                type: "LOGIN_SUCCESS",
+                payload: {
+                    session: result.session,
+                    user: result.user,
+                    profile,
+                    partner,
+                },
+            });
+            await AsyncStorage.setItem("hasLaunched", "true");
+        } catch (e: unknown) {
+            Alert.alert(
+                t("common.error"),
+                e instanceof Error ? e.message : t("auth.genericError"),
+            );
+        }
+    };
 
     const handleAcceptTerms = () => {
         setAccepted(true);
@@ -106,7 +139,7 @@ export default function RegisterScreen() {
                             label={t("auth.email")}
                             value={email}
                             onChangeText={setEmail}
-                            placeholder="merhaba@askimiz.com"
+                            placeholder={t("auth.emailPlaceholder")}
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
@@ -171,23 +204,17 @@ export default function RegisterScreen() {
                         </View>
 
                         {/* Social Buttons */}
-                        <View className="flex-row gap-x-4">
-                            <Pressable
-                                onPress={() => { }}
-                                className="flex-1 h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
-                            >
-                                <Image source={Icons.google} className="w-5 h-5" />
-                                <Text className="font-semibold text-slate-700">Google</Text>
-                            </Pressable>
-
-                            <Pressable
-                                onPress={() => { }}
-                                className="flex-1 h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
-                            >
-                                <Image source={Icons.apple} className="w-5 h-5" />
-                                <Text className="font-semibold text-slate-700">Apple</Text>
-                            </Pressable>
-                        </View>
+                        <Pressable
+                            onPress={handleGoogleSignIn}
+                            disabled={googleLoading}
+                            className="h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
+                            style={{ opacity: googleLoading ? 0.5 : 1 }}
+                        >
+                            <Image source={Icons.google} className="w-5 h-5" />
+                            <Text className="font-semibold text-slate-700">
+                                {googleLoading ? "..." : "Google"}
+                            </Text>
+                        </Pressable>
                     </View>
 
                     {/* Footer */}

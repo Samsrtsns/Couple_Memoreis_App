@@ -4,12 +4,15 @@ import Screen from "@/src/components/Screen";
 import { TextInputArea } from "@/src/components/TextInput";
 import { useAuth } from "@/src/context/AuthContext";
 import { useLogin } from "@/src/hooks/useLogin";
+import { getProfileWithPartner } from "@/src/services/pairService";
+import { signInWithGoogle } from "@/src/services/auth/googleAuth";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+    Alert,
     Image,
     Platform,
     Pressable,
@@ -21,7 +24,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 export default function LoginScreen() {
     const { t } = useTranslation();
-    const { enterGuestMode } = useAuth();
+    const { enterGuestMode, dispatch } = useAuth();
     const {
         email,
         setEmail,
@@ -32,6 +35,34 @@ export default function LoginScreen() {
         loading,
         handleLogin,
     } = useLogin();
+
+    const [googleLoading, setGoogleLoading] = useState(false);
+
+    const handleGoogleSignIn = async () => {
+        try {
+            const result = await signInWithGoogle({
+                setLoading: setGoogleLoading,
+            });
+            if (!result) return;
+
+            const { profile, partner } = await getProfileWithPartner(result.user.id);
+            dispatch({
+                type: "LOGIN_SUCCESS",
+                payload: {
+                    session: result.session,
+                    user: result.user,
+                    profile,
+                    partner,
+                },
+            });
+            await AsyncStorage.setItem("hasLaunched", "true");
+        } catch (e: unknown) {
+            Alert.alert(
+                t("common.error"),
+                e instanceof Error ? e.message : t("auth.genericError"),
+            );
+        }
+    };
 
     const handleGuestMode = async () => {
         await AsyncStorage.setItem('hasLaunched', 'true');
@@ -60,15 +91,10 @@ export default function LoginScreen() {
                     <View>
                         {/* Header */}
                         <View className="items-center pt-6">
-                            <View className="justify-center items-center">
+                            <View className="justify-center items-center pb-2">
                                 <Image
-                                    source={Icons.infinity}
-                                    className="w-[100px] h-[100px]"
-                                    resizeMode="contain"
-                                />
-                                <Image
-                                    source={Icons.heart}
-                                    className="w-[36px] h-[36px] absolute"
+                                    source={require("@/assets/images/app_icon_png.png")}
+                                    className="w-[130px] h-[130px]"
                                     resizeMode="contain"
                                 />
                             </View>
@@ -90,14 +116,14 @@ export default function LoginScreen() {
                                     label={t("auth.email")}
                                     value={email}
                                     onChangeText={setEmail}
-                                    placeholder="merhaba@askimiz.com"
+                                    placeholder={t("auth.emailPlaceholder")}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                 />
 
                                 <View className="gap-y-2">
                                     <TextInputArea
-                                    label={t("auth.password")}
+                                        label={t("auth.password")}
                                         value={pass}
                                         onChangeText={setPass}
                                         placeholder="••••••••"
@@ -135,23 +161,17 @@ export default function LoginScreen() {
                                     <View className="h-[1px] flex-1 bg-slate-200" />
                                 </View>
 
-                                <View className="flex-row gap-x-4">
-                                    <Pressable
-                                        onPress={() => { }}
-                                        className="flex-1 h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
-                                    >
-                                        <Image source={Icons.google} className="w-5 h-5" />
-                                        <Text className="font-semibold text-slate-700">Google</Text>
-                                    </Pressable>
-
-                                    <Pressable
-                                        onPress={() => { }}
-                                        className="flex-1 h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
-                                    >
-                                        <Image source={Icons.apple} className="w-5 h-5" />
-                                        <Text className="font-semibold text-slate-700">Apple</Text>
-                                    </Pressable>
-                                </View>
+                                <Pressable
+                                    onPress={handleGoogleSignIn}
+                                    disabled={googleLoading}
+                                    className="h-14 border border-slate-200 bg-white rounded-xl flex-row items-center justify-center gap-x-2"
+                                    style={{ opacity: googleLoading ? 0.5 : 1 }}
+                                >
+                                    <Image source={Icons.google} className="w-5 h-5" />
+                                    <Text className="font-semibold text-slate-700">
+                                        {googleLoading ? "..." : "Google"}
+                                    </Text>
+                                </Pressable>
 
                                 {/* Guest Mode Button */}
                                 <TouchableOpacity

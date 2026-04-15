@@ -90,12 +90,59 @@ export default function RelationshipCard({ relationshipStartDate }: Props) {
         );
     }
 
-    if (!relationshipStartDate) return null;
+    const relationDate = relationshipStartDate
+        ? parseDateOnlyString(relationshipStartDate)
+        : null;
+
+    if (!relationshipStartDate || !relationDate) {
+        return (
+            <View className="px-6 bg-bgLight">
+                <View
+                    className="w-full mt-6 p-6 bg-bgLight border border-dashed border-amber-200"
+                    style={{
+                        borderRadius: 24,
+                        shadowColor: "#F59E0B",
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 12,
+                        elevation: 3,
+                    }}
+                >
+                    <View className="items-center">
+                        <View className="flex-row items-center gap-x-6 mb-4">
+                            <ProfileAvatar
+                                url={profile?.avatar_url}
+                                size={72}
+                                style={{ borderWidth: 2, borderColor: "#fff" }}
+                            />
+                            <Ionicons name="heart" size={36} color="#FF8A8A" />
+                            <ProfileAvatar
+                                url={partner?.avatar_url}
+                                size={72}
+                                style={{ borderWidth: 2, borderColor: "#fff" }}
+                            />
+                        </View>
+                        <Text className="text-slate-900 font-bold text-lg text-center">
+                            {t("home.missingDatesTitle")}
+                        </Text>
+                        <Text className="text-slate-500 text-sm text-center mt-2 leading-5 px-1">
+                            {t("home.missingDatesMessage")}
+                        </Text>
+                        <Pressable
+                            onPress={() => router.push("/(profile)/relationship")}
+                            className="mt-5 bg-[#ea5385] px-6 py-3 rounded-2xl active:opacity-90"
+                        >
+                            <Text className="text-white font-bold text-[15px]">
+                                {t("home.goToSettings")}
+                            </Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </View>
+        );
+    }
 
     const daysTogether = calculateDaysTogether(relationshipStartDate);
-
-    const relationDate = parseDateOnlyString(relationshipStartDate);
-    if (!relationDate) return null;
 
     const formattedDate = relationDate.toLocaleDateString(
         i18n.language || "tr-TR",

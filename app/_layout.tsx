@@ -1,12 +1,12 @@
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { initRevenueCat, fetchOfferings, findTargetOffering, checkTargetProducts, checkEntitlementStatus, fetchCustomerInfo } from '@/src/services/revenuecat';
 import { supabase } from '@/src/lib/supabase';
 import '@/src/i18n';
-import Constants from 'expo-constants';
 import { useFonts } from 'expo-font';
 import { Stack, router, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef, useState } from 'react';
-import { Linking, LogBox, Text } from 'react-native';
+import { ActivityIndicator, Linking, LogBox, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,10 +18,12 @@ import {
     Inter_900Black
 } from '@expo-google-fonts/inter';
 
-const isExpoGo = Constants.appOwnership === 'expo';
-if (!isExpoGo) {
-    void SplashScreen.preventAutoHideAsync().catch(() => {});
-}
+/** JS bundle yüklenince başlar; splash süresi ölçümü için */
+const SPLASH_APP_START_MS = Date.now();
+
+const SPLASH_MIN_VISIBLE_MS = 2000;
+
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 LogBox.ignoreLogs([
     "SafeAreaView has been deprecated"
@@ -35,6 +37,8 @@ function NavigationRoot() {
     const segmentList = segments as string[];
     const splashHiddenRef = useRef(false);
     const pendingRecoveryRef = useRef(false);
+    /** Segment listesi geçici [] olduğunda (profil yenileme vb.) önceki konumu koru */
+    const lastNonEmptySegmentsRef = useRef<string[]>([]);
 
     function getUrlParam(url: string, key: string): string | null {
         const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -84,35 +88,62 @@ function NavigationRoot() {
         if (!isInitialized) return;
 
         async function handleNavigation() {
-            // Use a globally managed or more stable hiding logic
-            if (!isExpoGo && !splashHiddenRef.current) {
+            if (segmentList.length > 0) {
+                lastNonEmptySegmentsRef.current = segmentList;
+            }
+
+            if (!splashHiddenRef.current) {
                 splashHiddenRef.current = true;
-                // Add a very slight delay to ensure the native view is ready on iOS
+                const elapsed = Date.now() - SPLASH_APP_START_MS;
+                const waitMs = Math.max(0, SPLASH_MIN_VISIBLE_MS - elapsed);
                 setTimeout(async () => {
                     try {
                         await SplashScreen.hideAsync();
-                    } catch (e: any) {
-                        // This error is usually safe to ignore if the splash is already gone
-                        console.warn('SplashScreen hide warning:', e?.message || 'already hidden');
+                    } catch (e: unknown) {
+                        const msg = e instanceof Error ? e.message : 'already hidden';
+                        console.warn('SplashScreen hide warning:', msg);
                     }
-                }, 50);
+                }, waitMs);
             }
 
             try {
                 const hasLaunched = await AsyncStorage.getItem('hasLaunched');
                 const isFirstLaunch = hasLaunched !== 'true';
+                const normalizedPathname = pathname.replace(/\/\([^/]+\)/g, '');
                 const shouldRedirectToPairAfterRegister =
                     (await AsyncStorage.getItem('redirectToPairAfterRegister')) === 'true';
                 const isPairingPath =
                     segmentList[0] === '(pairing)' ||
                     pathname.startsWith('/(pairing)') ||
-                    pathname === '/pair';
-                const isAuthPath = ['/login', '/register', '/forgot-password', '/reset-password'].includes(pathname);
-                const isOnboardingPath = pathname.startsWith('/onboarding');
+                    pathname === '/pair' ||
+                    normalizedPathname.startsWith('/pair');
+                const isAuthPath =
+                    segmentList[0] === '(auth)' ||
+                    ['/login', '/register', '/forgot-password', '/reset-password', '/google-name'].includes(pathname) ||
+                    ['/login', '/register', '/forgot-password', '/reset-password', '/google-name'].includes(normalizedPathname);
+                const authScreenSegments = ['login', 'register', 'forgot-password', 'reset-password', 'google-name'];
+                const isAuthScreenSegment = segmentList.some((segment) => authScreenSegments.includes(segment));
+                const isOnboardingPath = pathname.startsWith('/onboarding') || normalizedPathname.startsWith('/onboarding');
                 const isRealRootPath = (pathname === '/' || pathname === '') && segmentList.length === 0;
                 const isTabsPath = segmentList[0] === '(tabs)';
 
+                const isInAppShellSegment = (first: string | undefined) =>
+                    first === '(tabs)' ||
+                    first === '(events)' ||
+                    first === '(pairing)' ||
+                    first === '(profile)' ||
+                    first === 'memory-detail';
+
                 if (isLoggedIn) {
+                    const pendingGoogleOnboarding =
+                        await AsyncStorage.getItem('pendingGoogleOnboarding');
+                    if (pendingGoogleOnboarding === 'true') {
+                        if (pathname !== '/google-name' && normalizedPathname !== '/google-name') {
+                            router.replace('/(auth)/google-name');
+                        }
+                        return;
+                    }
+
                     if (shouldRedirectToPairAfterRegister) {
                         await AsyncStorage.removeItem('redirectToPairAfterRegister');
                         if (!isPairingPath) {
@@ -126,8 +157,18 @@ function NavigationRoot() {
                         router.replace('/(auth)/reset-password');
                         return;
                     }
-                    if (pathname === '/reset-password') return;
-                    if (isAuthPath || isOnboardingPath || isRealRootPath) {
+                    if (pathname === '/reset-password' || normalizedPathname === '/reset-password') return;
+
+                    const inAppShellNow = isInAppShellSegment(segmentList[0]);
+                    const wasInAppShell = isInAppShellSegment(lastNonEmptySegmentsRef.current[0]);
+                    const transientRootWhileInApp =
+                        isRealRootPath && wasInAppShell && segmentList.length === 0;
+
+                    if (inAppShellNow || transientRootWhileInApp) {
+                        return;
+                    }
+
+                    if (isAuthPath || isAuthScreenSegment || isOnboardingPath || isRealRootPath) {
                         router.replace('/(tabs)/home');
                     }
                     return;
@@ -162,6 +203,14 @@ function NavigationRoot() {
         void handleNavigation().catch(() => {});
     }, [isInitialized, isLoggedIn, isGuest, pathname, segmentList]);
 
+    if (!isInitialized) {
+        return (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+                <ActivityIndicator size="large" color="#ea5385" />
+            </View>
+        );
+    }
+
     return (
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(onboarding)" />
@@ -189,6 +238,10 @@ export default function RootLayout() {
     const [isAppReady, setIsAppReady] = useState(false);
 
     useEffect(() => {
+        void SplashScreen.preventAutoHideAsync().catch(() => {});
+    }, []);
+
+    useEffect(() => {
         if (fontsLoaded) {
             const TextRender = Text as any;
             if (!TextRender.defaultProps) {
@@ -202,6 +255,39 @@ export default function RootLayout() {
             setIsAppReady(true);
         }
     }, [fontsLoaded]);
+
+    useEffect(() => {
+        if (!isAppReady) return;
+
+        async function bootstrapRevenueCat() {
+            console.log('[RC BOOT] ====== RevenueCat bootstrap started ======');
+
+            const ok = await initRevenueCat();
+            if (!ok) {
+                console.log('[RC BOOT] Init FAILED — aborting bootstrap');
+                return;
+            }
+
+            console.log('[RC BOOT] Step 1/5 — Init complete, fetching offerings...');
+            const offerings = await fetchOfferings();
+
+            console.log('[RC BOOT] Step 2/5 — Finding target offering...');
+            const target = findTargetOffering(offerings);
+
+            console.log('[RC BOOT] Step 3/5 — Checking target products...');
+            checkTargetProducts(target);
+
+            console.log('[RC BOOT] Step 4/5 — Checking entitlement status...');
+            await checkEntitlementStatus();
+
+            console.log('[RC BOOT] Step 5/5 — Fetching customer info...');
+            await fetchCustomerInfo();
+
+            console.log('[RC BOOT] ====== RevenueCat bootstrap DONE ======');
+        }
+
+        void bootstrapRevenueCat();
+    }, [isAppReady]);
 
     if (!isAppReady) return null;
 
