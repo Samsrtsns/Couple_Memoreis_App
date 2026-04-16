@@ -103,18 +103,32 @@ export async function logoutUser() {
 }
 
 /**
- * Mevcut aktif oturum bilgisini getirir ve token'ın geçerliliğini doğrular.
+ * Mevcut aktif oturum bilgisini getirir.
  *
- * Uygulama açılışında öncelik, mevcut local session'ı güvenle geri yüklemektir.
- * refreshSession() çağrısını burada zorunlu yapmak, geçici ağ problemlerinde
- * valid oturumu gereksiz yere düşürebilir. Token yenileme Supabase tarafından
- * auto-refresh mekanizmasıyla yönetilir.
+ * Önce local cache'ten session alınır. Eğer access token süresi dolmuş veya
+ * dolmak üzereyse (60 sn buffer) refreshSession ile yenilenir. Ağ yoksa veya
+ * refresh başarısızsa yine local session döner — böylece geçici kesintilerde
+ * oturum gereksiz yere düşürülmez.
  */
 export async function getCurrentSession() {
     try {
         const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return null;
 
-        return session ?? null;
+        const expiresAt = session.expires_at ?? 0;
+        const nowSec = Math.floor(Date.now() / 1000);
+        const isExpiredOrClose = expiresAt - nowSec < 60;
+
+        if (isExpiredOrClose) {
+            const { data, error } = await supabase.auth.refreshSession();
+            if (error) {
+                console.warn('[Auth] Token refresh during init failed:', error.message);
+                return session;
+            }
+            return data.session ?? session;
+        }
+
+        return session;
     } catch (error) {
         console.error('[Auth] getCurrentSession error:', error);
         try { await supabase.auth.signOut({ scope: 'local' }); } catch {}

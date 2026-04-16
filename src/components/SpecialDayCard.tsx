@@ -23,26 +23,15 @@ export default function SpecialDayCard({
     isYearly = true,
     iconName = "heart",
 }: Props) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const remainingDays = calculateDaysRemaining(date, isYearly);
 
     const parsedDate = parseDateOnlyString(date) ?? new Date(2000, 0, 1);
     const day = parsedDate.getDate();
-    const monthIndex = parsedDate.getMonth();
-    const monthAbbr = [
-        "JAN",
-        "FEB",
-        "MAR",
-        "APR",
-        "MAY",
-        "JUN",
-        "JUL",
-        "AUG",
-        "SEP",
-        "OCT",
-        "NOV",
-        "DEC",
-    ][monthIndex] ?? "JAN";
+    const monthAbbr = parsedDate
+        .toLocaleDateString(i18n.language, { month: "short" })
+        .replace(".", "")
+        .toLocaleUpperCase(i18n.language);
 
     const colors = DATE_BADGE_COLORS[iconName ?? "heart"] || {
         bg: "#FFE4E6",

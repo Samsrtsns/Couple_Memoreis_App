@@ -143,10 +143,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     stateRef.current = state;
 
     // Manage Supabase auto-refresh based on app foreground/background state.
+    // When the app returns to foreground after a long background period (e.g. 6-7 hours),
+    // the JWT will already be expired. startAutoRefresh() only schedules the next tick —
+    // it does NOT immediately refresh an already-expired token. So we explicitly call
+    // refreshSession() to get a fresh token before any API call is attempted.
     useEffect(() => {
-        const sub = AppState.addEventListener('change', (status: AppStateStatus) => {
+        const sub = AppState.addEventListener('change', async (status: AppStateStatus) => {
             if (status === 'active') {
                 supabase.auth.startAutoRefresh();
+
+                if (stateRef.current.isLoggedIn) {
+                    try {
+                        const { error } = await supabase.auth.refreshSession();
+                        if (error) {
+                            console.warn('[Auth] Foreground session refresh failed:', error.message);
+                        }
+                    } catch (e) {
+                        console.warn('[Auth] Foreground session refresh error:', e);
+                    }
+                }
             } else {
                 supabase.auth.stopAutoRefresh();
             }
